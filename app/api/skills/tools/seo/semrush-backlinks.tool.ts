@@ -28,11 +28,17 @@ export const get_backlink_overview = tool({
       if (!response.ok) throw new Error('Semrush Backlinks API request failed');
 
       const text = await response.text();
-      if (text.startsWith('ERROR')) throw new Error(`Semrush API Error: ${text}`);
+      if (text.startsWith('ERROR')) {
+        // ERROR 50 :: NOTHING FOUND means no data, not a real error
+        if (text.includes('NOTHING FOUND') || text.includes('ERROR 50')) {
+          return { success: true, no_data: true, message: 'No backlink data found for this target in Semrush database.', data: null };
+        }
+        throw new Error(`Semrush API Error: ${text}`);
+      }
 
       const lines = text.trim().split('\n');
       if (lines.length < 2) {
-        return { success: true, message: 'No backlink data found for this target.', data: null };
+        return { success: true, no_data: true, message: 'No backlink data found for this target.', data: null };
       }
 
       const values = lines[1].split(';');
@@ -81,11 +87,17 @@ export const get_backlink_history = tool({
       if (!response.ok) throw new Error('Semrush Backlinks API request failed');
 
       const text = await response.text();
-      if (text.startsWith('ERROR')) throw new Error(`Semrush API Error: ${text}`);
+      if (text.startsWith('ERROR')) {
+        // ERROR 50 :: NOTHING FOUND means no data, not a real error
+        if (text.includes('NOTHING FOUND') || text.includes('ERROR 50')) {
+          return { success: true, no_data: true, message: 'No historical backlink data found in Semrush database.', history: [] };
+        }
+        throw new Error(`Semrush API Error: ${text}`);
+      }
 
       const lines = text.trim().split('\n');
       if (lines.length < 2) {
-        return { success: true, message: 'No historical backlink data found.', history: [] };
+        return { success: true, no_data: true, message: 'No historical backlink data found.', history: [] };
       }
 
       const history = lines.slice(1).map(line => {
