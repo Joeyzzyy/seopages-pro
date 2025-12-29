@@ -155,7 +155,7 @@ export default function BuildGuidePage() {
         {
           action: '访问项目仓库',
           tool: 'Browser',
-          command: 'https://github.com/seenos/mini-agent',
+          command: 'https://github.com/Joeyzzyy/mini-seenos',
           expected: '看到项目主页',
         },
         {
@@ -166,8 +166,8 @@ export default function BuildGuidePage() {
       ],
       code: `# 或者使用 Git 命令行克隆（本地开发用）
 
-git clone https://github.com/YOUR_USERNAME/mini-agent.git
-cd mini-agent
+git clone https://github.com/Joeyzzyy/mini-seenos.git
+cd mini-seenos
 npm install`,
       successCheck: '你的 GitHub 账号下出现 mini-agent 仓库',
     },
@@ -1183,7 +1183,7 @@ skillRegistry.register(seoSkill);`,
                 {Icons.arrow}
               </Link>
               <a
-                href="https://github.com/seenos/mini-agent"
+                href="https://github.com/Joeyzzyy/mini-seenos"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg transition-all hover:bg-gray-200"
