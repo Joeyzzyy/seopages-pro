@@ -546,7 +546,7 @@ export default function SkillsPage() {
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {skill.metadata.whatArtifactsWillBeGenerated.map((artifact: string, idx: number) => (
-                              <span key={idx} className="px-2 py-1 rounded-md bg-gradient-to-r from-purple-50 to-blue-50 text-[#9A8FEA] text-[9px] font-bold border border-[#D194EC]/20">
+                              <span key={idx} className="px-2 py-1 rounded-md bg-[#FAFAFA] text-[#9A8FEA] text-[9px] font-bold border border-[#D194EC]/20">
                                 {artifact}
                               </span>
                             ))}
@@ -760,7 +760,7 @@ export default function SkillsPage() {
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto thin-scrollbar px-6 pb-6">
-                  <div className="font-mono text-[11px] leading-[1.8] text-[#374151] whitespace-pre-wrap selection:bg-purple-50">
+                  <div className="font-mono text-[11px] leading-[1.8] text-[#374151] whitespace-pre-wrap selection:bg-[#D194EC]/20">
                     {selectedSkill?.systemPrompt || 'The core instruction for this skill defines how the AI agent processes information.'}
                   </div>
                 </div>
@@ -833,7 +833,7 @@ export default function SkillsPage() {
                       <h4 className="text-[10px] font-black text-[#111827] leading-tight">预期输出</h4>
                       <span className="text-[7px] text-[#9CA3AF] font-medium uppercase tracking-wider">Expected Output</span>
                     </div>
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
+                    <div className="p-6 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5]">
                       <p className="text-[12px] font-medium text-[#111827] leading-[1.8] whitespace-pre-line">
                         {selectedSkill.metadata.expectedOutput}
                       </p>
@@ -870,14 +870,14 @@ export default function SkillsPage() {
                         {/* New Issue Editor */}
                         {editingExample === `new_${currentSkillId}` && (
                           <div 
-                            className="p-4 rounded-2xl border-2 border-purple-200 bg-white shadow-sm space-y-3"
+                            className="p-4 rounded-2xl border-2 border-[#D194EC]/30 bg-white shadow-sm space-y-3"
                             onPaste={handlePaste}
                           >
                             <textarea
                               value={tempExample}
                               onChange={(e) => setTempExample(e.target.value)}
                               placeholder="描述发现的问题或建议..."
-                              className="w-full p-3 rounded-xl border border-[#F3F4F6] focus:border-purple-400 focus:outline-none text-[11px] text-[#111827] font-medium leading-relaxed resize-none"
+                              className="w-full p-3 rounded-xl border border-[#F3F4F6] focus:border-[#9A8FEA] focus:outline-none text-[11px] text-[#111827] font-medium leading-relaxed resize-none"
                               rows={2}
                               autoFocus
                             />
@@ -893,11 +893,11 @@ export default function SkillsPage() {
                                 </div>
                               ))}
                               {isUploading && (
-                                <div className="w-14 h-14 rounded-lg border border-purple-200 bg-purple-50 flex items-center justify-center">
-                                  <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-14 h-14 rounded-lg border border-[#D194EC]/30 bg-[#FAFAFA] flex items-center justify-center">
+                                  <div className="w-5 h-5 border-2 border-[#9A8FEA] border-t-transparent rounded-full animate-spin"></div>
                                 </div>
                               )}
-                              <label className="w-14 h-14 rounded-lg border-2 border-dashed border-[#E5E5E5] hover:border-purple-400 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                              <label className="w-14 h-14 rounded-lg border-2 border-dashed border-[#E5E5E5] hover:border-[#9A8FEA] flex flex-col items-center justify-center cursor-pointer transition-colors">
                                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                 <svg className="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth={2} /></svg>
                               </label>
@@ -926,7 +926,7 @@ export default function SkillsPage() {
                                 <textarea
                                   value={tempExample}
                                   onChange={(e) => setTempExample(e.target.value)}
-                                  className="w-full p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none text-[11px] text-[#111827] font-medium leading-relaxed resize-none"
+                                  className="w-full p-3 rounded-xl border border-[#D194EC]/30 focus:border-[#9A8FEA] focus:outline-none text-[11px] text-[#111827] font-medium leading-relaxed resize-none"
                                   rows={2}
                                   autoFocus
                                 />
@@ -940,11 +940,11 @@ export default function SkillsPage() {
                                     </div>
                                   ))}
                                   {isUploading && (
-                                    <div className="w-14 h-14 rounded-lg border border-purple-200 bg-purple-50 flex items-center justify-center">
-                                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="w-14 h-14 rounded-lg border border-[#D194EC]/30 bg-[#FAFAFA] flex items-center justify-center">
+                                      <div className="w-5 h-5 border-2 border-[#9A8FEA] border-t-transparent rounded-full animate-spin"></div>
                                     </div>
                                   )}
-                                  <label className="w-14 h-14 rounded-lg border-2 border-dashed border-[#E5E5E5] hover:border-purple-400 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                  <label className="w-14 h-14 rounded-lg border-2 border-dashed border-[#E5E5E5] hover:border-[#9A8FEA] flex flex-col items-center justify-center cursor-pointer transition-colors">
                                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                     <svg className="w-4 h-4 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth={2} /></svg>
                                   </label>
@@ -1005,10 +1005,10 @@ export default function SkillsPage() {
 
                         {(!executionExamples[currentSkillId] || executionExamples[currentSkillId].length === 0) && !editingExample?.startsWith('new_') && (
                           <div className="text-center py-12 border-2 border-dashed border-[#F3F4F6] rounded-2xl">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center mx-auto mb-3 border border-purple-100">
-                              <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6" strokeWidth={2} /></svg>
+                            <div className="w-12 h-12 rounded-full bg-[#FAFAFA] flex items-center justify-center mx-auto mb-3 border border-[#E5E5E5]">
+                              <svg className="w-6 h-6 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6" strokeWidth={2} /></svg>
                             </div>
-                            <button onClick={() => handleEditExample(currentSkillId)} className="text-[11px] text-purple-600 hover:text-purple-700 font-black underline">添加首个问题反馈</button>
+                            <button onClick={() => handleEditExample(currentSkillId)} className="text-[11px] text-[#111827] hover:text-[#6B7280] font-black underline">添加首个问题反馈</button>
                           </div>
                         )}
                       </div>
@@ -1016,8 +1016,8 @@ export default function SkillsPage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center mx-auto mb-3 border border-purple-100">
-                      <svg className="w-6 h-6 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="w-12 h-12 rounded-full bg-[#FAFAFA] flex items-center justify-center mx-auto mb-3 border border-[#E5E5E5]">
+                      <svg className="w-6 h-6 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
@@ -1063,7 +1063,7 @@ export default function SkillsPage() {
                 <svg className="w-6 h-6 text-[#111827]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 font-mono text-[13px] leading-[2] text-[#374151] whitespace-pre-wrap selection:bg-purple-100 bg-white">
+            <div className="flex-1 overflow-y-auto p-10 font-mono text-[13px] leading-[2] text-[#374151] whitespace-pre-wrap selection:bg-[#D194EC]/20 bg-white">
               {selectedLogic.logic}
             </div>
           </div>
