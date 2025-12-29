@@ -52,97 +52,96 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
         } ${hasGeneratedContent ? 'w-screen' : 'w-full max-w-lg rounded-l-2xl'}`}
         style={{ transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)' }}
       >
-        {/* Header */}
-        <div className="flex items-center border-b border-[#F5F5F5] bg-white sticky top-0 z-10 px-4 shrink-0">
-          {/* Tabs - Show all 3 for generated content, only Info for non-generated */}
-          <div className="flex gap-1 flex-1 items-center">
-            {hasGeneratedContent && (
-              <>
-                <button
-                  onClick={() => setActiveTab('preview')}
-                  className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                    activeTab === 'preview'
-                      ? 'text-[#111827]'
-                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
-                  }`}
-                >
-                  Preview
-                  {activeTab === 'preview' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab('code')}
-                  className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                    activeTab === 'code'
-                      ? 'text-[#111827]'
-                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
-                  }`}
-                >
-                  Code
-                  {activeTab === 'code' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
-                  )}
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                activeTab === 'details'
-                  ? 'text-[#111827]'
-                  : 'text-[#9CA3AF] hover:text-[#6B7280]'
-              }`}
-            >
-              Info
-              {activeTab === 'details' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+        {/* Header - Only show tabs when there's generated content */}
+        <div className={`flex items-center bg-white sticky top-0 z-10 px-4 shrink-0 ${hasGeneratedContent ? 'border-b border-[#F5F5F5]' : ''}`}>
+          {/* Tabs - Only show when there's generated content */}
+          {hasGeneratedContent && (
+            <div className="flex gap-1 flex-1 items-center">
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                  activeTab === 'preview'
+                    ? 'text-[#111827]'
+                    : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                }`}
+              >
+                Preview
+                {activeTab === 'preview' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                  activeTab === 'code'
+                    ? 'text-[#111827]'
+                    : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                }`}
+              >
+                Code
+                {activeTab === 'code' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                  activeTab === 'details'
+                    ? 'text-[#111827]'
+                    : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                }`}
+              >
+                Info
+                {activeTab === 'details' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+                )}
+              </button>
+
+              {/* View Mode Switcher - Only in Preview Tab */}
+              {activeTab === 'preview' && (
+                <div className="ml-8 flex items-center bg-[#F3F4F6] p-1 rounded-lg">
+                  <button
+                    onClick={() => setViewMode('desktop')}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      viewMode === 'desktop' 
+                        ? 'bg-white text-[#111827] shadow-sm' 
+                        : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                    }`}
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="2" y="3" width="20" height="14" rx="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                      <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                    PC
+                  </button>
+                  <button
+                    onClick={() => setViewMode('mobile')}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      viewMode === 'mobile' 
+                        ? 'bg-white text-[#111827] shadow-sm' 
+                        : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                    }`}
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="5" y="2" width="14" height="20" rx="2" />
+                      <line x1="12" y1="18" x2="12" y2="18.01" />
+                    </svg>
+                    MOBILE
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
+          )}
 
-            {/* View Mode Switcher - Only in Preview Tab and when content is generated */}
-            {hasGeneratedContent && activeTab === 'preview' && (
-              <div className="ml-8 flex items-center bg-[#F3F4F6] p-1 rounded-lg">
-                <button
-                  onClick={() => setViewMode('desktop')}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
-                    viewMode === 'desktop' 
-                      ? 'bg-white text-[#111827] shadow-sm' 
-                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
-                  }`}
-                >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <rect x="2" y="3" width="20" height="14" rx="2" />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                  </svg>
-                  PC
-                </button>
-                <button
-                  onClick={() => setViewMode('mobile')}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
-                    viewMode === 'mobile' 
-                      ? 'bg-white text-[#111827] shadow-sm' 
-                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
-                  }`}
-                >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <rect x="5" y="2" width="14" height="20" rx="2" />
-                    <line x1="12" y1="18" x2="12" y2="18.01" />
-                  </svg>
-                  MOBILE
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4 px-4 border-l border-[#F5F5F5] my-2">
-            <div className="hidden md:flex flex-col min-w-0 max-w-xs lg:max-w-md">
+          {/* Title and close button - expand to fill when no tabs */}
+          <div className={`flex items-center gap-4 ${hasGeneratedContent ? 'px-4 border-l border-[#F5F5F5]' : 'flex-1'} my-2`}>
+            <div className="flex flex-col min-w-0 flex-1">
               <h2 className="text-sm font-bold text-[#111827] truncate mb-0.5 leading-none">{item?.title}</h2>
               <div className="flex items-center gap-2 text-[10px] text-[#9CA3AF] font-medium whitespace-nowrap">
                 <span className="bg-[#F3F4F6] px-1.5 py-0.5 rounded-md uppercase tracking-wider text-[#6B7280] border border-[#E5E5E5]">{item?.page_type || 'blog'}</span>
                 <span>•</span>
-                <span>Generated at {item?.created_at ? new Date(item.created_at).toLocaleString('en-US', { 
+                <span>Created {item?.created_at ? new Date(item.created_at).toLocaleString('en-US', { 
                   month: 'short', 
                   day: 'numeric', 
                   hour: '2-digit', 
