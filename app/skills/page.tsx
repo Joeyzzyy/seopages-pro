@@ -759,7 +759,7 @@ export default function SkillsPage() {
                 </svg>
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-[#111827] leading-tight">内部逻辑</span>
-                  <span className="text-[8px] text-[#9CA3AF] font-medium uppercase tracking-wider">Logic Inside</span>
+                  <span className="text-[7px] text-[#9CA3AF] font-medium uppercase tracking-wider">Logic Inside</span>
                 </div>
                 </div>
               </div>
@@ -835,7 +835,7 @@ export default function SkillsPage() {
                 </svg>
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-[#111827] leading-tight">执行结果</span>
-                  <span className="text-[8px] text-[#9CA3AF] font-medium uppercase tracking-wider">Execution Results</span>
+                  <span className="text-[7px] text-[#9CA3AF] font-medium uppercase tracking-wider">Execution Results</span>
                 </div>
                 </div>
               </div>
