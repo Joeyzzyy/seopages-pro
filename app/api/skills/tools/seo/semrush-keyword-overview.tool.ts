@@ -32,10 +32,44 @@ export const keyword_overview = tool({
       const text = await response.text();
       console.log(`[keyword_overview] Raw response:`, text.substring(0, 500)); // Log first 500 chars
       
+      // Check for Semrush error messages
+      if (text.startsWith('ERROR')) {
+        console.warn(`[keyword_overview] Semrush returned:`, text);
+        
+        // ERROR 50 :: NOTHING FOUND means no data, not a real error
+        if (text.includes('NOTHING FOUND') || text.includes('ERROR 50')) {
+          console.log(`[keyword_overview] No data found for keyword "${keyword}" - this is not an error`);
+          return {
+            success: true,
+            no_data: true,
+            message: `No Semrush data found for keyword "${keyword}" in ${database} database. This could mean the keyword is too niche, misspelled, or not tracked by Semrush. Try alternative spellings or related terms.`,
+            keyword,
+            database,
+            searchVolume: 0,
+            cpc: 0,
+            competition: 0,
+            keywordDifficulty: 0
+          };
+        }
+        
+        // Other errors are real errors
+        throw new Error(`Semrush API Error: ${text}`);
+      }
+      
       const lines = text.trim().split('\n');
       if (lines.length < 2) {
-        console.warn(`[keyword_overview] No data found for keyword "${keyword}". Response lines:`, lines);
-        throw new Error('No data found for this keyword');
+        console.warn(`[keyword_overview] No data rows for keyword "${keyword}". Response lines:`, lines);
+        return {
+          success: true,
+          no_data: true,
+          message: `No data available for keyword "${keyword}" in ${database} database. The keyword may be too new or have very low search volume.`,
+          keyword,
+          database,
+          searchVolume: 0,
+          cpc: 0,
+          competition: 0,
+          keywordDifficulty: 0
+        };
       }
       
       const values = lines[1].split(';');
