@@ -52,6 +52,7 @@ Your final output must be structured as a Technical Specification:
   enabled: true,
   metadata: {
     category: 'optimize',
+    priority: '1',
     tags: ['technical', 'crawl', 'speed', 'gsc'],
     version: '2.0.0',
     solution: 'SEO 的"DevOps"。执行深度基础设施审计，专注于加载速度、可抓取性和技术合规性，确保网站完美构建以适配搜索引擎爬虫。',
