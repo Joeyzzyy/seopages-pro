@@ -24,7 +24,6 @@ import { listicleWriterSkill } from './skill-build/listicle-writer.skill';
 // Optimize Skills
 import { seoAuditorSkill } from './skill-optimize/seo-auditor.skill';
 import { geoAuditorSkill } from './skill-optimize/geo-auditor.skill';
-import { geoOptimizerSkill } from './skill-optimize/geo-optimizer.skill';
 import { techCheckerSkill } from './skill-optimize/tech-checker.skill';
 import { linkOptimizerSkill } from './skill-optimize/link-optimizer.skill';
 import { siteContextSkill } from './skill-optimize/site-context.skill';
@@ -123,7 +122,6 @@ skillRegistry.register(blogWriterSkill);
 skillRegistry.register(libraryManagerSkill);
 skillRegistry.register(schemaGeneratorSkill); // Move up: high specificity
 skillRegistry.register(metaTagsSkill);       // Move up: high specificity
-skillRegistry.register(geoOptimizerSkill);
 skillRegistry.register(landingPageWriterSkill);
 skillRegistry.register(comparisonWriterSkill);
 skillRegistry.register(guideWriterSkill);
