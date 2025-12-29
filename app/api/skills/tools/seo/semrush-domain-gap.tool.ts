@@ -75,9 +75,40 @@ export const domain_gap_analysis = tool({
       const text = await response.text();
       console.log(`[domain_gap_analysis] Raw response (first 500 chars):`, text.substring(0, 500));
       
-      // Check for Semrush error messages (e.g., ERROR 50 :: NOT ENOUGH UNITS)
+      // Check for Semrush error messages
       if (text.startsWith('ERROR')) {
-        console.error(`[domain_gap_analysis] Semrush returned error:`, text);
+        console.warn(`[domain_gap_analysis] Semrush returned:`, text);
+        
+        // ERROR 50 :: NOTHING FOUND means no data, not a real error
+        if (text.includes('NOTHING FOUND') || text.includes('ERROR 50')) {
+          console.log(`[domain_gap_analysis] No data found - this is not an error, returning suggestions`);
+          return {
+            success: true,
+            no_data: true,
+            message: `No keyword gaps found with current filters (min_volume: ${min_volume}, max_difficulty: ${max_difficulty}). This could mean:
+• The domain is too new and Semrush has limited data
+• The filter criteria are too strict
+• The competitors chosen don't have overlapping keywords
+
+**Suggestions for retry:**
+1. Lower min_volume to 50 or even 10
+2. Increase max_difficulty to 85 or 100
+3. Try different/more established competitors
+4. Use a different regional database`,
+            gaps: [],
+            my_domain,
+            competitors,
+            database,
+            filters_used: { min_volume, max_difficulty },
+            retry_suggestion: {
+              min_volume: Math.max(10, min_volume - 50),
+              max_difficulty: Math.min(100, max_difficulty + 15)
+            }
+          };
+        }
+        
+        // Other errors (e.g., NOT ENOUGH UNITS, WRONG KEY) are real errors
+        console.error(`[domain_gap_analysis] Real Semrush error:`, text);
         throw new Error(`Semrush API Error: ${text}`);
       }
 
