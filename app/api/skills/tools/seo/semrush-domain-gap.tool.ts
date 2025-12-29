@@ -44,7 +44,7 @@ export const domain_gap_analysis = tool({
         `*|or|${competitors[0]}`,
         ...(competitors[1] ? [`+|or|${competitors[1]}`] : []),
         `-|or|${my_domain}`
-      ].join('');
+      ].join('|');
 
       // Construct filter: Volume > min_volume AND KD < max_difficulty
       const filter = `+|Nq|Gt|${min_volume}|+|Kd|Lt|${max_difficulty}`;
