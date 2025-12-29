@@ -45,43 +45,47 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
         onClick={onClose}
       />
 
-      {/* Drawer - Always full screen */}
+      {/* Drawer - Full screen for generated content, narrow for info-only */}
       <div 
-        className={`fixed right-0 top-0 h-full w-screen bg-white shadow-[-20px_0_50px_-12px_rgba(0,0,0,0.1)] z-[101] transform transition-transform duration-500 cubic-bezier flex flex-col ${
+        className={`fixed right-0 top-0 h-full bg-white shadow-[-20px_0_50px_-12px_rgba(0,0,0,0.15)] z-[101] transform transition-all duration-500 flex flex-col ${
           item ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        } ${hasGeneratedContent ? 'w-screen' : 'w-full max-w-lg rounded-l-2xl'}`}
         style={{ transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)' }}
       >
-        {/* Header - Unified Tabs at Top */}
+        {/* Header */}
         <div className="flex items-center border-b border-[#F5F5F5] bg-white sticky top-0 z-10 px-4 shrink-0">
-          {/* Tabs - Only 3: Preview, Code, Info */}
+          {/* Tabs - Show all 3 for generated content, only Info for non-generated */}
           <div className="flex gap-1 flex-1 items-center">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                activeTab === 'preview'
-                  ? 'text-[#111827]'
-                  : 'text-[#9CA3AF] hover:text-[#6B7280]'
-              }`}
-            >
-              Preview
-              {activeTab === 'preview' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
-                activeTab === 'code'
-                  ? 'text-[#111827]'
-                  : 'text-[#9CA3AF] hover:text-[#6B7280]'
-              }`}
-            >
-              Code
-              {activeTab === 'code' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
-              )}
-            </button>
+            {hasGeneratedContent && (
+              <>
+                <button
+                  onClick={() => setActiveTab('preview')}
+                  className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                    activeTab === 'preview'
+                      ? 'text-[#111827]'
+                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                  }`}
+                >
+                  Preview
+                  {activeTab === 'preview' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab('code')}
+                  className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+                    activeTab === 'code'
+                      ? 'text-[#111827]'
+                      : 'text-[#9CA3AF] hover:text-[#6B7280]'
+                  }`}
+                >
+                  Code
+                  {activeTab === 'code' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(80deg, #FFAF40 -21.49%, #D194EC 18.44%, #9A8FEA 61.08%, #65B4FF 107.78%)' }} />
+                  )}
+                </button>
+              </>
+            )}
             <button
               onClick={() => setActiveTab('details')}
               className={`px-6 py-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
@@ -96,8 +100,8 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
               )}
             </button>
 
-            {/* View Mode Switcher - Only in Preview Tab */}
-            {activeTab === 'preview' && (
+            {/* View Mode Switcher - Only in Preview Tab and when content is generated */}
+            {hasGeneratedContent && activeTab === 'preview' && (
               <div className="ml-8 flex items-center bg-[#F3F4F6] p-1 rounded-lg">
                 <button
                   onClick={() => setViewMode('desktop')}
@@ -267,7 +271,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
           {/* Info Tab Content (Details renamed) */}
           {activeTab === 'details' && (
             <div className="flex-1 overflow-y-auto thin-scrollbar bg-[#FAFAFA]">
-              <div className="max-w-5xl mx-auto p-6 md:p-10 space-y-10">
+              <div className={`mx-auto p-6 space-y-8 ${hasGeneratedContent ? 'max-w-5xl md:p-10 md:space-y-10' : 'max-w-lg'}`}>
                 {/* Info Tab Content */}
                 <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div>
@@ -315,9 +319,9 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                   </div>
                 </div>
 
-                {/* Grid layout for more info */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                  <div className="lg:col-span-7 space-y-8">
+                {/* Grid layout for more info - single column for narrow drawer */}
+                <div className={`grid gap-8 ${hasGeneratedContent ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
+                  <div className={`space-y-8 ${hasGeneratedContent ? 'lg:col-span-7' : ''}`}>
                     {/* SEO Section */}
                     <section className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm">
                       <div className="px-6 py-4 border-b border-[#F5F5F5] bg-[#F9FAFB]">
@@ -402,7 +406,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                     </section>
                   </div>
 
-                  <div className="lg:col-span-5 space-y-8">
+                  <div className={`space-y-8 ${hasGeneratedContent ? 'lg:col-span-5' : ''}`}>
                     {/* Metrics Dashboard */}
                     {item?.keyword_data && (
                       <section className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm">
