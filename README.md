@@ -1,4 +1,4 @@
-# Mini Agent
+# Mini Seenos
 
 一个完整 SEO/GEO Agent 产品的开源浓缩版。基于 Next.js 15 + Vercel AI SDK 构建，包含流式对话、工具调用、技能扩展等核心能力。
 
