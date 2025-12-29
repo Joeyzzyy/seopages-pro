@@ -345,16 +345,16 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                           <div className="text-sm text-[#6B7280] leading-[1.6] bg-[#F8F9FA] p-4 rounded-xl border border-[#F1F3F5]">{item?.seo_description || '-'}</div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-4">
                           <div>
                             <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Slug</label>
-                            <div className="text-xs text-[#111827] font-mono bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5]">
-                          {typeof window !== 'undefined' ? window.location.origin : ''}/p/{item?.slug || item?.id?.slice(0, 8)}
-                        </div>
+                            <div className="text-xs text-[#111827] font-mono bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] truncate">
+                              {typeof window !== 'undefined' ? window.location.origin : ''}/p/{item?.slug || item?.id?.slice(0, 8)}
+                            </div>
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Estimated Word Count</label>
-                            <div className="text-xs text-[#111827] font-bold bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] text-center">{item?.estimated_word_count || '0'} Words</div>
+                            <div className="text-xs text-[#111827] font-bold bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] inline-block">{item?.estimated_word_count || '0'} Words</div>
                           </div>
                         </div>
                       </div>
