@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/test-rendering/:path*',
-        destination: 'https://mini-seenos-page-rendering.vercel.app/test-rendering/:path*',
+        destination: 'https://mini-seenos-page-rendering.vercel.app/zhuyuejoey.com/test-rendering/:path*',
       },
     ];
   },
