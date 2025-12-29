@@ -89,7 +89,7 @@ export default function GSCIntegrationStatus({ user, conversationId }: GSCIntegr
         }`}
         title="Google Search Console Integration"
       >
-        <svg className={`w-3.5 h-3.5 ${gscStatus.isAuthorized ? 'text-[#FFAF40]' : 'text-[#9CA3AF]'}`} viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-3.5 h-3.5 text-[#6B7280]" viewBox="0 0 24 24" fill="currentColor">
           <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 19H6v-7h2v7zm4 0h-2V7h2v12zm4 0h-2v-4h2v4z" />
         </svg>
         <span className="text-xs font-bold whitespace-nowrap">GSC</span>

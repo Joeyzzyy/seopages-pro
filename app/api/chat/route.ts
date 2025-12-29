@@ -2,10 +2,11 @@ import { createAzure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { skillRegistry, getCombinedSystemPrompt } from '../skills';
 
-// Allow streaming responses to run for up to 120 seconds for complex content production workflows
+// Allow streaming responses to run for up to 300 seconds (5 minutes) for complex content production workflows
 // Content generation requires: fetching contexts, drafting multiple sections, generating images, and saving
-// This can easily take 60-90 seconds for a full page with 5+ sections and images
-export const maxDuration = 120;
+// This can easily take 2-4 minutes for a full page with 5+ sections and images
+// Note: 300s is the max for Vercel Pro plan. For Hobby plan, max is 10s.
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {

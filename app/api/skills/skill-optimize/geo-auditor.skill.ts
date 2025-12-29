@@ -56,10 +56,6 @@ Identify page type (Blog, Product, or Landing) and evaluate these 16 items:
       'Assess semantic richness',
       'Generate optimization tips'
     ],
-    whatArtifactsWillBeGenerated: [
-      'Markdown Report',
-      'Excel Analysis'
-    ],
     expectedOutput: `• GEO CORE 四维评分（Context, Organization, Reliability, Exclusivity）：0-100 分
 • 16 项 GEO 检测清单（根据页面类型：Blog / Product / Landing）
 • AI 感知分析：内容如何被 AI 搜索引擎理解和引用

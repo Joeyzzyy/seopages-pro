@@ -73,10 +73,6 @@ Use extract_content to get data, then call 'seo_audit' with scores (0-100) and f
       'Review technical SEO elements',
       'Generate improvement checklist'
     ],
-    whatArtifactsWillBeGenerated: [
-      'Markdown Report',
-      'Excel Checklist'
-    ],
     expectedOutput: `• EEAT 评分报告（Experience, Expertise, Authority, Trust）：0-100 分
 • 20 项 EEAT 检测清单结果（✅ / ❌ 标记）
 • 内容质量分析：作者身份、引用质量、专业深度

@@ -98,6 +98,42 @@ CREATE TABLE IF NOT EXISTS skill_issues (
 
 -- skill_issues 不需要 RLS，因为是全局共享的
 
+-- 8. 创建 user_domains 表（用户绑定的域名）
+CREATE TABLE IF NOT EXISTS user_domains (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL,
+  verification_type TEXT DEFAULT 'txt', -- 'txt' or 'cname'
+  verification_token TEXT NOT NULL,
+  verified BOOLEAN DEFAULT FALSE,
+  verified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, domain)
+);
+
+-- 9. 创建 domain_subdirectories 表（域名下的子目录）
+CREATE TABLE IF NOT EXISTS domain_subdirectories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain_id UUID REFERENCES user_domains(id) ON DELETE CASCADE,
+  path TEXT NOT NULL, -- e.g., '/blog', '/resources'
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(domain_id, path)
+);
+
+-- 启用 RLS
+ALTER TABLE user_domains ENABLE ROW LEVEL SECURITY;
+ALTER TABLE domain_subdirectories ENABLE ROW LEVEL SECURITY;
+
+-- RLS 策略
+CREATE POLICY "Users can access own domains" ON user_domains
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can access own subdirectories" ON domain_subdirectories
+  FOR ALL USING (domain_id IN (
+    SELECT id FROM user_domains WHERE user_id = auth.uid()
+  ));
+
 -- ============================================
 -- 初始化完成
 -- ============================================

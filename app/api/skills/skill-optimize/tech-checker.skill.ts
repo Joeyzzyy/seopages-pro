@@ -2,6 +2,7 @@ import { Skill } from '../types';
 import { extract_content } from '../tools/research/tavily-extract-content.tool';
 import { fetch_raw_source } from '../tools/research/internal-web-fetch-source.tool';
 import { tech_audit } from '../tools/seo/tech-audit.tool';
+import { gsc_check_status } from '../tools/seo/gsc-check-status.tool';
 import { gsc_inspect_url } from '../tools/seo/gsc-inspect-url.tool';
 import { check_http_status } from '../tools/seo/check-http-status.tool';
 import { pagespeed_audit } from '../tools/seo/pagespeed-audit.tool';
@@ -24,8 +25,12 @@ Even if the user's prompt is brief, you MUST execute these steps:
 3. **Link Health Audit**:
    - Extract up to 15 internal/external links from the page.
    - Call 'check_http_status' to find 404s, 500s, or slow redirect chains.
-4. **Indexing Truth**:
-   - Call 'gsc_inspect_url' to verify exactly what Google's bot recorded.
+4. **Indexing Truth** (Optional - only for owned sites):
+   - **FIRST**: Call 'gsc_check_status' to get the user's authorized sites list.
+   - Check if the target URL belongs to any of the authorized sites.
+   - The 'siteUrl' parameter MUST exactly match one of the authorized sites (e.g., "sc-domain:example.com" or "https://example.com/").
+   - If the target URL matches an authorized site, call 'gsc_inspect_url' with the EXACT siteUrl from the authorized list.
+   - **IMPORTANT**: If the tool returns a 403 "PERMISSION_DENIED" error, this is NORMAL for third-party sites. Simply skip this step and continue with the audit. Do NOT treat this as a failure.
 
 # The "Technical Blueprint" Report
 Your final output must be structured as a Technical Specification:
@@ -45,6 +50,7 @@ Your final output must be structured as a Technical Specification:
     extract_content,
     fetch_raw_source,
     tech_audit,
+    gsc_check_status,
     gsc_inspect_url,
     check_http_status,
     pagespeed_audit,
@@ -61,10 +67,6 @@ Your final output must be structured as a Technical Specification:
       'Verify technical compliance',
       'Test mobile-friendliness',
       'Analyze Core Web Vitals'
-    ],
-    whatArtifactsWillBeGenerated: [
-      'Markdown Report',
-      'Excel Checklist'
     ],
     expectedOutput: `• Core Web Vitals 状态：移动端和桌面端的 LCP、CLS、FID 性能评分
 • 链接健康报告：发现的所有 404、500 错误及缓慢重定向链

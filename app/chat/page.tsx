@@ -40,6 +40,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 import ContentDrawer from '@/components/ContentDrawer';
 import RightSidebar from '@/components/RightSidebar';
 import GSCIntegrationStatus from '@/components/GSCIntegrationStatus';
+import DomainsModal from '@/components/DomainsModal';
 import SiteContextModal from '@/components/SiteContextModal';
 import PlaybookTrigger from '@/components/PlaybookTrigger';
 import Toast from '@/components/Toast';
@@ -119,6 +120,7 @@ export default function ChatPage() {
   } | null>(null);
   const [toast, setToast] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
   const [isArtifactsOpen, setIsArtifactsOpen] = useState(false);
+  const [isDomainsOpen, setIsDomainsOpen] = useState(false);
 
   // Chat hook
   const { messages, input, handleInputChange, handleSubmit, append, isLoading, setMessages, setInput, stop } = useChat({
@@ -1389,6 +1391,17 @@ export default function ChatPage() {
               </h1>
               {currentConversation && (
                 <div className="flex items-center gap-2">
+                  {/* Domains Button */}
+                  <button
+                    onClick={() => setIsDomainsOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#6B7280] hover:bg-[#F3F4F6] transition-all"
+                    title="Manage domains"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    Domains
+                  </button>
                   <GSCIntegrationStatus 
                     user={user} 
                     conversationId={currentConversation?.id} 
@@ -1614,6 +1627,12 @@ export default function ChatPage() {
           allContexts={siteContexts}
         />
       )}
+
+      {/* Domains Modal */}
+      <DomainsModal
+        isOpen={isDomainsOpen}
+        onClose={() => setIsDomainsOpen(false)}
+      />
 
       {/* Content Detail Drawer */}
       <ContentDrawer

@@ -260,6 +260,7 @@ export default function MessageList({
                   onUploadSuccess={onUploadSuccess}
                   onPreviewContentItem={onPreviewContentItem}
                   isLastMessage={messages.indexOf(message) === messages.length - 1}
+                  isStreaming={isLoading && messages.indexOf(message) === messages.length - 1}
                 />
               </div>
             )}

@@ -909,7 +909,7 @@ export default function SkillsPage() {
                               {issue.text}
                             </p>
                             
-                            {issue.images?.length > 0 && (
+                            {issue.images && issue.images.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-3">
                                 {issue.images.map((url: string, idx: number) => (
                                   <div key={idx} className="w-14 h-14 rounded-lg overflow-hidden border border-[#E5E5E5] cursor-zoom-in hover:opacity-80" onClick={() => setPreviewImage(url)}>
@@ -1375,7 +1375,7 @@ export default function SkillsPage() {
                                   {issue.text}
                                 </p>
                                 
-                                {issue.images?.length > 0 && (
+                                {issue.images && issue.images.length > 0 && (
                                   <div className="flex flex-wrap gap-2 mt-3">
                                     {issue.images.map((url: string, idx: number) => (
                                       <div key={idx} className="w-14 h-14 rounded-lg overflow-hidden border border-[#E5E5E5] cursor-zoom-in hover:opacity-80" onClick={() => setPreviewImage(url)}>

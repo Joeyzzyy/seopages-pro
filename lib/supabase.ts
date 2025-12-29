@@ -88,6 +88,8 @@ export interface ContentItem {
   tags: string[];
   notes: string;
   generated_content: string | null;
+  published_domain: string | null;
+  published_path: string | null;
   created_at: string;
   updated_at: string;
 }

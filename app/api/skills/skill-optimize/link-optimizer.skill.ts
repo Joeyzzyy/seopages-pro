@@ -53,10 +53,6 @@ BEST PRACTICES:
       'Find internal linking gaps',
       'Suggest anchor text opportunities'
     ],
-    whatArtifactsWillBeGenerated: [
-      'Markdown Report',
-      'Excel Link Table'
-    ],
     expectedOutput: `• 站点架构映射：通过 sitemap.xml 获取的 URL 清单（上限 500 个）
 • 目标页面内容分析：提取页面主题和关键词
 • 内部链接建议表格：包含目标关键词、链接目标 URL、语义关联原因、上下文片段

@@ -12,6 +12,7 @@ interface ToolCallsSummaryProps {
   onUploadSuccess?: () => void;
   onPreviewContentItem?: (itemId: string) => void;
   isLastMessage?: boolean;
+  isStreaming?: boolean;
 }
 
 // Get tool details for display
@@ -100,7 +101,8 @@ export default function ToolCallsSummary({
   files = [],
   onUploadSuccess,
   onPreviewContentItem,
-  isLastMessage = false
+  isLastMessage = false,
+  isStreaming = false
 }: ToolCallsSummaryProps) {
   // Check if any tool is still running (excluding tracker tools)
   const isRunning = toolInvocations.some(inv => {
@@ -109,6 +111,9 @@ export default function ToolCallsSummary({
       inv.toolName === 'update_task_status';
     return inv.state === 'call' && !isTrackerTool;
   });
+  
+  // AI is thinking when streaming but no tool is currently running
+  const isThinking = isStreaming && !isRunning;
 
   const [isExpanded, setIsExpanded] = useState(isRunning || isLastMessage);
   const [filesExpanded, setFilesExpanded] = useState(isRunning || isLastMessage);
@@ -459,22 +464,52 @@ export default function ToolCallsSummary({
             onClick={() => setIsExpanded(!isExpanded)}
             className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/50 transition-colors"
           >
-            <div className="flex items-center gap-1.5">
-              {isRunning ? (
-                <svg className="w-3.5 h-3.5 animate-spin text-[#9A8FEA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {isRunning || isThinking ? (
+                <svg className={`w-3.5 h-3.5 animate-spin shrink-0 ${isThinking ? 'text-[#F59E0B]' : 'text-[#9A8FEA]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
               ) : (
-                <svg className="w-3.5 h-3.5 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
               )}
-              <span className={`text-xs ${isRunning ? 'text-[#9A8FEA] font-medium' : 'text-[#9CA3AF]'}`}>
-                {isRunning ? 'Using Tools...' : `Used ${completedCount} Tool${completedCount > 1 ? 's' : ''}`}
-              </span>
+              {/* Show current running tool or thinking state in header line */}
+              {(() => {
+                // Find the current running tool (last one with state === 'call')
+                const runningTool = otherInvocations.filter(inv => inv.state === 'call').pop();
+                if (runningTool) {
+                  const { name, detail, action } = getToolDetails(runningTool);
+                  return (
+                    <span className="text-xs text-[#9A8FEA] font-medium truncate">
+                      <span className="font-bold">{name}</span>
+                      <span className="text-[#B4A8F8] mx-1">|</span>
+                      <span className="italic">{action}</span>
+                      {detail && <span className="font-semibold"> "{detail.slice(0, 30)}{detail.length > 30 ? '...' : ''}"</span>}
+                    </span>
+                  );
+                }
+                // Show thinking state when streaming but no tool running
+                if (isThinking) {
+                  // Get the last completed tool to show context
+                  const lastCompletedTool = otherInvocations.filter(inv => inv.state === 'result').pop();
+                  const lastToolName = lastCompletedTool ? getToolDetails(lastCompletedTool).name : '';
+                  return (
+                    <span className="text-xs text-[#F59E0B] font-medium truncate">
+                      <span className="italic">AI is preparing next step...</span>
+                      {lastToolName && <span className="text-[#D4A84B] ml-1">(after {lastToolName})</span>}
+                    </span>
+                  );
+                }
+                return (
+                  <span className="text-xs text-[#9CA3AF]">
+                    Used {completedCount} Tool{completedCount > 1 ? 's' : ''}
+                  </span>
+                );
+              })()}
             </div>
             <svg 
-              className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+              className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform shrink-0 ml-2 ${isExpanded ? 'rotate-180' : ''}`} 
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 

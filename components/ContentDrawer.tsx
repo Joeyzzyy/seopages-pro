@@ -3,23 +3,30 @@
 import { useState, useEffect } from 'react';
 import type { ContentItem } from '@/lib/supabase';
 import Toast from './Toast';
+import { supabase } from '@/lib/supabase';
+import PublishModal from './PublishModal';
 
 interface ContentDrawerProps {
   item: ContentItem | null;
   onClose: () => void;
+  onItemUpdated?: (item: ContentItem) => void;
 }
 
-export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
+export default function ContentDrawer({ item, onClose, onItemUpdated }: ContentDrawerProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'details'>('preview');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [toast, setToast] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
+  const [toast, setToast] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' }>({ isOpen: false, message: '' });
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [currentItem, setCurrentItem] = useState<ContentItem | null>(item);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   
   // Determine if this is a generated page (wide mode)
-  const hasGeneratedContent = !!item?.generated_content;
+  const hasGeneratedContent = !!currentItem?.generated_content;
 
   useEffect(() => {
+    setCurrentItem(item);
     if (item) {
       setIsVisible(true);
       // Automatically select tab based on content status
@@ -33,14 +40,97 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
     }
   }, [item]);
 
-  if (!item && !isVisible) return null;
+  const handlePublishClick = () => {
+    if (!currentItem || isPublishing) return;
+    setShowPublishModal(true);
+  };
+
+  const handlePublishWithConfig = async (config: { domainId: string; subdirectoryPath: string; slug: string }) => {
+    if (!currentItem || isPublishing) return;
+    
+    setIsPublishing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setToast({ isOpen: true, message: 'Please log in to publish content', type: 'error' });
+        return;
+      }
+
+      const response = await fetch('/api/content-items/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ 
+          contentItemId: currentItem.id,
+          domainId: config.domainId,
+          subdirectoryPath: config.subdirectoryPath,
+          slug: config.slug
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish');
+      }
+
+      setCurrentItem(data.item);
+      onItemUpdated?.(data.item);
+      setShowPublishModal(false);
+      setToast({ isOpen: true, message: 'Page published successfully!', type: 'success' });
+    } catch (error: any) {
+      console.error('Publish error:', error);
+      setToast({ isOpen: true, message: error.message || 'Failed to publish', type: 'error' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!currentItem || isPublishing) return;
+    
+    setIsPublishing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setToast({ isOpen: true, message: 'Please log in', type: 'error' });
+        return;
+      }
+
+      const response = await fetch(`/api/content-items/publish?id=${currentItem.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to unpublish');
+      }
+
+      setCurrentItem(data.item);
+      onItemUpdated?.(data.item);
+      setToast({ isOpen: true, message: 'Page unpublished', type: 'success' });
+    } catch (error: any) {
+      console.error('Unpublish error:', error);
+      setToast({ isOpen: true, message: error.message || 'Failed to unpublish', type: 'error' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  if (!currentItem && !isVisible) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/30 backdrop-blur-[2px] transition-all duration-500 z-[100] ${
-          item ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          currentItem ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
       />
@@ -48,7 +138,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
       {/* Drawer - Full screen for generated content, narrow for info-only */}
       <div 
         className={`fixed right-0 top-0 h-full bg-white shadow-[-20px_0_50px_-12px_rgba(0,0,0,0.15)] z-[101] transform transition-all duration-500 flex flex-col ${
-          item ? 'translate-x-0' : 'translate-x-full'
+          currentItem ? 'translate-x-0' : 'translate-x-full'
         } ${hasGeneratedContent ? 'w-screen' : 'w-full max-w-lg rounded-l-2xl'}`}
         style={{ transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)' }}
       >
@@ -137,11 +227,11 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
           {/* Title and close button - expand to fill when no tabs */}
           <div className={`flex items-center gap-4 ${hasGeneratedContent ? 'px-4 border-l border-[#F5F5F5]' : 'flex-1'} my-2`}>
             <div className="flex flex-col min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-[#111827] truncate mb-0.5 leading-none">{item?.title}</h2>
+              <h2 className="text-sm font-bold text-[#111827] truncate mb-0.5 leading-none">{currentItem?.title}</h2>
               <div className="flex items-center gap-2 text-[10px] text-[#9CA3AF] font-medium whitespace-nowrap">
-                <span className="bg-[#F3F4F6] px-1.5 py-0.5 rounded-md uppercase tracking-wider text-[#6B7280] border border-[#E5E5E5]">{item?.page_type || 'blog'}</span>
+                <span className="bg-[#F3F4F6] px-1.5 py-0.5 rounded-md uppercase tracking-wider text-[#6B7280] border border-[#E5E5E5]">{currentItem?.page_type || 'blog'}</span>
                 <span>•</span>
-                <span>Created {item?.created_at ? new Date(item.created_at).toLocaleString('en-US', { 
+                <span>Created {currentItem?.created_at ? new Date(currentItem.created_at).toLocaleString('en-US', { 
                   month: 'short', 
                   day: 'numeric', 
                   hour: '2-digit', 
@@ -149,6 +239,51 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                 }) : '-'}</span>
               </div>
             </div>
+
+            {/* Publish/Unpublish Button */}
+            {currentItem?.status === 'generated' && (
+              <button
+                onClick={handlePublishClick}
+                disabled={isPublishing}
+                className="flex items-center gap-2 px-4 py-2 bg-[#111827] hover:bg-[#374151] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95"
+              >
+                {isPublishing ? (
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 19V5M5 12l7-7 7 7" />
+                  </svg>
+                )}
+                {isPublishing ? 'Publishing...' : 'Publish'}
+              </button>
+            )}
+            {currentItem?.status === 'published' && (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-lg border border-emerald-200">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  LIVE
+                </span>
+                <button
+                  onClick={handleUnpublish}
+                  disabled={isPublishing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F3F4F6] hover:bg-[#E5E5E5] text-[#6B7280] text-[10px] font-bold rounded-lg transition-all disabled:opacity-50"
+                >
+                  {isPublishing ? (
+                    <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : null}
+                  Unpublish
+                </button>
+              </div>
+            )}
+
             <button 
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-[#F3F4F6] transition-colors text-[#6B7280]"
@@ -181,16 +316,21 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                   </div>
                     <div className="flex-1 bg-white border border-[#D1D5DB] rounded-md px-3 py-1 flex items-center justify-between">
                       <span className="text-[11px] text-[#9CA3AF] font-mono truncate uppercase tracking-tighter">
-                        {typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') : 'seenos.ai'}/p/{item?.slug || item?.id?.slice(0, 8)}
+                        {currentItem?.published_domain 
+                          ? `${currentItem.published_domain}${currentItem.published_path || ''}/${currentItem.slug}`
+                          : `${typeof window !== 'undefined' ? window.location.origin.replace(/^https?:\/\//, '') : 'seenos.ai'}/p/${currentItem?.slug || currentItem?.id?.slice(0, 8)}`
+                        }
                       </span>
                       <button 
                         onClick={() => {
-                          if (item?.id) {
-                            window.open(`/api/preview/${item.id}`, '_blank');
+                          if (currentItem?.published_domain) {
+                            window.open(`https://${currentItem.published_domain}${currentItem.published_path || ''}/${currentItem.slug}`, '_blank');
+                          } else if (currentItem?.id) {
+                            window.open(`/api/preview/${currentItem.id}`, '_blank');
                           }
                         }}
                         className="p-1 hover:bg-[#F3F4F6] rounded text-[#9CA3AF] hover:text-[#111827] transition-all active:scale-90"
-                        title="Open Live Preview"
+                        title={currentItem?.published_domain ? "Open Published Page" : "Open Live Preview"}
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
@@ -209,7 +349,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
 
                 {/* Browser Content */}
                 <div className="flex-1 bg-white overflow-hidden relative">
-                  {!item?.generated_content ? (
+                  {!currentItem?.generated_content ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#FAFAFA]">
                       <svg className="w-12 h-12 text-[#E5E5E5] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
                         <path d="M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2z" />
@@ -219,7 +359,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                     </div>
                   ) : (
                     <iframe 
-                      srcDoc={item.generated_content}
+                      srcDoc={currentItem.generated_content}
                       className="w-full h-full border-none"
                       title="Page Preview"
                       sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
@@ -247,8 +387,8 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                 </div>
                 <button 
                   onClick={() => {
-                    navigator.clipboard.writeText(item?.generated_content || '');
-                    setToast({ isOpen: true, message: 'Code copied to clipboard!' });
+                    navigator.clipboard.writeText(currentItem?.generated_content || '');
+                    setToast({ isOpen: true, message: 'Code copied to clipboard!', type: 'success' });
                   }}
                   className="px-3 py-1.5 bg-[#3D3D3D] hover:bg-[#4D4D4D] text-white text-[10px] font-bold rounded-md transition-all active:scale-95 uppercase tracking-wider"
                 >
@@ -256,11 +396,11 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                 </button>
               </div>
               <div className="flex-1 p-6 overflow-auto thin-scrollbar font-mono">
-                {!item?.generated_content ? (
+                {!currentItem?.generated_content ? (
                   <p className="text-[#6B7280] italic text-sm">No code available</p>
                 ) : (
                   <pre className="text-[#D4D4D4] text-xs leading-[1.8] whitespace-pre-wrap break-all">
-                    {item.generated_content}
+                    {currentItem.generated_content}
                   </pre>
                 )}
               </div>
@@ -274,27 +414,27 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                 {/* Info Tab Content */}
                 <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-[#111827] mb-2">{item?.title}</h2>
+                    <h2 className="text-2xl font-bold text-[#111827] mb-2">{currentItem?.title}</h2>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                       <span className="px-2.5 py-0.5 bg-[#F3F4F6] text-[#6B7280] rounded-full font-medium uppercase text-[10px] tracking-wider border border-[#E5E5E5]">
-                        {item?.page_type || 'blog'}
+                        {currentItem?.page_type || 'blog'}
                       </span>
                       <span className={`px-2.5 py-0.5 rounded-full font-medium uppercase text-[10px] tracking-wider border ${
-                        item?.status === 'ready' ? 'bg-[#F3F4F6] text-[#374151] border-[#E5E5E5]' :
-                        item?.status === 'in_production' ? 'bg-[#111827] text-white border-[#111827]' :
-                        item?.status === 'generated' ? 'bg-[#FAFAFA] text-[#111827] border-[#E5E5E5]' :
-                        item?.status === 'published' ? 'bg-white text-[#111827] border-[#111827]' :
+                        currentItem?.status === 'ready' ? 'bg-[#F3F4F6] text-[#374151] border-[#E5E5E5]' :
+                        currentItem?.status === 'in_production' ? 'bg-[#111827] text-white border-[#111827]' :
+                        currentItem?.status === 'generated' ? 'bg-[#FAFAFA] text-[#111827] border-[#E5E5E5]' :
+                        currentItem?.status === 'published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                         'bg-gray-50 text-gray-600 border-gray-100'
                       }`}>
-                        {item?.status === 'ready' ? 'Ready' : 
-                         item?.status === 'generated' ? 'Generated' : 
-                         item?.status === 'in_production' ? 'Production' :
-                         item?.status === 'published' ? 'Published' :
-                         item?.status}
+                        {currentItem?.status === 'ready' ? 'Ready' : 
+                         currentItem?.status === 'generated' ? 'Generated' : 
+                         currentItem?.status === 'in_production' ? 'Production' :
+                         currentItem?.status === 'published' ? '✓ Published' :
+                         currentItem?.status}
                       </span>
                       <span className="text-[#D1D5DB]">|</span>
                       <span className="text-[#6B7280]">
-                        Created: <span className="text-[#111827] font-medium">{new Date(item?.created_at || '').toLocaleDateString()}</span>
+                        Created: <span className="text-[#111827] font-medium">{new Date(currentItem?.created_at || '').toLocaleDateString()}</span>
                       </span>
                     </div>
                   </div>
@@ -307,13 +447,13 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                         <div 
                           key={p}
                           className={`w-5 h-1.5 rounded-full transition-colors ${
-                            p <= (item?.priority || 0) 
-                              ? (item?.priority || 0) >= 4 ? 'bg-[#111827]' : 'bg-[#6B7280]'
+                            p <= (currentItem?.priority || 0) 
+                              ? (currentItem?.priority || 0) >= 4 ? 'bg-[#111827]' : 'bg-[#6B7280]'
                               : 'bg-[#E5E5E5]'
                           }`}
                         />
                       ))}
-                      <span className="ml-2 text-xs font-bold text-[#111827]">L{item?.priority || 3}</span>
+                      <span className="ml-2 text-xs font-bold text-[#111827]">L{currentItem?.priority || 3}</span>
                     </div>
                   </div>
                 </div>
@@ -330,31 +470,36 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                         <div>
                           <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Target Keyword</label>
                           <div className="relative inline-block">
-                            <span className="text-lg text-[#111827] font-bold">{item?.target_keyword || '-'}</span>
+                            <span className="text-lg text-[#111827] font-bold">{currentItem?.target_keyword || '-'}</span>
                             <div className="absolute -bottom-1 left-0 right-0 h-1 rounded-full opacity-60" style={{ background: 'linear-gradient(80deg, #FFAF40, #D194EC, #9A8FEA, #65B4FF)' }} />
                           </div>
                         </div>
                         
                         <div>
                           <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">SEO Title</label>
-                          <div className="text-sm text-[#374151] leading-relaxed font-medium">{item?.seo_title || '-'}</div>
+                          <div className="text-sm text-[#374151] leading-relaxed font-medium">{currentItem?.seo_title || '-'}</div>
                         </div>
                         
                         <div>
                           <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Meta Description</label>
-                          <div className="text-sm text-[#6B7280] leading-[1.6] bg-[#F8F9FA] p-4 rounded-xl border border-[#F1F3F5]">{item?.seo_description || '-'}</div>
+                          <div className="text-sm text-[#6B7280] leading-[1.6] bg-[#F8F9FA] p-4 rounded-xl border border-[#F1F3F5]">{currentItem?.seo_description || '-'}</div>
                         </div>
 
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Slug</label>
+                            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">
+                              {currentItem?.published_domain ? 'Published URL' : 'Slug'}
+                            </label>
                             <div className="text-xs text-[#111827] font-mono bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] truncate">
-                              {typeof window !== 'undefined' ? window.location.origin : ''}/p/{item?.slug || item?.id?.slice(0, 8)}
+                              {currentItem?.published_domain 
+                                ? `https://${currentItem.published_domain}${currentItem.published_path || ''}/${currentItem.slug}`
+                                : `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${currentItem?.slug || currentItem?.id?.slice(0, 8)}`
+                              }
                             </div>
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Estimated Word Count</label>
-                            <div className="text-xs text-[#111827] font-bold bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] inline-block">{item?.estimated_word_count || '0'} Words</div>
+                            <div className="text-xs text-[#111827] font-bold bg-[#F3F4F6] px-3 py-1.5 rounded-lg border border-[#E5E5E5] inline-block">{currentItem?.estimated_word_count || '0'} Words</div>
                           </div>
                         </div>
                       </div>
@@ -366,15 +511,15 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                         <h3 className="text-xs font-bold text-[#111827] uppercase tracking-[0.1em]">Content Architecture</h3>
                       </div>
                       <div className="p-6 space-y-4">
-                        {item?.outline?.h1 && (
+                        {currentItem?.outline?.h1 && (
                           <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                             <span className="text-[9px] font-black text-[#9CA3AF] uppercase block mb-1">Pillar H1</span>
-                            <div className="text-base font-bold text-[#111827]">{item.outline.h1}</div>
+                            <div className="text-base font-bold text-[#111827]">{currentItem.outline.h1}</div>
                           </div>
                         )}
                         
                         <div className="space-y-3">
-                          {item?.outline?.sections?.map((section: any, idx: number) => (
+                          {currentItem?.outline?.sections?.map((section: any, idx: number) => (
                             <div key={idx} className="p-4 bg-white border border-[#E5E5E5] rounded-xl hover:border-[#111827] transition-all group">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
@@ -407,7 +552,7 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
 
                   <div className={`space-y-8 ${hasGeneratedContent ? 'lg:col-span-5' : ''}`}>
                     {/* Metrics Dashboard */}
-                    {item?.keyword_data && (
+                    {currentItem?.keyword_data && (
                       <section className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm">
                         <div className="px-6 py-4 border-b border-[#F5F5F5] bg-[#F9FAFB]">
                           <h3 className="text-xs font-bold text-[#111827] uppercase tracking-[0.1em]">Target Opportunity</h3>
@@ -415,21 +560,21 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                         <div className="p-6 grid grid-cols-2 gap-4">
                           <div className="bg-[#F3F4F6] p-4 rounded-2xl border border-[#E5E5E5]">
                             <label className="block text-[9px] font-black text-[#9CA3AF] uppercase mb-1">Monthly Vol</label>
-                            <div className="text-xl font-black text-[#111827]">{item.keyword_data.volume?.toLocaleString() || '-'}</div>
+                            <div className="text-xl font-black text-[#111827]">{currentItem.keyword_data.volume?.toLocaleString() || '-'}</div>
                           </div>
                           <div className="bg-[#F9FAFB] p-4 rounded-2xl border border-[#E5E5E5] relative overflow-hidden group">
                             <label className="block text-[9px] font-black text-[#6B7280] uppercase mb-1 relative z-10">Difficulty</label>
-                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof item.keyword_data.kd === 'number' ? `${item.keyword_data.kd}%` : '-'}</div>
+                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof currentItem.keyword_data.kd === 'number' ? `${currentItem.keyword_data.kd}%` : '-'}</div>
                             <div className="absolute bottom-0 left-0 h-1 transition-all duration-500 group-hover:h-full opacity-5 w-full" style={{ background: 'linear-gradient(80deg, #FFAF40, #D194EC, #9A8FEA, #65B4FF)' }} />
                           </div>
                           <div className="bg-[#F9FAFB] p-4 rounded-2xl border border-[#E5E5E5] relative overflow-hidden group">
                             <label className="block text-[9px] font-black text-[#6B7280] uppercase mb-1 relative z-10">Est. CPC</label>
-                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof item.keyword_data.cpc === 'number' ? `$${item.keyword_data.cpc.toFixed(2)}` : '-'}</div>
+                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof currentItem.keyword_data.cpc === 'number' ? `$${currentItem.keyword_data.cpc.toFixed(2)}` : '-'}</div>
                             <div className="absolute bottom-0 left-0 h-1 transition-all duration-500 group-hover:h-full opacity-5 w-full" style={{ background: 'linear-gradient(80deg, #FFAF40, #D194EC, #9A8FEA, #65B4FF)' }} />
                           </div>
                           <div className="bg-[#F9FAFB] p-4 rounded-2xl border border-[#E5E5E5] relative overflow-hidden group">
                             <label className="block text-[9px] font-black text-[#6B7280] uppercase mb-1 relative z-10">Competition</label>
-                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof item.keyword_data.competition === 'number' && !isNaN(item.keyword_data.competition) ? `${(item.keyword_data.competition * 100).toFixed(0)}%` : '-'}</div>
+                            <div className="text-xl font-black text-[#111827] relative z-10">{typeof currentItem.keyword_data.competition === 'number' && !isNaN(currentItem.keyword_data.competition) ? `${(currentItem.keyword_data.competition * 100).toFixed(0)}%` : '-'}</div>
                             <div className="absolute bottom-0 left-0 h-1 transition-all duration-500 group-hover:h-full opacity-5 w-full" style={{ background: 'linear-gradient(80deg, #FFAF40, #D194EC, #9A8FEA, #65B4FF)' }} />
                           </div>
                         </div>
@@ -437,13 +582,13 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                     )}
 
                     {/* Linking */}
-                    {item?.internal_links && item.internal_links.length > 0 && (
+                    {currentItem?.internal_links && currentItem.internal_links.length > 0 && (
                       <section className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm">
                         <div className="px-6 py-4 border-b border-[#F5F5F5] bg-[#F9FAFB]">
                           <h3 className="text-xs font-bold text-[#111827] uppercase tracking-[0.1em]">Linking Strategy</h3>
                         </div>
                         <div className="p-4 space-y-3">
-                          {item.internal_links.map((link: any, idx: number) => (
+                          {currentItem.internal_links.map((link: any, idx: number) => (
                             <div key={idx} className="bg-white border border-[#E5E5E5] rounded-xl p-4 hover:shadow-md transition-shadow group">
                               <div className="flex items-center gap-2 mb-2">
                                 <div className="w-6 h-6 rounded-full bg-[#F3F4F6] flex items-center justify-center transition-colors group-hover:bg-[#111827]">
@@ -468,13 +613,13 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
                     )}
 
                     {/* Market References */}
-                    {item?.reference_urls && item.reference_urls.length > 0 && (
+                    {currentItem?.reference_urls && currentItem.reference_urls.length > 0 && (
                       <section className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden shadow-sm">
                         <div className="px-6 py-4 border-b border-[#F5F5F5] bg-[#F9FAFB]">
                           <h3 className="text-xs font-bold text-[#111827] uppercase tracking-[0.1em]">Market References</h3>
                         </div>
                         <div className="p-4 space-y-2">
-                          {item.reference_urls.map((url, idx) => (
+                          {currentItem.reference_urls.map((url, idx) => (
                             <a 
                               key={idx} 
                               href={url} 
@@ -500,6 +645,16 @@ export default function ContentDrawer({ item, onClose }: ContentDrawerProps) {
           )}
         </div>
       </div>
+
+      {/* Publish Modal */}
+      <PublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onPublish={handlePublishWithConfig}
+        currentSlug={currentItem?.slug || ''}
+        pageTitle={currentItem?.title || ''}
+        isPublishing={isPublishing}
+      />
 
       {/* Toast Notification */}
       <Toast 

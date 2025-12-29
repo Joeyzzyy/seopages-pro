@@ -54,10 +54,6 @@ BEST PRACTICES:
       'Create OpenGraph tags',
       'Ensure click-worthiness'
     ],
-    whatArtifactsWillBeGenerated: [
-      'HTML Meta Tags',
-      'Markdown Tips'
-    ],
     expectedOutput: `• 完整的 Meta 标签 HTML 代码块
 • 优化后的标题标签（Title）：50-60 字符，关键词丰富，高意图，差异化
 • 优化后的描述标签（Meta Description）：140-155 字符，包含 CTA，符合用户意图

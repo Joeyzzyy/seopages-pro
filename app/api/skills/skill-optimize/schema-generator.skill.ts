@@ -50,11 +50,6 @@ BEST PRACTICES:
       'Support multiple schema types',
       'Optimize for rich snippets'
     ],
-    whatArtifactsWillBeGenerated: [
-      'JSON-LD Code',
-      'HTML Markup',
-      'Markdown Guide'
-    ],
     expectedOutput: `• 完整的 JSON-LD 结构化数据代码块
 • 页面类型自动识别：
   - 首页：Organization + WebSite schema
