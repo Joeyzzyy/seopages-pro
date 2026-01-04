@@ -31,6 +31,7 @@ export interface Conversation {
   id: string;
   user_id: string;
   title: string;
+  description?: string;
   created_at: string;
   updated_at: string;
   tavily_calls?: number;
@@ -109,6 +110,12 @@ export interface SiteContext {
   type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
   content: string | null; // For header/footer/meta code or sitemap JSON
   file_url: string | null; // For logo image
+  primary_color?: string | null; // Brand primary color
+  secondary_color?: string | null; // Brand secondary color
+  heading_font?: string | null; // Heading font family
+  body_font?: string | null; // Body font family
+  tone?: string | null; // Brand tone and voice
+  languages?: string | null; // Supported languages
   created_at: string;
   updated_at: string;
 }
@@ -204,10 +211,15 @@ export async function createConversation(userId: string, title: string = 'New Co
   return data as Conversation;
 }
 
-export async function updateConversationTitle(conversationId: string, title: string) {
+export async function updateConversationTitle(conversationId: string, title: string, description?: string) {
+  const updateData: any = { title, updated_at: new Date().toISOString() };
+  if (description !== undefined) {
+    updateData.description = description;
+  }
+  
   const { error } = await supabase
     .from('conversations')
-    .update({ title, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', conversationId);
 
   if (error) throw error;

@@ -38,12 +38,14 @@ import ChatInput from '@/components/ChatInput';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import ContentDrawer from '@/components/ContentDrawer';
-import RightSidebar from '@/components/RightSidebar';
 import GSCIntegrationStatus from '@/components/GSCIntegrationStatus';
 import DomainsModal from '@/components/DomainsModal';
-import SiteContextModal from '@/components/SiteContextModal';
+import ContextModalNew from '@/components/ContextModalNew';
 import PlaybookTrigger from '@/components/PlaybookTrigger';
 import Toast from '@/components/Toast';
+import TopBar from '@/components/TopBar';
+import SkillsAndArtifactsSidebar from '@/components/SkillsAndArtifactsSidebar';
+import ConversationsDropdown from '@/components/ConversationsDropdown';
 
 interface Skill {
   id: string;
@@ -113,15 +115,16 @@ export default function ChatPage() {
   const [attachedContentItemIds, setAttachedContentItemIds] = useState<string[]>([]);
   const [selectedContentItem, setSelectedContentItem] = useState<ContentItem | null>(null);
   const [activePlaybook, setActivePlaybook] = useState<Skill | null>(null);
-  const [siteContextModal, setSiteContextModal] = useState<{
-    isOpen: boolean;
-    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
-    context?: SiteContext | null;
-  } | null>(null);
   const [toast, setToast] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
   const [isArtifactsOpen, setIsArtifactsOpen] = useState(false);
   const [isDomainsOpen, setIsDomainsOpen] = useState(false);
+  const [isGSCOpen, setIsGSCOpen] = useState(false);
+  const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+  const [isConversationsListOpen, setIsConversationsListOpen] = useState(false);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [editingChatTitle, setEditingChatTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const allChatsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Chat hook
   const { messages, input, handleInputChange, handleSubmit, append, isLoading, setMessages, setInput, stop } = useChat({
@@ -1071,21 +1074,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleEditSiteContext = async (type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap') => {
-    if (!user) return;
-    
-    try {
-      const context = await getSiteContextByType(user.id, type);
-      setSiteContextModal({
-        isOpen: true,
-        type,
-        context,
-      });
-    } catch (error) {
-      console.error('Failed to load site context:', error);
-    }
-  };
-
   const handleSaveSiteContext = async (data: {
     type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
     content?: string;
@@ -1119,9 +1107,10 @@ export default function ChatPage() {
       }
 
       await loadSiteContexts(user.id);
-      setSiteContextModal(null);
+      setToast({ isOpen: true, message: 'Context saved successfully!' });
     } catch (error) {
       console.error('Failed to save site context:', error);
+      setToast({ isOpen: true, message: 'Failed to save context' });
       throw error;
     }
   };
@@ -1168,6 +1157,7 @@ export default function ChatPage() {
     if (!input.trim()) return;
     
     let conversationToUse = currentConversation;
+    const isFirstMessage = !conversationToUse;
     
     if (!conversationToUse && user) {
       try {
@@ -1182,6 +1172,28 @@ export default function ChatPage() {
       } catch (error) {
         console.error('Failed to create conversation:', error);
         return;
+      }
+    }
+    
+    // Auto-generate title and description from first message
+    if (isFirstMessage && conversationToUse && input.trim()) {
+      const firstMessage = input.trim();
+      const autoTitle = firstMessage.slice(0, 10) + (firstMessage.length > 10 ? '...' : '');
+      const autoDescription = firstMessage.slice(0, 20) + (firstMessage.length > 20 ? '...' : '');
+      
+      try {
+        await updateConversationTitle(conversationToUse.id, autoTitle, autoDescription);
+        // Update local state
+        setConversations(prev => 
+          prev.map(c => c.id === conversationToUse!.id 
+            ? { ...c, title: autoTitle, description: autoDescription } 
+            : c)
+        );
+        if (currentConversation?.id === conversationToUse.id) {
+          updateCurrentConversation({ ...conversationToUse, title: autoTitle, description: autoDescription });
+        }
+      } catch (error) {
+        console.error('Failed to auto-generate title and description:', error);
       }
     }
     
@@ -1315,7 +1327,7 @@ export default function ChatPage() {
             data: {
               userId: user.id,
               conversationId: conversationToUse.id,
-              activeSkillId: playbook?.id, // 传递活跃技能 ID
+              activeSkillId: playbook?.id, // Pass active skill ID
             } as any,
           }
         );
@@ -1366,104 +1378,169 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="h-screen bg-[#FAFAFA] flex">
-      {/* Left Sidebar */}
+    <div className="h-screen bg-[#FAFAFA] flex flex-col p-2 gap-2">
+      {/* Top Bar */}
       {user && (
-        <ConversationSidebar
-          contentItems={contentItems}
-          contentProjects={contentProjects}
-          siteContexts={siteContexts}
-          onSelectContentItem={(item) => setSelectedContentItem(item)}
-          onRefreshContent={handleRefreshContent}
-          onDeleteProject={handleDeleteProject}
-          onDeleteContentItem={handleDeleteContentItem}
-          onEditSiteContext={handleEditSiteContext}
-          // Conversation props
-          conversations={conversations}
-          currentConversation={currentConversation}
-          onNewConversation={handleNewConversation}
-          onSwitchConversation={switchConversation}
-          onRenameConversation={handleRenameConversation}
-          onDeleteConversation={confirmDeleteConversation}
-          onToggleShowcase={handleToggleShowcase}
+        <TopBar 
+          user={user}
+          onDomainsClick={() => setIsDomainsOpen(true)}
+          onGSCClick={() => setIsGSCOpen(true)}
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
+      <div className="flex-1 flex overflow-hidden gap-2">
+        {/* Left Sidebar */}
         {user && (
-          <header className="bg-white px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-lg text-[#111827]">
-                {currentConversation ? currentConversation.title : 'New Conversation'}
-              </h1>
-              {currentConversation && (
-                <div className="flex items-center gap-2">
-                  {/* Domains Button */}
-                  <button
-                    onClick={() => setIsDomainsOpen(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#6B7280] hover:bg-[#F3F4F6] transition-all"
-                    title="Manage domains"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    Domains
-                  </button>
-                  <GSCIntegrationStatus 
-                    user={user} 
-                    conversationId={currentConversation?.id} 
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsArtifactsOpen(!isArtifactsOpen);
-                    }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all relative ${
-                      isArtifactsOpen 
-                        ? 'bg-[#111827] border-[#111827] text-white' 
-                        : 'bg-white border-[#E5E5E5] text-[#6B7280] hover:bg-[#F3F4F6]'
-                    }`}
-                    title="Toggle Artifacts panel"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                    </svg>
-                    <span className="text-xs font-bold">Artifacts</span>
-                    {files.length > 0 && (
-                      <span className={`flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold ${
-                        isArtifactsOpen ? 'bg-white text-[#111827]' : 'bg-[#9A8FEA] text-white'
-                      }`}>
-                        {files.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleExportLog}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#6B7280] hover:bg-[#F3F4F6] transition-all"
-                    title="Export conversation log as plain text"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                    </svg>
-                    Export Log
-                  </button>
-                  <button
-                    onClick={() => {
-                      const shareUrl = `${window.location.origin}/share/${currentConversation.id}`;
-                      navigator.clipboard.writeText(shareUrl);
-                      setToast({ isOpen: true, message: 'Share link copied to clipboard!' });
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5E5E5] text-xs font-bold text-[#6B7280] hover:bg-[#F3F4F6] transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
-                    </svg>
-                    Share
-                  </button>
+          <div className="shrink-0">
+            <ConversationSidebar
+              siteContexts={siteContexts}
+              contentItems={contentItems}
+              contentProjects={contentProjects}
+              onEditSiteContext={() => {}}
+              onSelectContentItem={(item) => setSelectedContentItem(item)}
+              onRefreshContent={handleRefreshContent}
+              onDeleteProject={handleDeleteProject}
+              onDeleteContentItem={handleDeleteContentItem}
+              onOpenContextModal={() => setIsContextModalOpen(true)}
+            />
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col bg-white rounded-lg border border-[#E5E5E5] shadow-sm overflow-hidden">
+          {/* Chat Header */}
+          {user && (
+            <header className="px-6 py-1.5 border-b border-[#E5E5E5] shrink-0 h-10 flex items-center">
+              <div className="flex items-center justify-between w-full">
+                {/* Left: Title */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-[#111827] uppercase tracking-wider">Chat</span>
                 </div>
-              )}
+                
+                {/* Right: Action Buttons and Conversation Selector */}
+                <div className="flex items-center gap-2">
+                  {/* Share Link Button */}
+                  {currentConversation && (
+                    <button
+                      onClick={() => {
+                        const shareUrl = `${window.location.origin}/share/${currentConversation.id}`;
+                        navigator.clipboard.writeText(shareUrl);
+                        setToast({ isOpen: true, message: 'Share link copied to clipboard!' });
+                      }}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#E5E5E5] text-[10px] font-medium text-[#6B7280] hover:bg-[#F3F4F6] transition-all cursor-pointer"
+                      title="Share Link"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
+                      </svg>
+                      Share Link
+                    </button>
+                  )}
+                  
+                  {/* Copy Chat Button */}
+                  {currentConversation && (
+                    <button
+                      onClick={handleExportLog}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded border border-[#E5E5E5] text-[10px] font-medium text-[#6B7280] hover:bg-[#F3F4F6] transition-all cursor-pointer"
+                      title="Copy Chat Log"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                      Copy Chat
+                    </button>
+                  )}
+                  
+                  {/* Conversation Title (Editable) */}
+                  {currentConversation && (
+                    editingChatTitle ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleRenameConversation(currentConversation.id, editingTitle);
+                              setEditingChatTitle(false);
+                            } else if (e.key === 'Escape') {
+                              setEditingChatTitle(false);
+                            }
+                          }}
+                          className="px-2 py-0.5 text-xs border border-[#E5E5E5] rounded focus:outline-none focus:border-[#9A8FEA] bg-white"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => {
+                            handleRenameConversation(currentConversation.id, editingTitle);
+                            setEditingChatTitle(false);
+                          }}
+                          className="px-2 py-0.5 text-[10px] font-medium bg-[#10B981] text-white rounded hover:bg-[#059669] transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingChatTitle(false)}
+                          className="px-2 py-0.5 text-[10px] font-medium bg-[#F3F4F6] text-[#6B7280] rounded hover:bg-[#E5E5E5] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingTitle(currentConversation.title);
+                          setEditingChatTitle(true);
+                        }}
+                        className="group flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-white transition-all cursor-pointer"
+                      >
+                        <span className="text-xs font-medium text-[#111827]">{currentConversation.title}</span>
+                        <svg className="w-3 h-3 text-[#9CA3AF] opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    )
+                  )}
+                  
+                  {/* New Conversation & All Chats Buttons */}
+                  <div className="flex items-center gap-2 relative">
+                    <button
+                      ref={allChatsButtonRef}
+                      onClick={() => setIsConversationsListOpen(!isConversationsListOpen)}
+                      className="px-2 py-0.5 rounded border border-[#E5E5E5] text-[#6B7280] hover:bg-white transition-all cursor-pointer text-[10px] font-medium"
+                      title="View All Conversations"
+                    >
+                      All Chats
+                    </button>
+                    <button
+                      onClick={handleNewConversation}
+                      className="px-2 py-0.5 rounded border border-[#E5E5E5] text-[#6B7280] hover:bg-white transition-all cursor-pointer text-[10px] font-medium"
+                      title="New Conversation"
+                    >
+                      New Chat
+                    </button>
+
+                    {/* Conversations Dropdown */}
+                    <ConversationsDropdown
+                      isOpen={isConversationsListOpen}
+                      onClose={() => setIsConversationsListOpen(false)}
+                      conversations={conversations}
+                      currentConversationId={currentConversation?.id}
+                      buttonRef={allChatsButtonRef}
+                      onSelectConversation={(conversationId) => {
+                        const conversation = conversations.find(c => c.id === conversationId);
+                        if (conversation) {
+                          switchConversation(conversation);
+                        }
+                      }}
+                      onDeleteConversation={(conversationId) => {
+                        confirmDeleteConversation(conversationId);
+                      }}
+                    />
+                  </div>
+                </div>
             </div>
           </header>
         )}
@@ -1584,11 +1661,11 @@ export default function ChatPage() {
                 contentItems={contentItems}
                 attachedFileIds={attachedFileIds}
                 attachedContentItemIds={attachedContentItemIds}
-                tokenStats={tokenStats}
-                apiStats={apiStats}
                 skills={skills}
                 referenceImageUrl={referenceImageUrl}
                 conversationId={currentConversation?.id}
+                tokenStats={tokenStats}
+                apiStats={apiStats}
                 onInputChange={handleInputChange}
                 onSubmit={handleCustomSubmit}
                 onStop={handleStop}
@@ -1606,8 +1683,38 @@ export default function ChatPage() {
               />
             </>
           )}
-      </main>
+        </main>
+      </div>
+
+      {/* Right Sidebar - Skills and Artifacts */}
+      {user && (
+        <div className="shrink-0">
+          <SkillsAndArtifactsSidebar
+            skills={skills}
+            files={files}
+            onPlaybookClick={(skill) => setActivePlaybook(skill)}
+            onDeleteFile={handleDeleteFile}
+          />
+        </div>
+      )}
     </div>
+
+    {/* GSC Integration Status Modal */}
+    {isGSCOpen && user && (
+      <>
+        <div 
+          className="fixed inset-0 bg-black/20 z-40"
+          onClick={() => setIsGSCOpen(false)}
+        />
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[600px] bg-white rounded-lg shadow-xl overflow-hidden">
+          <GSCIntegrationStatus 
+            user={user} 
+            conversationId={currentConversation?.id} 
+            onClose={() => setIsGSCOpen(false)}
+          />
+        </div>
+      </>
+    )}
 
     {/* Delete Confirmation Modal */}
       {deletingConversationId && (
@@ -1635,14 +1742,12 @@ export default function ChatPage() {
       )}
 
       {/* Site Context Modal */}
-      {siteContextModal && (
-        <SiteContextModal
-          isOpen={siteContextModal.isOpen}
-          onClose={() => setSiteContextModal(null)}
+      {isContextModalOpen && (
+        <ContextModalNew
+          isOpen={isContextModalOpen}
+          onClose={() => setIsContextModalOpen(false)}
+          siteContexts={siteContexts}
           onSave={handleSaveSiteContext}
-          type={siteContextModal.type}
-          context={siteContextModal.context}
-          allContexts={siteContexts}
         />
       )}
 
@@ -1657,16 +1762,6 @@ export default function ChatPage() {
         item={selectedContentItem}
         onClose={() => setSelectedContentItem(null)}
       />
-
-      {/* Right Sidebar (Floating Artifacts Panel) */}
-      {user && (
-        <RightSidebar
-          files={files}
-          onDeleteFile={handleDeleteFile}
-          isOpen={isArtifactsOpen}
-          onOpenChange={setIsArtifactsOpen}
-        />
-      )}
 
       {/* Playbook Trigger Modal */}
       {activePlaybook && (

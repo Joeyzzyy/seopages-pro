@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import TokenStats from './TokenStats';
 import ActionHints from './ActionHints';
 import { supabase } from '@/lib/supabase';
 import type { FileRecord, ContentItem } from '@/lib/supabase';
@@ -13,11 +12,11 @@ interface ChatInputProps {
   contentItems: ContentItem[];
   attachedFileIds: string[];
   attachedContentItemIds: string[];
-  tokenStats: { inputTokens: number; outputTokens: number };
-  apiStats: { tavilyCalls: number; semrushCalls: number; serperCalls: number };
   skills: any[];
   referenceImageUrl: string | null;
   conversationId?: string | null;
+  tokenStats: { inputTokens: number; outputTokens: number };
+  apiStats: { tavilyCalls: number; semrushCalls: number; serperCalls: number };
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: (e: React.FormEvent) => void;
   onStop: () => void;
@@ -37,11 +36,11 @@ export default function ChatInput({
   contentItems,
   attachedFileIds,
   attachedContentItemIds,
-  tokenStats,
-  apiStats,
   skills,
   referenceImageUrl,
   conversationId,
+  tokenStats,
+  apiStats,
   onInputChange,
   onSubmit,
   onStop,
@@ -355,6 +354,32 @@ export default function ChatInput({
 
               {/* Action Hints Dropdown */}
               <ActionHints skills={skills} onPlaybookClick={onPlaybookClick} />
+              
+              {/* Conversation Stats */}
+              {conversationId && (
+                <div className="flex items-center gap-3 ml-3 text-[10px] text-[#6B7280] border-l border-[#E5E5E5] pl-3">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-[#9CA3AF]">Input Tokens:</span>
+                    <span className="font-bold text-[#111827]">{tokenStats.inputTokens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-[#9CA3AF]">Output Tokens:</span>
+                    <span className="font-bold text-[#111827]">{tokenStats.outputTokens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-[#9CA3AF]">Tavily:</span>
+                    <span className="font-bold text-[#111827]">{apiStats.tavilyCalls}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-[#9CA3AF]">Semrush:</span>
+                    <span className="font-bold text-[#111827]">{apiStats.semrushCalls}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-[#9CA3AF]">Serper:</span>
+                    <span className="font-bold text-[#111827]">{apiStats.serperCalls}</span>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Right controls - Send button */}
@@ -369,10 +394,6 @@ export default function ChatInput({
                 </button>
               )}
             </div>
-          </div>
-          
-          <div className="mt-3">
-            <TokenStats inputTokens={tokenStats.inputTokens} outputTokens={tokenStats.outputTokens} tavilyCalls={apiStats.tavilyCalls} semrushCalls={apiStats.semrushCalls} serperCalls={apiStats.serperCalls} />
           </div>
         </form>
       </div>

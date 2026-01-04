@@ -76,7 +76,7 @@ export default function ActionHints({ skills, onPlaybookClick }: ActionHintsProp
             ? 'bg-[#111827] border-[#111827] text-white shadow-sm' 
             : 'bg-[#FAFAFA] border-[#E5E5E5] text-[#6B7280] hover:bg-[#F3F4F6]'
         }`}
-        title="Action Hints (Capabilities)"
+        title="Action Hints (Playbooks)"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -94,7 +94,7 @@ export default function ActionHints({ skills, onPlaybookClick }: ActionHintsProp
             <div className="w-32 bg-[#FAFAFA] border-r border-[#F5F5F5] flex flex-col p-2 gap-1 shrink-0">
               <div className="px-2 py-2 mb-1">
                 <span className="text-[9px] font-black text-[#111827] uppercase tracking-[0.2em] opacity-50">
-                  Capabilities
+                  Playbooks
                 </span>
               </div>
               {categories.map((cat) => {

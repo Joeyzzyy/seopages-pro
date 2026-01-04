@@ -1,47 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import AuthButton from './AuthButton';
-import type { Conversation, ContentItem, ContentProject, SiteContext } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import type { SiteContext, ContentItem, ContentProject } from '@/lib/supabase';
 
 interface ConversationSidebarProps {
+  siteContexts: SiteContext[];
   contentItems: ContentItem[];
   contentProjects: ContentProject[];
-  siteContexts: SiteContext[];
+  onEditSiteContext: (type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap') => void;
   onSelectContentItem: (item: ContentItem) => void;
   onRefreshContent: () => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
   onDeleteContentItem: (itemId: string, itemTitle: string) => void;
-  onEditSiteContext: (type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap') => void;
-  // Conversation props
-  conversations: Conversation[];
-  currentConversation: Conversation | null;
-  onNewConversation: () => void;
-  onSwitchConversation: (conversation: Conversation) => void;
-  onRenameConversation: (conversationId: string, newTitle: string) => void;
-  onDeleteConversation: (conversationId: string) => void;
-  onToggleShowcase: (conversationId: string, isShowcase: boolean) => void;
+  onOpenContextModal?: () => void;
 }
 
 export default function ConversationSidebar({
+  siteContexts,
   contentItems,
   contentProjects,
-  siteContexts,
+  onEditSiteContext,
   onSelectContentItem,
   onRefreshContent,
   onDeleteProject,
   onDeleteContentItem,
-  onEditSiteContext,
-  conversations,
-  currentConversation,
-  onNewConversation,
-  onSwitchConversation,
-  onRenameConversation,
-  onDeleteConversation,
-  onToggleShowcase,
+  onOpenContextModal,
 }: ConversationSidebarProps) {
+  // Group items by project first
+  const groupedContent = contentProjects.map(project => ({
+    ...project,
+    items: contentItems.filter(item => item.project_id === project.id)
+  }));
+
   const [expandedClusters, setExpandedClusters] = useState<Record<string, boolean>>({});
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -51,97 +41,18 @@ export default function ConversationSidebar({
     name: string;
     itemCount?: number;
   } | null>(null);
+  const [expandedOnSite, setExpandedOnSite] = useState(true);
+  const [expandedBrandAssets, setExpandedBrandAssets] = useState(true);
+  const [expandedMetaInfo, setExpandedMetaInfo] = useState(true);
 
-  // Conversation editing state
-  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
-
-  const startEditingConversation = (conversationId: string, currentTitle: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingConversationId(conversationId);
-    setEditingTitle(currentTitle);
-  };
-
-  const cancelEditingConversation = () => {
-    setEditingConversationId(null);
-    setEditingTitle('');
-  };
-
-  const handleRename = (conversationId: string) => {
-    if (!editingTitle.trim()) {
-      cancelEditingConversation();
-      return;
+  // Auto-expand first project when content loads
+  useEffect(() => {
+    if (groupedContent.length > 0 && Object.keys(expandedClusters).length === 0) {
+      setExpandedClusters({ [groupedContent[0].id]: true });
     }
-    onRenameConversation(conversationId, editingTitle);
-    cancelEditingConversation();
-  };
+  }, [groupedContent.length]);
 
   const sidebarWidth = 'w-72';
-
-  const siteContextTypes: Array<{ 
-    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap'; 
-    label: string; 
-    icon: React.ReactNode;
-    hasContent: boolean;
-  }> = [
-    {
-      type: 'logo',
-      label: 'Logo',
-      icon: (
-        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
-      ),
-      hasContent: !!siteContexts.find(c => c.type === 'logo' && (c.file_url || c.content)),
-    },
-    {
-      type: 'header',
-      label: 'Header',
-      icon: (
-        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="4" rx="1" />
-          <rect x="3" y="10" width="18" height="11" rx="1" />
-        </svg>
-      ),
-      hasContent: !!siteContexts.find(c => c.type === 'header' && c.content),
-    },
-    {
-      type: 'footer',
-      label: 'Footer',
-      icon: (
-        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="11" rx="1" />
-          <rect x="3" y="17" width="18" height="4" rx="1" />
-        </svg>
-      ),
-      hasContent: !!siteContexts.find(c => c.type === 'footer' && c.content),
-    },
-    {
-      type: 'meta',
-      label: 'Meta Tags',
-      icon: (
-        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="16 18 22 12 16 6" />
-          <polyline points="8 6 2 12 8 18" />
-        </svg>
-      ),
-      hasContent: !!siteContexts.find(c => c.type === 'meta' && c.content),
-    },
-    {
-      type: 'sitemap',
-      label: 'Sitemap',
-      icon: (
-        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" />
-          <path d="M2 17l10 5 10-5" />
-          <path d="M2 12l10 5 10-5" />
-        </svg>
-      ),
-      hasContent: !!siteContexts.find(c => c.type === 'sitemap' && c.content),
-    },
-  ];
 
   const toggleCluster = (projectId: string) => {
     setExpandedClusters(prev => ({
@@ -150,24 +61,8 @@ export default function ConversationSidebar({
     }));
   };
 
-  // Group items by project
-  const groupedContent = contentProjects.map(project => ({
-    ...project,
-    items: contentItems.filter(item => item.project_id === project.id)
-  }));
-
   // Items without a project (Uncategorized)
   const uncategorizedItems = contentItems.filter(item => !item.project_id);
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ready': return '';
-      case 'in_production': return 'Production';
-      case 'generated': return 'Generated';
-      case 'published': return 'Published';
-      default: return status;
-    }
-  };
 
   const getStatusStyle = (status: string): React.CSSProperties => {
     if (status === 'ready') {
@@ -231,26 +126,189 @@ export default function ConversationSidebar({
   };
 
   return (
-    <aside className={`${sidebarWidth} bg-white border-r border-[#F5F5F5] flex flex-col h-screen overflow-hidden`} onClick={() => setContextMenu(null)}>
-      {/* Sidebar Header - Logo */}
-      <div className="p-4 shrink-0">
-        <Link href="/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-xl flex items-center justify-center hover:scale-110 transition-transform">
-          <Image 
-            src="/product-logo.webp" 
-            alt="Mini Seenos Logo" 
-            width={32} 
-            height={32}
-            className="w-full h-full object-contain rounded-xl"
-          />
-        </Link>
-      </div>
+    <aside className={`${sidebarWidth} bg-white border border-[#E5E5E5] rounded-lg shadow-sm flex flex-col h-full overflow-hidden`} onClick={() => setContextMenu(null)}>
       
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* On Going Pages Section (Top 1/3) */}
-        <div className="flex flex-col h-1/3 min-h-0 border-b border-[#F5F5F5]">
-          <div className="px-4 py-3 text-xs font-bold text-[#9CA3AF] uppercase tracking-wider flex items-center justify-between shrink-0">
+        {/* Context Section (Top 1/3) */}
+        <div className="flex flex-col h-1/3 min-h-0 border-b border-[#E5E5E5]">
+          <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center justify-between shrink-0 border-b border-[#E5E5E5] h-10">
+            <span>Context</span>
+            <button
+              onClick={() => onOpenContextModal?.()}
+              className="p-1 rounded hover:bg-white text-[#6B7280] hover:text-[#111827] transition-all"
+              title="Add Context"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2 pt-2">
+            <div className="space-y-0">
+              {/* On Site - Expandable */}
+              <div>
+                <button
+                  onClick={() => setExpandedOnSite(!expandedOnSite)}
+                  className="w-full flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left group"
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    <svg 
+                      className={`w-3 h-3 text-[#9CA3AF] transition-transform ${expandedOnSite ? 'rotate-90' : ''}`} 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.5"
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                    <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span className="text-xs font-medium text-[#374151]">On Site</span>
+                  </div>
+                </button>
+
+                {/* On Site Sub-items */}
+                {expandedOnSite && (
+                  <div className="ml-5 mt-0.5 space-y-0">
+                    {/* Brand Assets - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedBrandAssets(!expandedBrandAssets)}
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedBrandAssets ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          Brand Assets
+                        </span>
+                      </button>
+                      
+                      {expandedBrandAssets && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Logo
+                          </button>
+                          <div className="px-2 py-0.5 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                            URL
+                          </div>
+                          <div className="px-2 py-0.5 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                            Colors
+                          </div>
+                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                            Typography
+                          </div>
+                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                            Tone
+                          </div>
+                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                            Languages
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meta Info - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedMetaInfo(!expandedMetaInfo)}
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedMetaInfo ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          Meta Info
+                        </span>
+                      </button>
+                      
+                      {expandedMetaInfo && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Header
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Footer
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-1 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Meta Tags
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-1 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Sitemap
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Off Site */}
+              <button
+                disabled
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left group opacity-50 cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2 flex-1">
+                  <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                  <span className="text-xs font-medium text-[#374151]">Off Site</span>
+                </div>
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-bold">Soon</span>
+              </button>
+
+              {/* Knowledge */}
+              <button
+                disabled
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left group opacity-50 cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2 flex-1">
+                  <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                  <span className="text-xs font-medium text-[#374151]">Knowledge</span>
+                </div>
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-bold">Soon</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Page Blueprint Section (Middle 1/3) */}
+        <div className="flex flex-col h-1/3 min-h-0 border-b border-[#E5E5E5]">
+          <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center justify-between shrink-0 border-b border-[#E5E5E5] h-10">
             <div className="flex items-center gap-2">
-              <span>On Going Pages</span>
+              <span>Page Blueprint</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -274,7 +332,7 @@ export default function ConversationSidebar({
           <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2">
             {contentItems.length === 0 && contentProjects.length === 0 ? (
               <div className="px-3 py-4 text-[11px] text-[#9CA3AF] italic text-center">
-                No content items yet
+                No page blueprints yet
               </div>
             ) : (
               <div className="space-y-1">
@@ -319,14 +377,6 @@ export default function ConversationSidebar({
                               <span className="flex-1 text-[11px] text-[#374151] truncate">
                                 {item.title}
                               </span>
-                              {item.status !== 'ready' && !isGenerated && (
-                                <span 
-                                  className="text-[9px] font-bold uppercase shrink-0"
-                                  style={getStatusStyle(item.status)}
-                                >
-                                  {getStatusText(item.status)}
-                                </span>
-                              )}
                             </button>
                             
                             {/* Live Preview Link for Generated Pages */}
@@ -378,14 +428,6 @@ export default function ConversationSidebar({
                       <span className="flex-1 text-[11px] text-[#374151] truncate">
                         {item.title}
                       </span>
-                      {item.status !== 'ready' && !isGenerated && (
-                        <span 
-                          className="text-[9px] font-bold uppercase shrink-0"
-                          style={getStatusStyle(item.status)}
-                        >
-                          {getStatusText(item.status)}
-                        </span>
-                      )}
                     </button>
                     
                     {/* Live Preview Link for Generated Pages */}
@@ -413,197 +455,17 @@ export default function ConversationSidebar({
           </div>
         </div>
 
-        {/* On Site Context Section (Middle 1/3) */}
-        <div className="flex flex-col h-1/3 min-h-0 border-b border-[#F5F5F5]">
-          <div className="px-4 py-3 text-xs font-bold text-[#9CA3AF] uppercase tracking-wider shrink-0">
-            On Site Context
-          </div>
-          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2 space-y-0.5">
-            {siteContextTypes.map((item) => (
-              <button
-                key={item.type}
-                onClick={() => onEditSiteContext(item.type)}
-                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-[#F3F4F6] transition-all cursor-pointer text-left group"
-              >
-                {item.icon}
-                <span className="flex-1 text-xs font-medium text-[#374151]">
-                  {item.label}
-                </span>
-                <span className={`text-[10px] font-medium shrink-0 ${item.hasContent ? 'text-[#9A8FEA]' : 'text-[#9CA3AF]'}`}>
-                  {item.hasContent ? 'Configured' : 'Empty'}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Your Chats Section (Bottom 1/3) */}
+        {/* Tasks Section (Bottom 1/3) - Placeholder */}
         <div className="flex flex-col h-1/3 min-h-0">
-          <div className="px-4 py-3 flex items-center justify-between shrink-0">
-            <h2 className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Your Chats</h2>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#F3F4F6] text-[#6B7280] px-1.5 py-0.5 rounded text-[11px] font-medium">
-                {conversations.length}
-              </span>
-              <button
-                onClick={onNewConversation}
-                className="p-1 rounded hover:bg-[#F3F4F6] text-[#6B7280] transition-colors cursor-pointer"
-                title="New Chat"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
-            </div>
+          <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider shrink-0 border-b border-[#E5E5E5] h-10 flex items-center">
+            Tasks
           </div>
-
-          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 py-2">
-            <div className="space-y-0.5">
-              {conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  className={`group flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer ${
-                    currentConversation?.id === conv.id
-                      ? 'bg-[#F3F4F6]'
-                      : 'hover:bg-[#F3F4F6]'
-                  }`}
-                >
-                  {editingConversationId === conv.id ? (
-                    // Editing mode
-                    <div className="flex-1 flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleRename(conv.id);
-                          } else if (e.key === 'Escape') {
-                            cancelEditingConversation();
-                          }
-                        }}
-                        className="flex-1 px-2 py-1 text-xs border border-[#E5E5E5] rounded focus:outline-none focus:border-[#E5E5E5] bg-white"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <button
-                        onClick={() => handleRename(conv.id)}
-                        className="p-0.5 rounded hover:bg-[#F3F4F6] transition-colors cursor-pointer"
-                        title="Save"
-                      >
-                        <svg className="w-3.5 h-3.5 text-[#10B981]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    // Normal mode
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleShowcase(conv.id, !conv.is_showcase);
-                        }}
-                        className={`p-1 rounded transition-all cursor-pointer shrink-0 ${
-                          conv.is_showcase 
-                            ? 'text-[#F59E0B] hover:text-[#D97706]' 
-                            : 'text-[#D1D5DB] hover:text-[#F59E0B]'
-                        }`}
-                        title={conv.is_showcase ? 'Remove from showcase' : 'Mark as showcase'}
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill={conv.is_showcase ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => onSwitchConversation(conv)}
-                        className="flex-1 text-left text-xs font-medium text-[#374151] truncate"
-                      >
-                        {conv.title}
-                      </button>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button
-                          onClick={(e) => startEditingConversation(conv.id, conv.title, e)}
-                          className="p-1 rounded hover:bg-white transition-all cursor-pointer"
-                          title="Rename"
-                        >
-                          <svg className="w-3.5 h-3.5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteConversation(conv.id);
-                          }}
-                          className="p-1 rounded hover:bg-white transition-all cursor-pointer text-[#EF4444]"
-                          title="Delete"
-                        >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2">
+            <div className="px-3 py-4 text-[11px] text-[#9CA3AF] italic text-center">
+              Tasks coming soon
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Bottom Actions */}
-      <div className="p-3 border-t border-[#F5F5F5] flex items-center gap-2 shrink-0">
-        {/* User Info */}
-        <AuthButton />
-        
-        {/* Skills Link */}
-        <Link
-          href="/skills"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center p-2 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all flex-shrink-0"
-          title="AI Skills & Tools"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-        </Link>
-        
-        {/* Feedbacks Link */}
-        <Link
-          href="/feedbacks"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center p-2 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all flex-shrink-0"
-          title="Message Feedbacks"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-          </svg>
-        </Link>
-        
-        {/* Sign Out Button */}
-        <button
-          onClick={() => {
-            // Sign out via supabase
-            import('@/lib/supabase').then(({ supabase }) => {
-              supabase.auth.signOut();
-            });
-          }}
-          className="flex items-center justify-center p-2 text-[#6B7280] hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-all flex-shrink-0"
-          title="Sign Out"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
       </div>
 
       {/* Context Menu */}
@@ -639,4 +501,3 @@ export default function ConversationSidebar({
     </aside>
   );
 }
-

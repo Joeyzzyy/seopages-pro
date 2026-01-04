@@ -77,34 +77,32 @@ OUTPUT:
         urlPatterns: string[];
       }> = {};
 
-      // Process sitemap URLs
+      // Process sitemap URLs - categorize by first-level directory
       urls.forEach(url => {
         try {
           const urlObj = new URL(url);
           const pathSegments = urlObj.pathname.split('/').filter(Boolean);
           
-          // Extract potential topic from URL structure
-          // Common patterns: /blog/topic/..., /resources/topic/..., /topic/...
-          let topic = 'Other';
+          // Extract category from first-level directory
+          // e.g., /alternatives/seo-ai-alternatives -> category = "Alternatives"
+          // e.g., /pseo/automated-seo-guide -> category = "Pseo"
+          let category = 'Home';
           
-          if (pathSegments.length >= 2) {
-            // e.g., /blog/seo-tips -> hub = "seo"
-            const potentialTopic = pathSegments[1];
-            if (potentialTopic && potentialTopic.length > 2) {
-              topic = potentialTopic.replace(/-/g, ' ').replace(/_/g, ' ');
-              // Normalize to title case
-              topic = topic.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            }
-          } else if (pathSegments.length === 1) {
-            const potentialTopic = pathSegments[0];
-            if (potentialTopic && potentialTopic.length > 2) {
-              topic = potentialTopic.replace(/-/g, ' ').replace(/_/g, ' ');
-              topic = topic.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          if (pathSegments.length >= 1) {
+            const firstSegment = pathSegments[0];
+            if (firstSegment && firstSegment.length > 0) {
+              // Convert to title case and handle special cases
+              category = firstSegment
+                .replace(/-/g, ' ')
+                .replace(/_/g, ' ')
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ');
             }
           }
 
-          if (!topicHubs[topic]) {
-            topicHubs[topic] = {
+          if (!topicHubs[category]) {
+            topicHubs[category] = {
               urlCount: 0,
               urls: [],
               keywords: [],
@@ -112,13 +110,13 @@ OUTPUT:
             };
           }
 
-          topicHubs[topic].urlCount++;
-          topicHubs[topic].urls.push(url);
+          topicHubs[category].urlCount++;
+          topicHubs[category].urls.push(url);
 
-          // Track URL pattern
-          const pattern = pathSegments.slice(0, 2).join('/');
-          if (pattern && !topicHubs[topic].urlPatterns.includes(pattern)) {
-            topicHubs[topic].urlPatterns.push(pattern);
+          // Track URL pattern (first-level directory)
+          const pattern = pathSegments[0];
+          if (pattern && !topicHubs[category].urlPatterns.includes(pattern)) {
+            topicHubs[category].urlPatterns.push(pattern);
           }
         } catch (e) {
           // Skip invalid URLs
@@ -167,7 +165,8 @@ OUTPUT:
         .map(([name, data]) => ({
           name,
           urlCount: data.urlCount,
-          sampleUrls: data.urls.slice(0, 5), // Top 5 URLs
+          sampleUrls: data.urls.slice(0, 50), // Store up to 50 sample URLs for display
+          allUrls: data.urls, // Store all URLs for reference
           urlPatterns: data.urlPatterns,
           keywords: [...new Set(data.keywords)].slice(0, 10), // Top 10 unique keywords
           coverage: data.urlCount >= 10 ? 'Strong' : data.urlCount >= 5 ? 'Moderate' : 'Weak'

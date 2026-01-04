@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, content, fileUrl } = body;
+    const { type, content, fileUrl, primaryColor, secondaryColor, headingFont, bodyFont, tone, languages } = body;
 
-    console.log('POST /api/site-contexts - User:', user.id, 'Type:', type, 'FileUrl:', fileUrl, 'Content length:', content?.length || 0);
+    console.log('POST /api/site-contexts - User:', user.id, 'Type:', type);
 
     if (!type) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['logo', 'header', 'footer', 'meta'].includes(type)) {
+    if (!['logo', 'header', 'footer', 'meta', 'sitemap'].includes(type)) {
       return NextResponse.json(
         { error: 'Invalid type' },
         { status: 400 }
@@ -103,16 +103,26 @@ export async function POST(request: NextRequest) {
 
     let context;
 
+    const updateData: any = {
+      content: content || null,
+      file_url: fileUrl || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add brand asset fields if provided
+    if (primaryColor !== undefined) updateData.primary_color = primaryColor;
+    if (secondaryColor !== undefined) updateData.secondary_color = secondaryColor;
+    if (headingFont !== undefined) updateData.heading_font = headingFont;
+    if (bodyFont !== undefined) updateData.body_font = bodyFont;
+    if (tone !== undefined) updateData.tone = tone;
+    if (languages !== undefined) updateData.languages = languages;
+
     if (existing) {
       // Update existing
       console.log('Updating existing context:', existing.id);
       const { data, error } = await supabase
         .from('site_contexts')
-        .update({
-          content: content || null,
-          file_url: fileUrl || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', existing.id)
         .select()
         .single();
@@ -132,14 +142,24 @@ export async function POST(request: NextRequest) {
     } else {
       // Create new
       console.log('Creating new context for user:', user.id);
+      const insertData: any = {
+        user_id: user.id,
+        type,
+        content: content || null,
+        file_url: fileUrl || null,
+      };
+
+      // Add brand asset fields if provided
+      if (primaryColor !== undefined) insertData.primary_color = primaryColor;
+      if (secondaryColor !== undefined) insertData.secondary_color = secondaryColor;
+      if (headingFont !== undefined) insertData.heading_font = headingFont;
+      if (bodyFont !== undefined) insertData.body_font = bodyFont;
+      if (tone !== undefined) insertData.tone = tone;
+      if (languages !== undefined) insertData.languages = languages;
+
       const { data, error } = await supabase
         .from('site_contexts')
-        .insert({
-          user_id: user.id,
-          type,
-          content: content || null,
-          file_url: fileUrl || null,
-        })
+        .insert(insertData)
         .select()
         .single();
 

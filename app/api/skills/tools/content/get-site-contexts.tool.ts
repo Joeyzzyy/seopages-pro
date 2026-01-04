@@ -8,7 +8,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export const get_site_contexts = tool({
-  description: `Retrieve saved site-wide HTML components (header, footer, head tags, logo) for the current user. 
+  description: `Retrieve saved site-wide HTML components, brand assets, and site settings for the current user. 
   
 This tool fetches the user's saved site context elements that can be used to create consistent, branded web pages.
 
@@ -18,10 +18,18 @@ Available context types:
 - "footer": HTML code for the site footer
 - "meta": Complete <head> tag content including meta tags, stylesheets, scripts, etc.
 
+Brand asset fields (stored with logo type):
+- "primary_color": Brand primary color (hex code)
+- "secondary_color": Brand secondary color (hex code)
+- "heading_font": Font family for headings
+- "body_font": Font family for body text
+- "tone": Brand tone and voice guidelines
+- "languages": Supported languages
+
 Use this tool BEFORE generating HTML pages to ensure the generated pages include the user's branding and layout.`,
   parameters: z.object({
     user_id: z.string().describe('The user ID to fetch contexts for'),
-    types: z.array(z.enum(['logo', 'header', 'footer', 'meta'])).optional().describe('Specific context types to fetch. If not provided, fetches all types.')
+    types: z.array(z.enum(['logo', 'header', 'footer', 'meta', 'sitemap'])).optional().describe('Specific context types to fetch. If not provided, fetches all types.')
   }),
   execute: async ({ user_id, types }) => {
     try {
