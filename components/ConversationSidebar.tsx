@@ -55,6 +55,10 @@ export default function ConversationSidebar({
   const [expandedOnSite, setExpandedOnSite] = useState(true);
   const [expandedBrandAssets, setExpandedBrandAssets] = useState(true);
   const [expandedMetaInfo, setExpandedMetaInfo] = useState(true);
+  const [expandedHeroSection, setExpandedHeroSection] = useState(false);
+  const [expandedSocialProof, setExpandedSocialProof] = useState(false);
+  const [expandedAboutUs, setExpandedAboutUs] = useState(false);
+  const [expandedContactInfo, setExpandedContactInfo] = useState(false);
 
   // Auto-expand first project when content loads
   useEffect(() => {
@@ -74,6 +78,86 @@ export default function ConversationSidebar({
 
   // Items without a project (Uncategorized)
   const uncategorizedItems = contentItems.filter(item => !item.project_id);
+
+  // Helper function to check if a context field has value
+  const hasContextValue = (field: string): boolean => {
+    const logoContext = siteContexts.find(ctx => ctx.type === 'logo');
+    const headerContext = siteContexts.find(ctx => ctx.type === 'header');
+    const footerContext = siteContexts.find(ctx => ctx.type === 'footer');
+    const metaContext = siteContexts.find(ctx => ctx.type === 'meta');
+    const sitemapContext = siteContexts.find(ctx => ctx.type === 'sitemap');
+    
+    // Helper to check if JSON content has any meaningful values
+    const hasJsonContent = (content: string | null | undefined): boolean => {
+      if (!content) return false;
+      try {
+        const parsed = JSON.parse(content);
+        // Check if any value in the object is non-empty
+        return Object.values(parsed).some(val => val && String(val).trim() !== '');
+      } catch {
+        // If not JSON, treat as regular string
+        return !!content && content.trim() !== '';
+      }
+    };
+    
+    switch (field) {
+      case 'meta-info':
+        return !!(logoContext?.brand_name || logoContext?.subtitle || logoContext?.meta_description);
+      case 'logo':
+        return !!(logoContext?.file_url || logoContext?.logo_light || logoContext?.logo_dark);
+      case 'colors':
+        return !!(logoContext?.primary_color || logoContext?.secondary_color);
+      case 'typography':
+        return !!(logoContext?.heading_font || logoContext?.body_font);
+      case 'tone':
+        return !!logoContext?.tone;
+      case 'languages':
+        return !!logoContext?.languages;
+      case 'header':
+        return !!headerContext?.content;
+      case 'footer':
+        return !!footerContext?.content;
+      case 'meta-tags':
+        return !!metaContext?.content;
+      case 'sitemap':
+        return !!sitemapContext?.content;
+      case 'hero-section':
+        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'hero-section')?.content);
+      case 'problem-statement':
+        return !!siteContexts.find(ctx => ctx.type === 'problem-statement')?.content;
+      case 'who-we-serve':
+        return !!siteContexts.find(ctx => ctx.type === 'who-we-serve')?.content;
+      case 'use-cases':
+        return !!siteContexts.find(ctx => ctx.type === 'use-cases')?.content;
+      case 'industries':
+        return !!siteContexts.find(ctx => ctx.type === 'industries')?.content;
+      case 'products-services':
+        return !!siteContexts.find(ctx => ctx.type === 'products-services')?.content;
+      case 'social-proof':
+        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'social-proof-trust')?.content);
+      case 'about-us':
+        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'about-us')?.content);
+      case 'leadership-team':
+        return !!siteContexts.find(ctx => ctx.type === 'leadership-team')?.content;
+      case 'faq':
+        return !!siteContexts.find(ctx => ctx.type === 'faq')?.content;
+      case 'contact-info':
+        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'contact-information')?.content);
+      case 'key-pages':
+        return !!siteContexts.find(ctx => ctx.type === 'key-website-pages')?.content;
+      case 'landing-pages':
+        return !!siteContexts.find(ctx => ctx.type === 'landing-pages')?.content;
+      case 'blog-resources':
+        return !!siteContexts.find(ctx => ctx.type === 'blog-resources')?.content;
+      default:
+        return false;
+    }
+  };
+
+  // Red dot indicator component
+  const RedDot = () => (
+    <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1" title="未填充"></span>
+  );
 
   const getStatusStyle = (status: string): React.CSSProperties => {
     if (status === 'ready') {
@@ -208,49 +292,55 @@ export default function ConversationSidebar({
                           {/* Meta Info */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Meta Info
+                            <span>Meta Info</span>
+                            {!hasContextValue('meta-info') && <RedDot />}
                           </button>
                           
                           {/* Logo URL */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Logo URL
+                            <span>Logo URL</span>
+                            {!hasContextValue('logo') && <RedDot />}
                           </button>
                           
                           {/* Colors */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Colors
+                            <span>Colors</span>
+                            {!hasContextValue('colors') && <RedDot />}
                           </button>
                           
                           {/* Typography */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Typography
+                            <span>Typography</span>
+                            {!hasContextValue('typography') && <RedDot />}
                           </button>
                           
                           {/* Tone */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Tone
+                            <span>Tone</span>
+                            {!hasContextValue('tone') && <RedDot />}
                           </button>
                           
                           {/* Languages */}
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Languages
+                            <span>Languages</span>
+                            {!hasContextValue('languages') && <RedDot />}
                           </button>
                         </div>
                       )}
@@ -280,27 +370,367 @@ export default function ConversationSidebar({
                         <div className="ml-4 mt-0 space-y-0">
                           <button
                             onClick={() => onOpenContextModal?.()}
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            <span>Header</span>
+                            {!hasContextValue('header') && <RedDot />}
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            <span>Footer</span>
+                            {!hasContextValue('footer') && <RedDot />}
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            <span>Meta Tags</span>
+                            {!hasContextValue('meta-tags') && <RedDot />}
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            <span>Sitemap</span>
+                            {!hasContextValue('sitemap') && <RedDot />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Key Website Pages */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Key Pages
+                      </span>
+                      {!hasContextValue('key-pages') && <RedDot />}
+                    </button>
+
+                    {/* Landing Pages */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Landing Pages
+                      </span>
+                      {!hasContextValue('landing-pages') && <RedDot />}
+                    </button>
+
+                    {/* Blog & Resources */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Blog & Resources
+                      </span>
+                      {!hasContextValue('blog-resources') && <RedDot />}
+                    </button>
+
+                    {/* Hero Section - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedHeroSection(!expandedHeroSection)}
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedHeroSection ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          Hero Section
+                        </span>
+                        {!hasContextValue('hero-section') && <RedDot />}
+                      </button>
+                      
+                      {expandedHeroSection && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
                             className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Header
+                            Headline
                           </button>
                           <button
                             onClick={() => onOpenContextModal?.()}
                             className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Footer
+                            Subheadline
                           </button>
                           <button
                             onClick={() => onOpenContextModal?.()}
                             className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Meta Tags
+                            Call to Action
                           </button>
                           <button
                             onClick={() => onOpenContextModal?.()}
                             className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Sitemap
+                            Media
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Metrics
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Problem Statement */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Problem Statement
+                      </span>
+                      {!hasContextValue('problem-statement') && <RedDot />}
+                    </button>
+
+                    {/* Who We Serve */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Who We Serve
+                      </span>
+                      {!hasContextValue('who-we-serve') && <RedDot />}
+                    </button>
+
+                    {/* Use Cases */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Use Cases
+                      </span>
+                      {!hasContextValue('use-cases') && <RedDot />}
+                    </button>
+
+                    {/* Industries */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Industries
+                      </span>
+                      {!hasContextValue('industries') && <RedDot />}
+                    </button>
+
+                    {/* Products & Services */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Products & Services
+                      </span>
+                      {!hasContextValue('products-services') && <RedDot />}
+                    </button>
+
+                    {/* Social Proof & Trust - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedSocialProof(!expandedSocialProof)}
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedSocialProof ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          Social Proof
+                        </span>
+                        {!hasContextValue('social-proof') && <RedDot />}
+                      </button>
+                      
+                      {expandedSocialProof && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Testimonials
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Case Studies
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Badges
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Awards
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Guarantees
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Integrations
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Leadership Team */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        Leadership Team
+                      </span>
+                      {!hasContextValue('leadership-team') && <RedDot />}
+                    </button>
+
+                    {/* About Us - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedAboutUs(!expandedAboutUs)}
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedAboutUs ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          About Us
+                        </span>
+                        {!hasContextValue('about-us') && <RedDot />}
+                      </button>
+                      
+                      {expandedAboutUs && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Company Story
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Mission & Vision
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Core Values
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* FAQ */}
+                    <button
+                      onClick={() => onOpenContextModal?.()}
+                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                    >
+                      <div className="w-2.5 h-2.5" />
+                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                        FAQ
+                      </span>
+                      {!hasContextValue('faq') && <RedDot />}
+                    </button>
+
+                    {/* Contact Information - Expandable */}
+                    <div>
+                      <button
+                        onClick={() => setExpandedContactInfo(!expandedContactInfo)}
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      >
+                        <svg 
+                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedContactInfo ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
+                          Contact Info
+                        </span>
+                        {!hasContextValue('contact-info') && <RedDot />}
+                      </button>
+                      
+                      {expandedContactInfo && (
+                        <div className="ml-4 mt-0 space-y-0">
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Primary Contact
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Location & Hours
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Support Channels
+                          </button>
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Additional
                           </button>
                         </div>
                       )}

@@ -107,9 +107,24 @@ export interface ContentProject {
 export interface SiteContext {
   id: string;
   user_id: string;
-  type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
-  content: string | null; // For header/footer/meta code or sitemap JSON
+  type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap' | 
+        'key-website-pages' | 'landing-pages' | 'blog-resources' | 
+        'hero-section' | 'problem-statement' | 'who-we-serve' | 
+        'use-cases' | 'industries' | 'products-services' | 
+        'social-proof-trust' | 'leadership-team' | 'about-us' | 
+        'faq' | 'contact-information';
+  content: string | null; // For header/footer/meta code or sitemap JSON, or structured JSON for new types
   file_url: string | null; // For logo image
+  // Brand Assets fields
+  brand_name?: string | null; // Brand name
+  subtitle?: string | null; // Brand subtitle
+  meta_description?: string | null; // Meta description for SEO
+  og_image?: string | null; // Open Graph image URL
+  favicon?: string | null; // Favicon URL
+  logo_light?: string | null; // Light theme logo URL
+  logo_dark?: string | null; // Dark theme logo URL
+  icon_light?: string | null; // Light theme icon URL
+  icon_dark?: string | null; // Dark theme icon URL
   primary_color?: string | null; // Brand primary color
   secondary_color?: string | null; // Brand secondary color
   heading_font?: string | null; // Heading font family
@@ -118,6 +133,37 @@ export interface SiteContext {
   languages?: string | null; // Supported languages
   created_at: string;
   updated_at: string;
+}
+
+// Structured content interfaces for different context types
+export interface HeroSectionContent {
+  headline?: string;
+  subheadline?: string;
+  callToAction?: string;
+  media?: string;
+  metrics?: string;
+}
+
+export interface SocialProofContent {
+  testimonials?: string;
+  caseStudies?: string;
+  badges?: string;
+  awards?: string;
+  guarantees?: string;
+  integrations?: string;
+}
+
+export interface AboutUsContent {
+  companyStory?: string;
+  missionVision?: string;
+  coreValues?: string;
+}
+
+export interface ContactInformationContent {
+  primaryContact?: string;
+  locationHours?: string;
+  supportChannels?: string;
+  additional?: string;
 }
 
 export interface MessageFeedback {

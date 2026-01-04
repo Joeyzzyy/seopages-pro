@@ -8,17 +8,20 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export const get_site_contexts = tool({
-  description: `Retrieve saved site-wide HTML components, brand assets, and site settings for the current user. 
+  description: `Retrieve saved site-wide HTML components, brand assets, content sections, and site settings for the current user. 
   
 This tool fetches the user's saved site context elements that can be used to create consistent, branded web pages.
 
 Available context types:
+
+**Site Elements:**
 - "logo": The uploaded logo image URL
 - "header": HTML code for the site header/navigation
 - "footer": HTML code for the site footer
 - "meta": Complete <head> tag content including meta tags, stylesheets, scripts, etc.
+- "sitemap": Website sitemap data
 
-Brand asset fields (stored with logo type):
+**Brand Assets** (stored with logo type):
 - "primary_color": Brand primary color (hex code)
 - "secondary_color": Brand secondary color (hex code)
 - "heading_font": Font family for headings
@@ -26,10 +29,33 @@ Brand asset fields (stored with logo type):
 - "tone": Brand tone and voice guidelines
 - "languages": Supported languages
 
-Use this tool BEFORE generating HTML pages to ensure the generated pages include the user's branding and layout.`,
+**Content Sections:**
+- "key-website-pages": Key pages of the website
+- "landing-pages": Landing pages information
+- "blog-resources": Blog and resource content
+- "hero-section": Hero section content (headline, subheadline, CTA, media, metrics)
+- "problem-statement": Problem/pain points being addressed
+- "who-we-serve": Target audience and customer personas
+- "use-cases": Common use cases and scenarios
+- "industries": Industries served
+- "products-services": Products and services offerings
+- "social-proof-trust": Testimonials, case studies, badges, awards, guarantees, integrations
+- "leadership-team": Team members and leadership
+- "about-us": Company story, mission & vision, core values
+- "faq": Frequently asked questions
+- "contact-information": Contact details (primary contact, location, hours, support channels)
+
+Use this tool BEFORE generating HTML pages to ensure the generated pages include the user's branding, layout, and relevant content.`,
   parameters: z.object({
     user_id: z.string().describe('The user ID to fetch contexts for'),
-    types: z.array(z.enum(['logo', 'header', 'footer', 'meta', 'sitemap'])).optional().describe('Specific context types to fetch. If not provided, fetches all types.')
+    types: z.array(z.enum([
+      'logo', 'header', 'footer', 'meta', 'sitemap',
+      'key-website-pages', 'landing-pages', 'blog-resources',
+      'hero-section', 'problem-statement', 'who-we-serve',
+      'use-cases', 'industries', 'products-services',
+      'social-proof-trust', 'leadership-team', 'about-us',
+      'faq', 'contact-information'
+    ])).optional().describe('Specific context types to fetch. If not provided, fetches all types.')
   }),
   execute: async ({ user_id, types }) => {
     try {

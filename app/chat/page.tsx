@@ -1155,7 +1155,12 @@ export default function ChatPage() {
   };
 
   const handleSaveSiteContext = async (data: {
-    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
+    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap' | 
+          'key-website-pages' | 'landing-pages' | 'blog-resources' | 
+          'hero-section' | 'problem-statement' | 'who-we-serve' | 
+          'use-cases' | 'industries' | 'products-services' | 
+          'social-proof-trust' | 'leadership-team' | 'about-us' | 
+          'faq' | 'contact-information';
     content?: string;
     fileUrl?: string;
   }) => {

@@ -62,7 +62,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, content, fileUrl, primaryColor, secondaryColor, headingFont, bodyFont, tone, languages } = body;
+    const { 
+      type, content, fileUrl, 
+      brandName, subtitle, metaDescription, ogImage, favicon,
+      logoLight, logoDark, iconLight, iconDark,
+      primaryColor, secondaryColor, headingFont, bodyFont, tone, languages 
+    } = body;
 
     console.log('POST /api/site-contexts - User:', user.id, 'Type:', type);
 
@@ -73,7 +78,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['logo', 'header', 'footer', 'meta', 'sitemap'].includes(type)) {
+    const validTypes = [
+      'logo', 'header', 'footer', 'meta', 'sitemap',
+      'key-website-pages', 'landing-pages', 'blog-resources',
+      'hero-section', 'problem-statement', 'who-we-serve',
+      'use-cases', 'industries', 'products-services',
+      'social-proof-trust', 'leadership-team', 'about-us',
+      'faq', 'contact-information'
+    ];
+
+    if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: 'Invalid type' },
         { status: 400 }
@@ -110,6 +124,15 @@ export async function POST(request: NextRequest) {
     };
 
     // Add brand asset fields if provided
+    if (brandName !== undefined) updateData.brand_name = brandName;
+    if (subtitle !== undefined) updateData.subtitle = subtitle;
+    if (metaDescription !== undefined) updateData.meta_description = metaDescription;
+    if (ogImage !== undefined) updateData.og_image = ogImage;
+    if (favicon !== undefined) updateData.favicon = favicon;
+    if (logoLight !== undefined) updateData.logo_light = logoLight;
+    if (logoDark !== undefined) updateData.logo_dark = logoDark;
+    if (iconLight !== undefined) updateData.icon_light = iconLight;
+    if (iconDark !== undefined) updateData.icon_dark = iconDark;
     if (primaryColor !== undefined) updateData.primary_color = primaryColor;
     if (secondaryColor !== undefined) updateData.secondary_color = secondaryColor;
     if (headingFont !== undefined) updateData.heading_font = headingFont;
@@ -150,6 +173,15 @@ export async function POST(request: NextRequest) {
       };
 
       // Add brand asset fields if provided
+      if (brandName !== undefined) insertData.brand_name = brandName;
+      if (subtitle !== undefined) insertData.subtitle = subtitle;
+      if (metaDescription !== undefined) insertData.meta_description = metaDescription;
+      if (ogImage !== undefined) insertData.og_image = ogImage;
+      if (favicon !== undefined) insertData.favicon = favicon;
+      if (logoLight !== undefined) insertData.logo_light = logoLight;
+      if (logoDark !== undefined) insertData.logo_dark = logoDark;
+      if (iconLight !== undefined) insertData.icon_light = iconLight;
+      if (iconDark !== undefined) insertData.icon_dark = iconDark;
       if (primaryColor !== undefined) insertData.primary_color = primaryColor;
       if (secondaryColor !== undefined) insertData.secondary_color = secondaryColor;
       if (headingFont !== undefined) insertData.heading_font = headingFont;

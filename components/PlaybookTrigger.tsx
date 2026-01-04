@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { SiteContext } from '@/lib/supabase';
 
 interface PlaybookField {
   id: string;
@@ -29,11 +30,7 @@ interface PlaybookTriggerProps {
     }
   };
   userId?: string;
-  siteContexts?: Array<{
-    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
-    content: string | null;
-    file_url: string | null;
-  }>;
+  siteContexts?: SiteContext[];
   onCancel: () => void;
   onSubmit: (message: string, useNewConversation: boolean) => void;
 }
