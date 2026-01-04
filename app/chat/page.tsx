@@ -1854,6 +1854,7 @@ export default function ChatPage() {
         <PlaybookTrigger
           skill={activePlaybook}
           userId={user?.id}
+          siteContexts={siteContexts}
           onCancel={() => setActivePlaybook(null)}
           onSubmit={handlePlaybookSubmit}
         />

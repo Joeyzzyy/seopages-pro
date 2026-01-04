@@ -29,6 +29,11 @@ interface PlaybookTriggerProps {
     }
   };
   userId?: string;
+  siteContexts?: Array<{
+    type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap';
+    content: string | null;
+    file_url: string | null;
+  }>;
   onCancel: () => void;
   onSubmit: (message: string, useNewConversation: boolean) => void;
 }
@@ -46,15 +51,67 @@ const COUNTRIES = [
   { label: 'India', value: 'in' },
 ];
 
-export default function PlaybookTrigger({ skill, userId, onCancel, onSubmit }: PlaybookTriggerProps) {
+export default function PlaybookTrigger({ skill, userId, siteContexts = [], onCancel, onSubmit }: PlaybookTriggerProps) {
   const trigger = skill.metadata?.playbook?.trigger;
   const isGSCSkill = skill.metadata?.tags?.includes('gsc');
   
+  // Extract site info from meta context
+  const extractSiteInfo = () => {
+    const metaContext = siteContexts.find(ctx => ctx.type === 'meta');
+    if (!metaContext?.content) return { siteName: '', siteUrl: '' };
+    
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(metaContext.content, 'text/html');
+      
+      const siteName = 
+        doc.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ||
+        doc.querySelector('title')?.textContent ||
+        '';
+      
+      const siteUrl = 
+        doc.querySelector('meta[property="og:url"]')?.getAttribute('content') ||
+        doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
+        '';
+      
+      return { siteName, siteUrl };
+    } catch {
+      return { siteName: '', siteUrl: '' };
+    }
+  };
+  
+  const { siteName, siteUrl } = extractSiteInfo();
+  
   const [values, setValues] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {};
+    
     trigger?.fields?.forEach(f => {
-      if (f.defaultValue) defaults[f.id] = f.defaultValue;
+      // Priority 1: Use field's defaultValue
+      if (f.defaultValue) {
+        defaults[f.id] = f.defaultValue;
+      }
+      // Priority 2: Auto-fill from site context
+      else if (!f.defaultValue) {
+        // Map field IDs to site context values
+        const fieldId = f.id.toLowerCase();
+        
+        // Site URL fields - auto-fill all URL-related required fields
+        if ([
+          'my_domain', 'siteurl', 'url', 'site_url', 'target', 'site_root', 
+          'page_url', 'domain', 'your_website'
+        ].includes(fieldId)) {
+          if (siteUrl) defaults[f.id] = siteUrl;
+        }
+        // Site/Product name fields
+        else if ([
+          'site_name', 'sitename', 'product_name', 'productname', 
+          'brand_name', 'brandname', 'your_product_name'
+        ].includes(fieldId)) {
+          if (siteName) defaults[f.id] = siteName;
+        }
+      }
     });
+    
     return defaults;
   });
   const [useNewConversation, setUseNewConversation] = useState(false);
@@ -70,15 +127,50 @@ export default function PlaybookTrigger({ skill, userId, onCancel, onSubmit }: P
       fetch(`/api/auth/gsc/status?userId=${userId}`)
         .then(res => res.json())
         .then(data => {
+          const gscSites = data.sites || [];
           setGscStatus({
             isAuthorized: data.isAuthorized,
-            sites: data.sites || [],
+            sites: gscSites,
             loading: false
           });
+          
+          // Auto-fill domain fields with GSC site if available and not already set
+          if (gscSites.length > 0 && trigger?.fields) {
+            const newDefaults: Record<string, string> = {};
+            
+            trigger.fields.forEach(field => {
+              const isDomainField = [
+                'my_domain', 'siteUrl', 'url', 'site_url', 'target', 'site_root', 
+                'page_url', 'domain', 'your_website'
+              ].includes(field.id);
+              
+              // Only auto-fill if field is empty and it's a domain field
+              if (isDomainField && !values[field.id]) {
+                // Try to match with siteUrl from context
+                let matchedSite = gscSites[0]; // Default to first site
+                
+                if (siteUrl) {
+                  const normalizedSiteUrl = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                  const matched = gscSites.find((site: string) => {
+                    const cleanSite = site.replace(/^sc-domain:/, '').replace(/\/$/, '');
+                    return cleanSite === normalizedSiteUrl || normalizedSiteUrl.includes(cleanSite);
+                  });
+                  if (matched) matchedSite = matched;
+                }
+                
+                const cleanSite = matchedSite.replace(/^sc-domain:/, '').replace(/\/$/, '');
+                newDefaults[field.id] = cleanSite;
+              }
+            });
+            
+            if (Object.keys(newDefaults).length > 0) {
+              setValues(prev => ({ ...prev, ...newDefaults }));
+            }
+          }
         })
         .catch(() => setGscStatus(prev => ({ ...prev, loading: false })));
     }
-  }, [userId]);
+  }, [userId]); // Remove dependency on 'values' to prevent infinite loop
 
   if (!trigger || trigger.type !== 'form') {
     // If direct, just submit immediately
@@ -170,7 +262,10 @@ export default function PlaybookTrigger({ skill, userId, onCancel, onSubmit }: P
           ) : (
             <>
           {trigger.fields?.map((field) => {
-            const isDomainField = ['my_domain', 'siteUrl', 'url', 'site_url', 'target', 'site_root', 'page_url'].includes(field.id);
+            const isDomainField = [
+              'my_domain', 'siteUrl', 'url', 'site_url', 'target', 'site_root', 
+              'page_url', 'domain', 'your_website'
+            ].includes(field.id);
             const hasGSCSites = gscStatus.isAuthorized && gscStatus.sites.length > 0;
 
             return (

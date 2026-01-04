@@ -119,16 +119,14 @@ export default function ConversationsDropdown({
               return (
                 <div
                   key={conv.id}
-                  className={`relative group rounded-lg transition-all mb-1 border ${
+                  className={`relative group rounded-lg transition-all mb-1 border cursor-pointer ${
                     isActive
                       ? 'bg-gradient-to-br from-[#FFF7ED] to-[#F3F4F6] border-[#111827]'
                       : 'bg-white hover:bg-[#F9FAFB] border-transparent hover:border-[#E5E5E5]'
                   }`}
+                  onClick={() => handleSelectConversation(conv.id)}
                 >
-                  <button
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className="w-full text-left p-3"
-                  >
+                  <div className="w-full text-left p-3">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex-1 min-w-0 flex items-center gap-1.5">
                         {isActive && (
@@ -166,7 +164,7 @@ export default function ConversationsDropdown({
                         {conv.description}
                       </p>
                     )}
-                  </button>
+                  </div>
                 </div>
               );
             })}
