@@ -122,8 +122,14 @@ export default function PlaybookTrigger({ skill, userId, onCancel, onSubmit }: P
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-[#E5E5E5] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+      onClick={onCancel}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl border border-[#E5E5E5] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-[#F5F5F5]">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-lg font-bold text-[#111827]">{skill.name}</h3>

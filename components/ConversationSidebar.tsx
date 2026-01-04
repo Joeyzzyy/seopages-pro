@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import type { SiteContext, ContentItem, ContentProject } from '@/lib/supabase';
+import TasksPanel from './TasksPanel';
+
+interface TaskStep {
+  step_number: number;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+}
 
 interface ConversationSidebarProps {
   siteContexts: SiteContext[];
@@ -13,6 +20,8 @@ interface ConversationSidebarProps {
   onDeleteProject: (projectId: string, projectName: string) => void;
   onDeleteContentItem: (itemId: string, itemTitle: string) => void;
   onOpenContextModal?: () => void;
+  conversationId?: string;
+  currentTasks?: TaskStep[];
 }
 
 export default function ConversationSidebar({
@@ -25,6 +34,8 @@ export default function ConversationSidebar({
   onDeleteProject,
   onDeleteContentItem,
   onOpenContextModal,
+  conversationId,
+  currentTasks = [],
 }: ConversationSidebarProps) {
   // Group items by project first
   const groupedContent = contentProjects.map(project => ({
@@ -194,36 +205,62 @@ export default function ConversationSidebar({
                       
                       {expandedBrandAssets && (
                         <div className="ml-4 mt-0 space-y-0">
+                          {/* Meta Info */}
                           <button
                             onClick={() => onOpenContextModal?.()}
                             className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
-                            Logo
+                            Meta Info
                           </button>
-                          <div className="px-2 py-0.5 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
-                            URL
-                          </div>
-                          <div className="px-2 py-0.5 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                          
+                          {/* Logo URL */}
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
+                            Logo URL
+                          </button>
+                          
+                          {/* Colors */}
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
                             Colors
-                          </div>
-                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                          </button>
+                          
+                          {/* Typography */}
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
                             Typography
-                          </div>
-                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                          </button>
+                          
+                          {/* Tone */}
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
                             Tone
-                          </div>
-                          <div className="px-2 py-1 rounded-lg text-left text-[11px] text-[#9CA3AF] italic">
+                          </button>
+                          
+                          {/* Languages */}
+                          <button
+                            onClick={() => onOpenContextModal?.()}
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                          >
                             Languages
-                          </div>
+                          </button>
                         </div>
                       )}
                     </div>
 
-                    {/* Meta Info - Expandable */}
+                    {/* Site Elements */}
                     <div>
                       <button
                         onClick={() => setExpandedMetaInfo(!expandedMetaInfo)}
-                        className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                       >
                         <svg 
                           className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedMetaInfo ? 'rotate-90' : ''}`} 
@@ -235,7 +272,7 @@ export default function ConversationSidebar({
                           <path d="M9 18l6-6-6-6" />
                         </svg>
                         <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Meta Info
+                          Site Elements
                         </span>
                       </button>
                       
@@ -255,13 +292,13 @@ export default function ConversationSidebar({
                           </button>
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-1 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
                             Meta Tags
                           </button>
                           <button
                             onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-1 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
+                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
                           >
                             Sitemap
                           </button>
@@ -455,15 +492,16 @@ export default function ConversationSidebar({
           </div>
         </div>
 
-        {/* Tasks Section (Bottom 1/3) - Placeholder */}
+        {/* Tasks Section (Bottom 1/3) */}
         <div className="flex flex-col h-1/3 min-h-0">
           <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider shrink-0 border-b border-[#E5E5E5] h-10 flex items-center">
             Tasks
           </div>
-          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2">
-            <div className="px-3 py-4 text-[11px] text-[#9CA3AF] italic text-center">
-              Tasks coming soon
-            </div>
+          <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2 pt-2">
+            <TasksPanel 
+              conversationId={conversationId}
+              tasks={currentTasks}
+            />
           </div>
         </div>
       </div>

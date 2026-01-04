@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import MarkdownMessage from './MarkdownMessage';
 import ToolCallsSummary from './ToolCallsSummary';
+import GeneratedFiles from './GeneratedFiles';
 import FilePreviewModal from './FilePreviewModal';
 import MessageFeedbackModal from './MessageFeedbackModal';
 import { supabase } from '@/lib/supabase';
@@ -199,7 +200,10 @@ export default function MessageList({
 
   return (
     <>
-      {messages.map((message: any) => (
+      {messages.map((message: any, index: number) => {
+        const isLastMessage = index === messages.length - 1;
+        
+        return (
         <div
           key={message.id}
           className={`flex flex-col gap-2 ${
@@ -348,7 +352,7 @@ export default function MessageList({
             );
           })()}
           
-          {/* Message content */}
+          {/* Message content and tool calls - interleaved display */}
           <div
             className={`max-w-[85%] min-w-0 ${
               message.role === 'user'
@@ -374,28 +378,91 @@ export default function MessageList({
                 </button>
               </div>
             ) : (
-              <MarkdownMessage content={message.content} />
-            )}
-            
-            {/* Tool invocation results - unified display */}
-            {message.toolInvocations && message.toolInvocations.length > 0 && (
-              <div className="mt-4">
-                <ToolCallsSummary
-                  toolInvocations={message.toolInvocations}
-                  userId={userId}
-                  conversationId={conversationId}
-                  files={files}
-                  onUploadSuccess={onUploadSuccess}
-                  onPreviewContentItem={onPreviewContentItem}
-                  isLastMessage={messages.indexOf(message) === messages.length - 1}
-                  isStreaming={isLoading && messages.indexOf(message) === messages.length - 1}
-                />
-              </div>
+              <>
+                {/* For assistant messages with tool calls: interleave content and tools */}
+                {(() => {
+                  // If there are no tool invocations, just show content
+                  if (!message.toolInvocations || message.toolInvocations.length === 0) {
+                    return message.content && <MarkdownMessage content={message.content} />;
+                  }
+
+                  // Check for keywords that indicate AI is about to execute or has executed tools
+                  const hasExecutionIndicator = message.content && (
+                    message.content.includes('现在开始执行') ||
+                    message.content.includes('开始执行') ||
+                    message.content.includes('执行中') ||
+                    message.content.match(/已完成.*调研|已完成.*分析|已完成.*提取/)
+                  );
+
+                  // If content mentions execution, split at that point
+                  if (hasExecutionIndicator && message.content) {
+                    // Find where execution starts or results appear
+                    const executionMatch = message.content.match(/(现在开始执行|开始执行|执行中|已完成[^。！\n]{0,30})/);
+                    
+                    if (executionMatch && executionMatch.index !== undefined) {
+                      // Split at the execution indicator
+                      const beforeExecution = message.content.substring(0, executionMatch.index + executionMatch[0].length);
+                      const afterExecution = message.content.substring(executionMatch.index + executionMatch[0].length).trim();
+
+                      return (
+                        <>
+                          {/* Opening statement before tools */}
+                          {beforeExecution && (
+                            <div className="mb-4">
+                              <MarkdownMessage content={beforeExecution} />
+                            </div>
+                          )}
+                          
+                          {/* Tool executions */}
+                          <div className="mb-4">
+                            <ToolCallsSummary
+                              toolInvocations={message.toolInvocations}
+                              userId={userId}
+                              conversationId={conversationId}
+                              files={files}
+                              onUploadSuccess={onUploadSuccess}
+                              onPreviewContentItem={onPreviewContentItem}
+                              isLastMessage={isLastMessage}
+                              isStreaming={isLoading && isLastMessage}
+                            />
+                          </div>
+                          
+                          {/* Results/summary after tools */}
+                          {afterExecution && (
+                            <MarkdownMessage content={afterExecution} />
+                          )}
+                        </>
+                      );
+                    }
+                  }
+
+                  // Default: tools first, then content
+                  return (
+                    <>
+                      {/* Tool executions */}
+                      <div className="mb-4">
+                        <ToolCallsSummary
+                          toolInvocations={message.toolInvocations}
+                          userId={userId}
+                          conversationId={conversationId}
+                          files={files}
+                          onUploadSuccess={onUploadSuccess}
+                          onPreviewContentItem={onPreviewContentItem}
+                          isLastMessage={isLastMessage}
+                          isStreaming={isLoading && isLastMessage}
+                        />
+                      </div>
+                      {/* Then show final response */}
+                      {message.content && <MarkdownMessage content={message.content} />}
+                    </>
+                  );
+                })()}
+              </>
             )}
             
             {/* Token usage display for assistant messages */}
             {message.role === 'assistant' && message.tokenUsage && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="mt-3">
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <div className="flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,9 +485,27 @@ export default function MessageList({
               </div>
             )}
 
+            {/* Generated Files - Before feedback buttons */}
+            {message.role === 'assistant' && message.toolInvocations && message.toolInvocations.length > 0 && (
+              <div className="mt-3">
+                <GeneratedFiles
+                  toolInvocations={message.toolInvocations}
+                  userId={userId}
+                  conversationId={conversationId}
+                  files={files}
+                  onUploadSuccess={onUploadSuccess}
+                />
+              </div>
+            )}
+
             {/* Feedback buttons for assistant messages */}
-            {message.role === 'assistant' && !message.content?.startsWith('Error:') && !message.content?.startsWith('❌ Error:') && userId && (
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+            {message.role === 'assistant' && 
+             !message.content?.startsWith('Error:') && 
+             !message.content?.startsWith('❌ Error:') && 
+             userId &&
+             !(isLoading && isLastMessage) && // Only hide if it's the last message AND still loading
+             (
+              <div className="mt-3 flex items-center gap-2">
                 <button
                   onClick={() => handleFeedbackClick(message.id, 'like')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
@@ -453,7 +538,7 @@ export default function MessageList({
             )}
           </div>
         </div>
-      ))}
+      )})}
 
       {/* Loading indicator */}
       {isLoading && (

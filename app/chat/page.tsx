@@ -78,6 +78,86 @@ interface Skill {
   };
 }
 
+// Extract current tasks from messages (looking for create_plan tool)
+function extractCurrentTasks(messages: any[]): Array<{
+  step_number: number;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+}> {
+  // Find the most recent create_plan tool invocation
+  let planSteps: any[] = [];
+  let completedSteps: number[] = [];
+  let hasFinishedExecution = false;
+  
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'assistant' && msg.toolInvocations) {
+      // Check if this message has finished executing (all tools have results)
+      const allToolsFinished = msg.toolInvocations.every(
+        (inv: any) => inv.state === 'result' || (inv.result && !inv.state)
+      );
+      if (i === messages.length - 1 && allToolsFinished) {
+        hasFinishedExecution = true;
+      }
+      
+      for (const inv of msg.toolInvocations) {
+        // Extract plan steps from create_plan
+        if (inv.toolName === 'create_plan' && inv.args?.steps && planSteps.length === 0) {
+          planSteps = inv.args.steps.map((step: any, index: number) => {
+            if (typeof step === 'string') {
+              return { step_number: index + 1, description: step };
+            }
+            return {
+              step_number: step.step_number || index + 1,
+              description: step.description || step.title || step
+            };
+          });
+        }
+        
+        // Track completed steps from update_task_status
+        if (inv.toolName === 'update_task_status' && inv.args?.completed_steps) {
+          completedSteps = [...new Set([...completedSteps, ...inv.args.completed_steps])];
+        }
+      }
+    }
+  }
+  
+  if (planSteps.length === 0) {
+    return [];
+  }
+  
+  // If the last message has finished execution and there are no more messages being generated,
+  // mark all steps as completed
+  if (hasFinishedExecution && completedSteps.length > 0) {
+    // Assume all steps are completed if we're past the planning phase
+    return planSteps.map((step) => ({
+      step_number: step.step_number,
+      description: step.description,
+      status: 'completed' as const
+    }));
+  }
+  
+  // Determine which step is currently in progress (highest completed + 1)
+  const currentStepNumber = completedSteps.length > 0 ? Math.max(...completedSteps) + 1 : 1;
+  
+  return planSteps.map((step) => {
+    const stepNum = step.step_number;
+    let status: 'pending' | 'in_progress' | 'completed' | 'failed' = 'pending';
+    
+    if (completedSteps.includes(stepNum)) {
+      status = 'completed';
+    } else if (stepNum === currentStepNumber) {
+      status = 'in_progress';
+    }
+    
+    return {
+      step_number: stepNum,
+      description: step.description,
+      status
+    };
+  });
+}
+
 export default function ChatPage() {
   // State
   const [user, setUser] = useState<User | null>(null);
@@ -510,7 +590,7 @@ export default function ChatPage() {
     }
     
     isLoadingRef.current = isLoading;
-  }, [isLoading, messages]);
+  }, [isLoading, messages.length]); // Only depend on messages.length, not the entire messages array
   
   // Extract onFinish logic into a separate function
   const handleAssistantMessageComplete = async (message: any) => {
@@ -1178,8 +1258,8 @@ export default function ChatPage() {
     // Auto-generate title and description from first message
     if (isFirstMessage && conversationToUse && input.trim()) {
       const firstMessage = input.trim();
-      const autoTitle = firstMessage.slice(0, 10) + (firstMessage.length > 10 ? '...' : '');
-      const autoDescription = firstMessage.slice(0, 20) + (firstMessage.length > 20 ? '...' : '');
+      const autoTitle = firstMessage.slice(0, 30) + (firstMessage.length > 30 ? '...' : '');
+      const autoDescription = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
       
       try {
         await updateConversationTitle(conversationToUse.id, autoTitle, autoDescription);
@@ -1193,7 +1273,8 @@ export default function ChatPage() {
           updateCurrentConversation({ ...conversationToUse, title: autoTitle, description: autoDescription });
         }
       } catch (error) {
-        console.error('Failed to auto-generate title and description:', error);
+        // Silent fail - title generation is non-critical
+        console.warn('Could not auto-generate title (non-critical):', error);
       }
     }
     
@@ -1377,6 +1458,9 @@ export default function ChatPage() {
     setToast({ isOpen: true, message: 'Log copied to clipboard!' });
   };
 
+  // Extract current tasks from messages
+  const currentTasks = extractCurrentTasks(messages);
+
   return (
     <div className="h-screen bg-[#FAFAFA] flex flex-col p-2 gap-2">
       {/* Top Bar */}
@@ -1402,6 +1486,8 @@ export default function ChatPage() {
               onDeleteProject={handleDeleteProject}
               onDeleteContentItem={handleDeleteContentItem}
               onOpenContextModal={() => setIsContextModalOpen(true)}
+              conversationId={currentConversation?.id}
+              currentTasks={currentTasks}
             />
           </div>
         )}

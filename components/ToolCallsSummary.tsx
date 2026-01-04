@@ -13,6 +13,117 @@ interface ToolCallsSummaryProps {
   onPreviewContentItem?: (itemId: string) => void;
   isLastMessage?: boolean;
   isStreaming?: boolean;
+  showFiles?: boolean; // Control whether to show files in this component
+}
+
+// Extract plan steps from create_plan tool
+function extractPlanSteps(toolInvocations: any[]): any[] {
+  const planTool = toolInvocations.find(inv => inv.toolName === 'create_plan');
+  if (!planTool || !planTool.args) return [];
+  
+  // Try multiple possible structures
+  const steps = planTool.args.steps || planTool.result?.plan?.steps || planTool.result?.steps || [];
+  
+  // Normalize step structure
+  return steps.map((step: any, index: number) => {
+    if (typeof step === 'string') {
+      return { step_number: index + 1, description: step };
+    }
+    return {
+      step_number: step.step_number || index + 1,
+      description: step.description || step.title || step
+    };
+  });
+}
+
+// Get current step number based on update_task_status calls
+function getCurrentStepNumber(toolInvocations: any[], currentIndex: number): number {
+  // Look back through invocations to find the last update_task_status before this index
+  let currentStep = 1;
+  
+  for (let i = 0; i <= currentIndex; i++) {
+    const inv = toolInvocations[i];
+    if (inv.toolName === 'update_task_status' && inv.args) {
+      const completedSteps = inv.args.completed_steps || [];
+      if (completedSteps.length > 0) {
+        currentStep = Math.max(...completedSteps) + 1;
+      }
+    }
+  }
+  
+  return currentStep;
+}
+
+// Group tools by plan step based on update_task_status markers
+function groupToolsByPlanStep(toolInvocations: any[], planSteps: any[]): Map<number, any[]> {
+  const grouped = new Map<number, any[]>();
+  
+  if (planSteps.length === 0) {
+    // No plan, return all tools in a single group
+    return grouped;
+  }
+
+  // Find all update_task_status tools
+  const statusUpdates = toolInvocations
+    .map((inv, index) => ({ inv, index }))
+    .filter(({ inv }) => inv.toolName === 'update_task_status')
+    .map(({ inv, index }) => ({
+      index,
+      completedSteps: inv.args?.completed_steps || inv.result?.completedSteps || []
+    }));
+
+  // Find create_plan and tracker tools (to exclude from grouping)
+  const excludeToolNames = new Set(['create_plan', 'create_conversation_tracker', 'update_task_status']);
+  
+  let currentStepNumber = 1;
+  let lastStatusIndex = -1;
+
+  toolInvocations.forEach((inv, index) => {
+    // Skip excluded tools
+    if (excludeToolNames.has(inv.toolName)) {
+      // Update current step based on status updates
+      const statusUpdate = statusUpdates.find(su => su.index === index);
+      if (statusUpdate && statusUpdate.completedSteps.length > 0) {
+        currentStepNumber = Math.max(...statusUpdate.completedSteps);
+        lastStatusIndex = index;
+      }
+      return;
+    }
+
+    // Assign tool to current step
+    if (!grouped.has(currentStepNumber)) {
+      grouped.set(currentStepNumber, []);
+    }
+    grouped.get(currentStepNumber)!.push(inv);
+  });
+
+  return grouped;
+}
+
+// Group consecutive tools of the same type for compact display
+function groupConsecutiveTools(tools: any[]): any[] {
+  if (tools.length === 0) return [];
+  
+  const groups: any[] = [];
+  let currentGroup: any = null;
+
+  tools.forEach(tool => {
+    if (!currentGroup || currentGroup.toolName !== tool.toolName) {
+      // Start new group
+      currentGroup = {
+        toolName: tool.toolName,
+        tools: [tool],
+        isGroup: false
+      };
+      groups.push(currentGroup);
+    } else {
+      // Add to existing group
+      currentGroup.tools.push(tool);
+      currentGroup.isGroup = true; // Mark as group when 2+ tools
+    }
+  });
+
+  return groups;
 }
 
 // Get tool details for display
@@ -102,7 +213,8 @@ export default function ToolCallsSummary({
   onUploadSuccess,
   onPreviewContentItem,
   isLastMessage = false,
-  isStreaming = false
+  isStreaming = false,
+  showFiles = false, // Default to false - files will be rendered separately in MessageList
 }: ToolCallsSummaryProps) {
   // Check if any tool is still running (excluding tracker tools)
   const isRunning = toolInvocations.some(inv => {
@@ -115,26 +227,62 @@ export default function ToolCallsSummary({
   // AI is thinking when streaming but no tool is currently running
   const isThinking = isStreaming && !isRunning;
 
-  const [isExpanded, setIsExpanded] = useState(isRunning || isLastMessage);
-  const [filesExpanded, setFilesExpanded] = useState(isRunning || isLastMessage);
+  const [isExpanded, setIsExpanded] = useState(isRunning);
+  const [filesExpanded, setFilesExpanded] = useState(isRunning);
+  const [toolDetailsExpanded, setToolDetailsExpanded] = useState<Record<string, boolean>>({}); // Track each tool's expanded state
 
-  // Auto-expand when tools start running or it becomes the last message
-  // Auto-collapse when it's no longer the last message (and not running)
+  // Auto-expand only when tools are actively running
+  // Default to collapsed when finished
   useEffect(() => {
-    if (isRunning || isLastMessage) {
+    if (isRunning) {
       setIsExpanded(true);
       setFilesExpanded(true);
-    } else {
-      setIsExpanded(false);
-      setFilesExpanded(false);
     }
-  }, [isRunning, isLastMessage]);
+    // Don't auto-collapse - let user control it
+  }, [isRunning]);
+
+  // Toggle a specific tool's details
+  const toggleToolDetails = (toolCallId: string) => {
+    setToolDetailsExpanded(prev => ({
+      ...prev,
+      [toolCallId]: !prev[toolCallId]
+    }));
+  };
+
+  // Track which steps are expanded
+  const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({});
+  
+  // Track which tool groups are expanded
+  const [expandedToolGroups, setExpandedToolGroups] = useState<Record<string, boolean>>({});
+  
+  // Toggle step expansion
+  const toggleStep = (stepNumber: number) => {
+    setExpandedSteps(prev => ({
+      ...prev,
+      [stepNumber]: !prev[stepNumber]
+    }));
+  };
+
+  // Toggle tool group expansion
+  const toggleToolGroup = (groupKey: string) => {
+    setExpandedToolGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
 
   console.log('[ToolCallsSummary] Rendering invocations:', toolInvocations?.length);
 
   if (!toolInvocations || toolInvocations.length === 0) {
     return null;
   }
+
+  // Extract planning steps from create_plan
+  const planSteps = extractPlanSteps(toolInvocations);
+  const hasPlan = planSteps.length > 0;
+
+  // Group tools by plan step
+  const toolsByStep = groupToolsByPlanStep(toolInvocations, planSteps);
 
   // Separate file results (need special handling) from other results
   const fileResults: any[] = [];
@@ -199,13 +347,136 @@ export default function ToolCallsSummary({
     inv.state === 'result' || (!inv.state && inv.result)
   ).length;
 
+  // Render a plan step group with its tools
+  const renderPlanStep = (step: any, stepTools: any[], stepNumber: number) => {
+    const isExpanded = expandedSteps[stepNumber] !== false; // Default to expanded
+    const completedCount = stepTools.filter(inv => inv.state === 'result' || (!inv.state && inv.result)).length;
+    const totalCount = stepTools.length;
+    const isComplete = totalCount > 0 && completedCount === totalCount;
+    const isRunning = stepTools.some(inv => inv.state === 'call');
+
+    // Group consecutive tools for compact display
+    const toolGroups = groupConsecutiveTools(stepTools);
+
+    return (
+      <div key={stepNumber} className="space-y-1.5 py-2">
+        {/* Step Header - Natural conversation style */}
+        <button
+          onClick={() => toggleStep(stepNumber)}
+          className="w-full flex items-start gap-2 hover:opacity-80 transition-opacity text-left"
+        >
+          {/* Status Icon */}
+          <div className="flex items-center justify-center w-4 h-4 flex-shrink-0 mt-0.5">
+            {isComplete && (
+              <svg className="w-4 h-4 text-[#10B981]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+            {isRunning && (
+              <svg className="w-4 h-4 text-[#F59E0B] animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            {!isComplete && !isRunning && (
+              <svg className="w-4 h-4 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+            )}
+          </div>
+
+          {/* Step Description */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-[#374151] font-medium leading-relaxed">{step.description}</p>
+          </div>
+
+          {/* Expand/Collapse Icon */}
+          <svg 
+            className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform flex-shrink-0 mt-1 ${isExpanded ? 'rotate-90' : ''}`} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+
+        {/* Step Tools - Indented, no borders */}
+        {isExpanded && toolGroups.length > 0 && (
+          <div className="ml-6 space-y-1.5">
+            {toolGroups.map((group, groupIndex) => {
+              if (group.isGroup) {
+                return renderToolGroup(group, groupIndex === toolGroups.length - 1);
+              } else {
+                return renderToolInvocation(group.tools[0], groupIndex === toolGroups.length - 1);
+              }
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render a group of same-type tools (e.g., 3x web_search)
+  const renderToolGroup = (group: any, isLastInGroup: boolean) => {
+    const { toolName, tools } = group;
+    const { name } = getToolDetails(tools[0]);
+    const completedCount = tools.filter((t: any) => t.state === 'result' || (!t.state && t.result)).length;
+    
+    // Generate unique key using first tool's ID
+    const groupKey = `group-${toolName}-${tools[0].toolCallId}`;
+    const groupExpanded = expandedToolGroups[groupKey] || false;
+
+    return (
+      <div key={groupKey} className="relative flex flex-col gap-1.5">
+        <button
+          onClick={() => toggleToolGroup(groupKey)}
+          className="flex items-center gap-2 px-2 py-1 transition-all cursor-pointer hover:bg-[#F9FAFB]"
+        >
+          {/* Expand Icon */}
+          <svg 
+            className={`w-3 h-3 text-[#9CA3AF] transition-transform ${groupExpanded ? 'rotate-90' : ''}`} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+
+          {/* Tool Name */}
+          <span className="text-[10px] font-black uppercase tracking-tighter text-[#374151]">
+            {name}
+          </span>
+
+          {/* Count Badge */}
+          <span className="text-[9px] font-bold text-[#9CA3AF]">
+            ({completedCount}/{tools.length})
+          </span>
+        </button>
+
+        {/* Expanded Tools List */}
+        {groupExpanded && (
+          <div className="ml-4 space-y-1.5">
+            {tools.map((tool: any, index: number) => renderToolInvocation(tool, index === tools.length - 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render a single tool result inline within a skill group
   const renderToolInvocation = (inv: any, isLastInGroup: boolean) => {
+    const detailsExpanded = toolDetailsExpanded[inv.toolCallId] || false; // Get state from parent
     const isRunning = inv.state === 'call';
     const result = inv.result;
     const { name, detail, action } = getToolDetails(inv);
     const isError = result?.found === false || result?.error;
     const args = inv.args || {};
+
+    // Truncate action text
+    const fullAction = action + (detail ? ` "${detail}"` : '');
+    const truncatedAction = fullAction.length > 50 ? fullAction.slice(0, 50) + '...' : fullAction;
 
     const brandGradient = 'linear-gradient(80deg, rgba(255, 175, 64, 0.15) -21.49%, rgba(209, 148, 236, 0.15) 18.44%, rgba(154, 143, 234, 0.15) 61.08%, rgba(101, 180, 255, 0.15) 107.78%)';
     const labelStyle = {
@@ -230,14 +501,24 @@ export default function ToolCallsSummary({
     return (
       <div key={inv.toolCallId} className="relative flex flex-col gap-1.5 group">
         <div className="flex items-center gap-2">
-        {/* Tree Line Connector */}
-        <div className="absolute -left-[15px] top-0 bottom-0 w-px bg-[#E5E7EB]" />
-          <div className="absolute -left-[15px] top-[14px] w-[10px] h-px bg-[#E5E7EB]" />
-        {isLastInGroup && (
-            <div className="absolute -left-[15px] top-[14px] bottom-0 w-px bg-white" />
-        )}
-
-        <div className={`flex-1 flex items-center gap-2 px-2 py-1 rounded-md transition-all ${isRunning ? 'bg-white/20 animate-pulse' : 'bg-white/40 border border-[#F3F4F6] hover:border-[#E5E7EB]'}`}>
+        <div 
+          className={`flex-1 flex items-center gap-2 px-2 py-1 transition-all cursor-pointer hover:bg-[#F9FAFB]`} 
+          onClick={() => toggleToolDetails(inv.toolCallId)}
+          title={fullAction} // Full text on hover
+        >
+          {/* Expand/Collapse Icon */}
+          {(args && Object.keys(args).length > 0 || result) && (
+            <svg 
+              className={`w-3 h-3 text-[#9CA3AF] transition-transform ${detailsExpanded ? 'rotate-90' : ''}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          )}
+          
           {/* Tool Section */}
           <div className="flex items-center gap-1.5 shrink-0">
             <span style={labelStyle}>Tool</span>
@@ -249,7 +530,7 @@ export default function ToolCallsSummary({
           {/* Separator */}
           <div className="h-2.5 w-[1px] bg-[#F3F4F6] shrink-0" />
 
-          {/* Action Section */}
+          {/* Action Section - Truncated with hover */}
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <span style={{ 
               ...labelStyle, 
@@ -260,7 +541,7 @@ export default function ToolCallsSummary({
             }}>Action</span>
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className={`text-[10px] font-medium truncate flex-1 ${isRunning ? 'text-[#9CA3AF] italic' : (isError ? 'text-[#FCA5A5]' : 'text-[#6B7280]')}`}>
-                {action} {detail && <span className={`font-bold ${isRunning ? '' : (isError ? 'text-[#FCA5A5]' : 'text-[#111827]')}`}>"{detail}"</span>}
+                {truncatedAction}
                 {isRunning ? '...' : (isError ? ' (Failed)' : '')}
               </span>
               
@@ -277,7 +558,7 @@ export default function ToolCallsSummary({
         </div>
 
         {/* Specialized display for create_plan steps */}
-        {inv.toolName === 'create_plan' && args.steps && args.steps.length > 0 && (
+        {detailsExpanded && inv.toolName === 'create_plan' && args.steps && args.steps.length > 0 && (
           <div className="ml-2 pl-3 border-l border-dashed border-[#E5E7EB] space-y-1 py-0.5">
             {args.steps.map((step: any, idx: number) => (
               <div key={idx} className="flex items-start gap-2">
@@ -289,7 +570,7 @@ export default function ToolCallsSummary({
         )}
 
         {/* DEBUG: Detailed Input Arguments */}
-        {args && Object.keys(args).length > 0 && (
+        {detailsExpanded && args && Object.keys(args).length > 0 && (
           <div className="ml-2 pl-3 border-l border-dashed border-[#E5E7EB] space-y-1 py-1">
             <div className="flex items-center gap-1.5 mb-1">
               <svg className="w-3 h-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -306,7 +587,7 @@ export default function ToolCallsSummary({
         )}
 
         {/* DEBUG: Detailed Output Result */}
-        {result && !isRunning && (
+        {detailsExpanded && result && !isRunning && (
           <div className="ml-2 pl-3 border-l border-dashed border-[#E5E7EB] space-y-1 py-1">
             <div className="flex items-center gap-1.5 mb-1">
               <svg className="w-3 h-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -407,8 +688,111 @@ export default function ToolCallsSummary({
         </div>
       )}
 
-      {/* File List */}
-      {fileResults.length > 0 && (
+      {/* Tool Invocations - Plan Step-based display */}
+      {hasPlan && toolsByStep.size > 0 ? (
+        /* Plan step-based display */
+        <div className="space-y-2">
+          {planSteps.map((step, index) => {
+            const stepNumber = step.step_number;
+            const stepTools = toolsByStep.get(stepNumber) || [];
+            
+            if (stepTools.length === 0) {
+              return null; // Skip steps with no tools yet
+            }
+            
+            return renderPlanStep(step, stepTools, stepNumber);
+          })}
+        </div>
+      ) : groupedInvocations.length > 0 && (
+        /* Legacy display (no phases) */
+        <div className="border border-[#F0F0F0] rounded bg-[#FAFAFA] overflow-hidden">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/50 transition-colors"
+          >
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {isRunning || isThinking ? (
+                <svg className={`w-3.5 h-3.5 animate-spin shrink-0 ${isThinking ? 'text-[#F59E0B]' : 'text-[#9A8FEA]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+              )}
+              {/* Show current running tool or thinking state in header line */}
+              {(() => {
+                // Find the current running tool (last one with state === 'call')
+                const runningTool = otherInvocations.filter(inv => inv.state === 'call').pop();
+                if (runningTool) {
+                  const { name, detail, action } = getToolDetails(runningTool);
+                  return (
+                    <span className="text-xs text-[#9A8FEA] font-medium truncate">
+                      <span className="font-bold">{name}</span>
+                      <span className="text-[#B4A8F8] mx-1">|</span>
+                      <span className="italic">{action}</span>
+                      {detail && <span className="font-semibold"> "{detail.slice(0, 30)}{detail.length > 30 ? '...' : ''}"</span>}
+                    </span>
+                  );
+                }
+                // Show thinking state when streaming but no tool running
+                if (isThinking) {
+                  // Get the last completed tool to show context
+                  const lastCompletedTool = otherInvocations.filter(inv => inv.state === 'result').pop();
+                  const lastToolName = lastCompletedTool ? getToolDetails(lastCompletedTool).name : '';
+                  return (
+                    <span className="text-xs text-[#F59E0B] font-medium truncate">
+                      <span className="italic">AI is preparing next step...</span>
+                      {lastToolName && <span className="text-[#D4A84B] ml-1">(after {lastToolName})</span>}
+                    </span>
+                  );
+                }
+                return (
+                  <span className="text-xs text-[#9CA3AF]">
+                    Used {completedCount} Tool{completedCount > 1 ? 's' : ''}
+                  </span>
+                );
+              })()}
+            </div>
+            <svg 
+              className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform shrink-0 ml-2 ${isExpanded ? 'rotate-180' : ''}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {/* Expanded content */}
+          {isExpanded && (
+            <div className="border-t border-[#F0F0F0] px-4 py-3 space-y-4 bg-white/50">
+              {groupedInvocations.map((group, gIdx) => (
+                <div key={gIdx} className="space-y-2">
+                  {/* Skill Header */}
+                  <div className="flex items-center gap-2">
+                    <span style={skillLabelStyle}>Skill</span>
+                    <span className="text-[10px] font-black text-[#111827] uppercase tracking-tighter">
+                      {group.skillName}
+                    </span>
+                  </div>
+
+                  {/* Tool Invocations (Children) */}
+                  <div className="ml-4 space-y-1.5">
+                    {group.items.map((inv, iIdx) => 
+                      renderToolInvocation(inv, iIdx === group.items.length - 1)
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* File List - Only show if showFiles is true (for backwards compatibility) */}
+      {showFiles && fileResults.length > 0 && (
         <div className="border border-[#F0F0F0] rounded bg-[#FAFAFA] overflow-hidden">
           {/* Header */}
           <button
@@ -491,94 +875,6 @@ export default function ToolCallsSummary({
                   />
                 );
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tool Invocations */}
-      {groupedInvocations.length > 0 && (
-        <div className="border border-[#F0F0F0] rounded bg-[#FAFAFA] overflow-hidden">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/50 transition-colors"
-          >
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              {isRunning || isThinking ? (
-                <svg className={`w-3.5 h-3.5 animate-spin shrink-0 ${isThinking ? 'text-[#F59E0B]' : 'text-[#9A8FEA]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                </svg>
-              ) : (
-                <svg className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                </svg>
-              )}
-              {/* Show current running tool or thinking state in header line */}
-              {(() => {
-                // Find the current running tool (last one with state === 'call')
-                const runningTool = otherInvocations.filter(inv => inv.state === 'call').pop();
-                if (runningTool) {
-                  const { name, detail, action } = getToolDetails(runningTool);
-                  return (
-                    <span className="text-xs text-[#9A8FEA] font-medium truncate">
-                      <span className="font-bold">{name}</span>
-                      <span className="text-[#B4A8F8] mx-1">|</span>
-                      <span className="italic">{action}</span>
-                      {detail && <span className="font-semibold"> "{detail.slice(0, 30)}{detail.length > 30 ? '...' : ''}"</span>}
-                    </span>
-                  );
-                }
-                // Show thinking state when streaming but no tool running
-                if (isThinking) {
-                  // Get the last completed tool to show context
-                  const lastCompletedTool = otherInvocations.filter(inv => inv.state === 'result').pop();
-                  const lastToolName = lastCompletedTool ? getToolDetails(lastCompletedTool).name : '';
-                  return (
-                    <span className="text-xs text-[#F59E0B] font-medium truncate">
-                      <span className="italic">AI is preparing next step...</span>
-                      {lastToolName && <span className="text-[#D4A84B] ml-1">(after {lastToolName})</span>}
-                    </span>
-                  );
-                }
-                return (
-                  <span className="text-xs text-[#9CA3AF]">
-                    Used {completedCount} Tool{completedCount > 1 ? 's' : ''}
-                  </span>
-                );
-              })()}
-            </div>
-            <svg 
-              className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform shrink-0 ml-2 ${isExpanded ? 'rotate-180' : ''}`} 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {/* Expanded content */}
-          {isExpanded && (
-            <div className="border-t border-[#F0F0F0] px-4 py-3 space-y-4 bg-white/50">
-              {groupedInvocations.map((group, gIdx) => (
-                <div key={gIdx} className="space-y-2">
-                  {/* Skill Header */}
-                  <div className="flex items-center gap-2">
-                    <span style={skillLabelStyle}>Skill</span>
-                    <span className="text-[10px] font-black text-[#111827] uppercase tracking-tighter">
-                      {group.skillName}
-                    </span>
-                  </div>
-
-                  {/* Tool Invocations (Children) */}
-                  <div className="ml-4 space-y-1.5">
-                    {group.items.map((inv, iIdx) => 
-                      renderToolInvocation(inv, iIdx === group.items.length - 1)
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
