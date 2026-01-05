@@ -10,9 +10,10 @@ interface TopBarProps {
   onDomainsClick?: () => void;
   onGSCClick?: () => void;
   user?: User | null;
+  showBackToProjects?: boolean;
 }
 
-export default function TopBar({ onDomainsClick, onGSCClick, user: propUser }: TopBarProps) {
+export default function TopBar({ onDomainsClick, onGSCClick, user: propUser, showBackToProjects }: TopBarProps) {
   const [user, setUser] = useState<User | null>(propUser || null);
 
   useEffect(() => {
@@ -64,12 +65,26 @@ export default function TopBar({ onDomainsClick, onGSCClick, user: propUser }: T
         <div className="flex items-center gap-3">
           {/* Function Buttons */}
           <div className="flex items-center gap-2">
-            {/* Domains Button */}
+            {/* Back to Projects Button */}
+            {showBackToProjects && (
+              <Link
+                href="/projects"
+                className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all"
+                title="Back to Projects"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span className="text-[9px] font-medium">Home</span>
+              </Link>
+            )}
+
+            {/* Verified Domains Button (for Publishing) */}
             {onDomainsClick && (
               <button
                 onClick={onDomainsClick}
                 className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all cursor-pointer"
-                title="Manage domains"
+                title="Manage Verified Domains"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />

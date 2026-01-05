@@ -21,7 +21,7 @@ async function createAuthenticatedClient(request: NextRequest) {
   );
 }
 
-// GET: Fetch all site contexts for the user
+// GET: Fetch all site contexts for the user, optionally filtered by domainId
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createAuthenticatedClient(request);
@@ -31,15 +31,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: contexts, error } = await supabase
+    const searchParams = request.nextUrl.searchParams;
+    const projectId = searchParams.get('projectId');
+
+    let query = supabase
       .from('site_contexts')
       .select('*')
-      .eq('user_id', user.id)
-      .order('type', { ascending: true });
+      .eq('user_id', user.id);
+    
+    if (projectId) {
+      query = query.eq('project_id', projectId);
+    } else {
+      query = query.is('project_id', null);
+    }
+
+    const { data: rawContexts, error } = await query.order('type', { ascending: true });
 
     if (error) throw error;
 
-    return NextResponse.json({ contexts: contexts || [] });
+    // Transform data: only return relevant fields per type
+    const contexts = (rawContexts || []).map((ctx: any) => {
+      // Base fields every type needs
+      const base = {
+        id: ctx.id,
+        user_id: ctx.user_id,
+        type: ctx.type,
+        content: ctx.content,
+        project_id: ctx.project_id,
+        created_at: ctx.created_at,
+        updated_at: ctx.updated_at,
+      };
+
+      // Only 'logo' type needs the brand asset columns
+      if (ctx.type === 'logo') {
+        return {
+          ...base,
+          file_url: ctx.file_url,
+          brand_name: ctx.brand_name,
+          subtitle: ctx.subtitle,
+          meta_description: ctx.meta_description,
+          og_image: ctx.og_image,
+          favicon: ctx.favicon,
+          logo_light: ctx.logo_light,
+          logo_dark: ctx.logo_dark,
+          icon_light: ctx.icon_light,
+          icon_dark: ctx.icon_dark,
+          primary_color: ctx.primary_color,
+          secondary_color: ctx.secondary_color,
+          heading_font: ctx.heading_font,
+          body_font: ctx.body_font,
+          tone: ctx.tone,
+          languages: ctx.languages,
+        };
+      }
+
+      // Other types just need content
+      return base;
+    });
+
+    return NextResponse.json({ contexts });
 
   } catch (error) {
     console.error('Error fetching site contexts:', error);
@@ -63,13 +113,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { 
-      type, content, fileUrl, 
+      type, content, fileUrl, projectId,
       brandName, subtitle, metaDescription, ogImage, favicon,
       logoLight, logoDark, iconLight, iconDark,
       primaryColor, secondaryColor, headingFont, bodyFont, tone, languages 
     } = body;
 
-    console.log('POST /api/site-contexts - User:', user.id, 'Type:', type);
+    console.log('POST /api/site-contexts - User:', user.id, 'Type:', type, 'Project:', projectId);
 
     if (!type) {
       return NextResponse.json(
@@ -95,12 +145,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to find existing context
-    const { data: existing, error: selectError } = await supabase
+    let query = supabase
       .from('site_contexts')
       .select('*')
       .eq('user_id', user.id)
-      .eq('type', type)
-      .maybeSingle();
+      .eq('type', type);
+    
+    if (projectId) {
+      query = query.eq('project_id', projectId);
+    } else {
+      query = query.is('project_id', null);
+    }
+
+    const { data: existing, error: selectError } = await query.maybeSingle();
 
     if (selectError) {
       console.error('Error finding existing context:', selectError);
@@ -120,6 +177,7 @@ export async function POST(request: NextRequest) {
     const updateData: any = {
       content: content || null,
       file_url: fileUrl || null,
+      project_id: projectId || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -164,12 +222,13 @@ export async function POST(request: NextRequest) {
       console.log('Context updated successfully:', context.id);
     } else {
       // Create new
-      console.log('Creating new context for user:', user.id);
+      console.log('Creating new context for user:', user.id, 'Project:', projectId);
       const insertData: any = {
         user_id: user.id,
         type,
         content: content || null,
         file_url: fileUrl || null,
+        project_id: projectId || null,
       };
 
       // Add brand asset fields if provided

@@ -21,6 +21,7 @@ export const save_site_context = tool({
   For content sections, use their specific types (hero-section, about-us, etc.) with content as JSON string.`,
   parameters: z.object({
     userId: z.string().describe('The ID of the user (pass your Current User ID here)'),
+    projectId: z.string().optional().describe('The ID of the SEO project to scope this context to'),
     type: z.enum([
       'logo', 'header', 'footer', 'meta', 'sitemap',
       'key-website-pages', 'landing-pages', 'blog-resources',
@@ -49,21 +50,28 @@ export const save_site_context = tool({
     languages: z.string().optional().describe('Supported languages (only for type=logo)'),
   }),
   execute: async ({ 
-    userId, type, content, fileUrl,
+    userId, projectId, type, content, fileUrl,
     brandName, subtitle, metaDescription, ogImage, favicon,
     logoLight, logoDark, iconLight, iconDark,
     primaryColor, secondaryColor, headingFont, bodyFont, tone, languages
   }) => {
     try {
-      console.log(`[save_site_context] Saving ${type} for user ${userId}`);
+      console.log(`[save_site_context] Saving ${type} for user ${userId} ${projectId ? `for project ${projectId}` : ''}`);
       
       // First try to get existing record
-      const { data: existing, error: fetchError } = await supabase
+      let query = supabase
         .from('site_contexts')
         .select('id')
         .eq('user_id', userId)
-        .eq('type', type)
-        .maybeSingle();
+        .eq('type', type);
+      
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      } else {
+        query = query.is('project_id', null);
+      }
+
+      const { data: existing, error: fetchError } = await query.maybeSingle();
 
       if (fetchError) throw fetchError;
 
@@ -73,6 +81,7 @@ export const save_site_context = tool({
       const updateData: any = {
         content: content || null,
         file_url: fileUrl || null,
+        project_id: projectId || null,
         updated_at: new Date().toISOString(),
       };
       
@@ -111,6 +120,7 @@ export const save_site_context = tool({
           type,
           content: content || null,
           file_url: fileUrl || null,
+          project_id: projectId || null,
         };
         
         // Add brand asset fields if provided

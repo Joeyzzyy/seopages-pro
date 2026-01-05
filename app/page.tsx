@@ -10,8 +10,8 @@ export default function LandingPage() {
   const navItems = [
     {
       title: 'Start Seenos Mini',
-      subtitle: '开启智能 SEO 与内容生产之旅',
-      href: '/chat',
+      subtitle: 'Start your smart SEO and content production journey',
+      href: '/projects',
       icon: (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -20,7 +20,7 @@ export default function LandingPage() {
     },
     {
       title: 'Check Skills We Have',
-      subtitle: '探索我们强大的 AI 技能库',
+      subtitle: 'Explore our powerful AI skill library',
       href: '/skills',
       icon: (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -30,7 +30,7 @@ export default function LandingPage() {
     },
     {
       title: 'How to Build a Project Like This',
-      subtitle: '了解背后的技术架构与实现',
+      subtitle: 'Understand the technical architecture and implementation',
       href: '/build-guide',
       icon: (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

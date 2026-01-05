@@ -10,53 +10,73 @@ const azure = createAzure({
 });
 
 export const analyze_scraped_content = tool({
-  description: `Use AI to intelligently analyze scraped website content (full page text) and structure it into comprehensive site context.
+  description: `Advanced AI-powered website content analyzer for comprehensive site context extraction.
   
-This tool takes the full page text and uses ONE powerful AI call to extract ALL content sections:
-- Hero Section (headline, subheadline, CTA, metrics)
-- Products & Services descriptions
-- About Us (company story, mission, vision, values)
-- Use Cases and target industries
-- Problem Statement / Value Proposition
-- Social Proof (testimonials, case studies, awards, badges)
-- FAQ content
-- Team/Leadership information
-- Who We Serve (target audience)
-- Industries served
+Uses ONE powerful AI call to intelligently extract ALL content sections from scraped data:
+- Brand & Site: Meta info, tone, languages (header/footer excluded)
+- Hero Section: Headline, subheadline, CTA, media, metrics
+- Business Context: Problem statement, who we serve, use cases, industries, products/services
+- Trust & Company: About us, FAQ (as JSON array), leadership, contact info
+- Social Proof: Extracted from page + requires external sources
 
-The AI analyzes the entire page context intelligently, understanding semantic meaning beyond simple pattern matching.`,
+Supports both single-page and multi-page (combinedFullText) analysis.`,
   parameters: z.object({
-    scrapedData: z.any().describe('The scraped data from scrape_website_content tool (must contain fullPageText)'),
+    scrapedData: z.any().describe('The scraped data from scrape_website_content tool'),
   }),
   execute: async ({ scrapedData }) => {
     try {
-      console.log('[analyze_scraped_content] Analyzing full page content with AI...');
+      console.log('[analyze_scraped_content] Analyzing content with AI...');
       
-      // Support both data structures: scrapedData.data.fullPageText or scrapedData.fullPageText
+      // Support multiple data structures
       const data = scrapedData.data || scrapedData;
       
-      if (!data.fullPageText) {
+      // Get the best available text content
+      const fullText = data.combinedFullText || data.homepage?.fullPageText || data.fullPageText;
+      
+      if (!fullText) {
         return {
           success: false,
-          error: 'No fullPageText found in scraped data'
+          error: 'No text content found in scraped data'
         };
       }
 
-      const fullText = data.fullPageText;
       const url = scrapedData.url || data.url;
+      
+      // Gather all pre-extracted data
+      const preExtracted = {
+        metadata: data.homepage?.metadata || data.metadata || {},
+        colors: data.homepage?.colors || data.colors || {},
+        typography: data.homepage?.typography || data.typography || {},
+        logo: data.homepage?.logo || data.logo || {},
+        heroSection: data.homepage?.heroSection || data.heroSection || {},
+        contact: data.homepage?.contact || data.contact || {},
+        language: data.homepage?.language || data.language || {},
+        keyPages: data.keyPages || [],
+        landingPages: data.landingPages || [],
+        blogPages: data.blogPages || [],
+        navigationLinks: data.navigationLinks || [],
+      };
 
       // ONE comprehensive AI analysis
-      const analysis = await analyzeFullPage(fullText, url);
+      const analysis = await analyzeFullContent(fullText, url, preExtracted);
 
-      // Merge with regex-extracted data (metadata, colors, logo, contact)
+      // Merge pre-extracted data with AI analysis
       const results: any = {
-        // From regex
-        metadata: data.metadata || {},
-        colors: data.colors || {},
-        logo: data.logo || {},
-        contact: data.contact || {},
+        // Pre-extracted (regex-based)
+        metadata: preExtracted.metadata,
+        colors: preExtracted.colors,
+        typography: preExtracted.typography,
+        logo: preExtracted.logo,
+        contact: preExtracted.contact,
+        language: preExtracted.language,
         
-        // From AI analysis
+        // Page classifications
+        keyPages: preExtracted.keyPages,
+        landingPages: preExtracted.landingPages,
+        blogPages: preExtracted.blogPages,
+        navigationLinks: preExtracted.navigationLinks,
+        
+        // AI-analyzed content
         ...analysis
       };
 
@@ -64,6 +84,10 @@ The AI analyzes the entire page context intelligently, understanding semantic me
         success: true,
         analyzed: results,
         analyzedSections: Object.keys(results),
+        stats: {
+          textLength: fullText.length,
+          pagesAnalyzed: data.pages?.length ? data.pages.length + 1 : 1,
+        },
         message: `Successfully analyzed all content sections using AI`
       };
 
@@ -77,90 +101,167 @@ The AI analyzes the entire page context intelligently, understanding semantic me
   }
 });
 
-// ONE comprehensive AI analysis function
-async function analyzeFullPage(fullText: string, url: string): Promise<any> {
-  const prompt = `You are analyzing a website's full page content to extract comprehensive site context information.
+// Comprehensive AI analysis function
+async function analyzeFullContent(
+  fullText: string, 
+  url: string, 
+  preExtracted: any
+): Promise<any> {
+  
+  const prompt = `You are an expert website content analyst. Analyze the following website content and extract comprehensive site context information.
 
 Website URL: ${url}
 
-Full Page Content:
+Pre-extracted Data (from HTML parsing):
+- Title: ${preExtracted.metadata?.title || 'Not found'}
+- Description: ${preExtracted.metadata?.description || 'Not found'}
+- Primary Color: ${preExtracted.colors?.primary || 'Not found'}
+- Detected Fonts: ${preExtracted.typography?.googleFonts?.join(', ') || 'None detected'}
+- Hero Headline: ${preExtracted.heroSection?.headline || 'Not found'}
+- Contact Email: ${preExtracted.contact?.primary || 'Not found'}
+- Language: ${preExtracted.language?.primary || 'en'}
+- Key Pages: ${preExtracted.keyPages?.slice(0, 5).join(', ') || 'None'}
+
+Full Page Content (${fullText.length} chars):
 ${fullText}
 
-Analyze this content and extract ALL of the following sections as a single JSON object. For each section, extract as much relevant information as possible. If a section is not clearly present, provide a reasonable inference or leave it empty.
+Analyze this content and return a JSON object with ALL of the following sections. Extract as much detail as possible. Use intelligent inference where direct information is missing.
 
-Return ONLY valid JSON with this exact structure (no markdown, no explanation):
+IMPORTANT: Return ONLY valid JSON (no markdown, no explanation, no code blocks).
 
 {
+  "brandInfo": {
+    "name": "Company/product name",
+    "tagline": "Brand tagline or slogan",
+    "tone": "Describe the writing tone/voice (e.g., Professional, Friendly, Technical, Casual, Authoritative)",
+    "languages": "Detected languages (e.g., 'English, Spanish' or just 'English')"
+  },
+  
   "heroSection": {
-    "headline": "Main headline text",
-    "subheadline": "Supporting text/value proposition",
+    "headline": "Main headline (improve if pre-extracted seems incomplete)",
+    "subheadline": "Value proposition or supporting text",
     "callToAction": "Primary CTA text",
-    "media": "Image/video URL if mentioned",
-    "metrics": "Any statistics or social proof numbers (e.g., '10,000+ customers')"
+    "media": "Hero image/video URL if found",
+    "metrics": "Any statistics shown (e.g., '10,000+ users', '99% uptime')"
   },
-  "productsServices": "Clear, structured description of products/services offered (200-400 words). Focus on: what's offered, key features, benefits, target use cases.",
-  "aboutUs": {
-    "companyStory": "Brief company history/story (100-200 words)",
-    "missionVision": "Mission and vision statements",
-    "coreValues": "Core company values (if mentioned)"
+  
+  "businessContext": {
+    "problemStatement": "What problem does this product/service solve? (200-400 words)",
+    "whoWeServe": "Who is the target audience? (100-200 words)",
+    "useCases": "Main use cases and applications (200-400 words)",
+    "industries": "Industries or verticals served (list or description)",
+    "productsServices": "Detailed description of products/services offered (300-500 words)"
   },
-  "useCases": "Description of main use cases and scenarios (200-400 words). Focus on: key use cases, target industries, specific problems solved.",
-  "problemStatement": "The core problem being solved or value proposition (100-300 words). Focus on: what problem is solved, why it matters, the solution approach.",
-  "whoWeServe": "Description of target audience/customers (100-200 words)",
-  "industries": "List or description of industries served",
+  
+  "trustCompany": {
+    "aboutUs": {
+      "companyStory": "Company history/origin story (100-200 words)",
+      "missionVision": "Mission and vision statements",
+      "coreValues": "Core company values"
+    },
+    "leadershipTeam": "Team members with names, titles, brief descriptions (structured list)",
+    "faq": [
+      {"question": "First FAQ question?", "answer": "Answer to first question"},
+      {"question": "Second FAQ question?", "answer": "Answer to second question"}
+    ],
+    "contactInfo": {
+      "primaryContact": "Main contact email or form",
+      "locationHours": "Office location and hours if mentioned",
+      "supportChannels": "Available support methods (chat, email, phone, etc.)"
+    }
+  },
+  
   "socialProof": {
-    "testimonials": "Customer testimonials/reviews (if present)",
-    "caseStudies": "Case studies or success stories (if present)",
-    "badges": "Certifications, security badges, trust signals",
+    "testimonials": ["Quote 1 - Customer Name, Company", "Quote 2 - Customer Name"],
+    "caseStudies": "Any case studies or success stories mentioned",
+    "badges": "Trust badges, certifications, security seals",
     "awards": "Awards or recognition",
-    "guarantees": "Money-back guarantees, warranties",
-    "integrations": "Partner logos, integrations mentioned"
+    "metrics": "Social proof numbers (customers, users, downloads, etc.)",
+    "integrations": "Partner integrations or 'as seen in' mentions",
+    "note": "For comprehensive social proof, also check external platforms (ProductHunt, Trustpilot, G2)"
   },
-  "contactInformation": {
-    "primaryContact": "Main contact method (already extracted, but add details if more context)",
-    "locationHours": "Office location and hours",
-    "supportChannels": "Available support channels",
-    "additional": "Any other contact-related information"
-  },
-  "faq": "Parsed FAQ content as Q&A pairs (clear, organized format)",
-  "leadershipTeam": "Structured list of team members with names, titles, brief descriptions"
+  
+  "pagesInfo": {
+    "keyPagesDescription": "Brief description of the main website pages based on content",
+    "landingPagesDescription": "Description of any landing pages or campaign pages detected",
+    "blogDescription": "Description of blog/resource section if present"
+  }
 }
 
 Guidelines:
-- Be comprehensive: Extract as much detail as possible from the full text
-- Be intelligent: Understand context and semantic meaning, not just keywords
-- Be structured: Format information clearly and usefully
-- Fill in what you can: If a section exists but is brief, extract what's there
-- Skip only if truly absent: Only leave sections empty if there's genuinely no relevant content
-- Infer intelligently: Make reasonable inferences from context`;
+- Be comprehensive: Extract ALL available information
+- Be accurate: Only include information that's clearly present or can be reasonably inferred
+- Be structured: Format everything for easy consumption
+- FAQ MUST be a JSON array of {question, answer} objects
+- For missing sections, provide empty values rather than making up content
+- Infer tone from writing style (formal, casual, technical, friendly, etc.)
+- Infer target audience from content and language used`;
 
   const { text } = await generateText({
     model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
     prompt,
-    maxTokens: 2500, // Larger token budget for comprehensive analysis
+    maxTokens: 3500, // Increased for comprehensive analysis
   });
 
   try {
-    const cleaned = text.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    return JSON.parse(cleaned);
+    // Clean potential markdown code blocks
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const parsed = JSON.parse(cleaned);
+    
+    // Flatten the structure for easier saving
+    return {
+      // Brand info
+      brandName: parsed.brandInfo?.name,
+      tagline: parsed.brandInfo?.tagline,
+      tone: parsed.brandInfo?.tone,
+      languages: parsed.brandInfo?.languages,
+      
+      // Hero section
+      heroSection: parsed.heroSection,
+      
+      // Business context (individual fields for separate saving)
+      problemStatement: parsed.businessContext?.problemStatement,
+      whoWeServe: parsed.businessContext?.whoWeServe,
+      useCases: parsed.businessContext?.useCases,
+      industries: parsed.businessContext?.industries,
+      productsServices: parsed.businessContext?.productsServices,
+      
+      // Trust & Company
+      aboutUs: parsed.trustCompany?.aboutUs,
+      leadershipTeam: parsed.trustCompany?.leadershipTeam,
+      faq: parsed.trustCompany?.faq, // Already an array
+      contactInformation: parsed.trustCompany?.contactInfo,
+      
+      // Social proof
+      socialProof: parsed.socialProof,
+      
+      // Pages info
+      pagesInfo: parsed.pagesInfo,
+    };
+    
   } catch (parseError) {
-    console.error('[analyzeFullPage] JSON parse error:', parseError);
-    console.error('[analyzeFullPage] Raw response:', text);
+    console.error('[analyzeFullContent] JSON parse error:', parseError);
+    console.error('[analyzeFullContent] Raw response:', text.substring(0, 500));
     
     // Return minimal structure on parse failure
     return {
       heroSection: {},
-      productsServices: '',
-      aboutUs: {},
-      useCases: '',
       problemStatement: '',
       whoWeServe: '',
+      useCases: '',
       industries: '',
-      socialProof: {},
+      productsServices: '',
+      aboutUs: {},
+      leadershipTeam: '',
+      faq: [],
       contactInformation: {},
-      faq: '',
-      leadershipTeam: ''
+      socialProof: {},
+      tone: '',
+      languages: '',
     };
   }
 }
-

@@ -243,16 +243,6 @@ export default function SiteContextModal({
     // Performance & Resources
     const preconnects = getAllMetaContent('link[rel="preconnect"]');
     const dnsPrefetch = getAllMetaContent('link[rel="dns-prefetch"]');
-    
-    // Analytics Detection
-    const hasGoogleAnalytics = headContent.includes('googletagmanager.com/gtag') || headContent.includes('google-analytics.com');
-    const hasGTM = headContent.includes('googletagmanager.com/gtm');
-    const hasPostHog = headContent.includes('posthog');
-    
-    // Scripts Detection
-    const scriptCount = doc.querySelectorAll('script').length;
-    const stylesheetCount = doc.querySelectorAll('link[rel="stylesheet"]').length;
-    const preloadCount = doc.querySelectorAll('link[rel="preload"]').length;
 
     return {
       // Basic
@@ -292,16 +282,6 @@ export default function SiteContextModal({
       // Performance
       preconnects,
       dnsPrefetch,
-      
-      // Analytics
-      hasGoogleAnalytics,
-      hasGTM,
-      hasPostHog,
-      
-      // Stats
-      scriptCount,
-      stylesheetCount,
-      preloadCount,
     };
   };
 
@@ -883,7 +863,7 @@ export default function SiteContextModal({
                               <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Basic Information
+                              Meta Information
                             </div>
                             <div className="space-y-2">
                               {metaInfo.title && (
@@ -902,126 +882,24 @@ export default function SiteContextModal({
                                   </div>
                                 </div>
                               )}
-                              <div className="grid grid-cols-2 gap-2">
-                                {metaInfo.charset && (
-                                  <div>
-                                    <div className="text-xs font-semibold text-[#6B7280] mb-1">Charset</div>
-                                    <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.charset}</div>
+                              {metaInfo.keywords && (
+                                <div>
+                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Keywords</div>
+                                  <div className="text-sm text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">
+                                    {metaInfo.keywords}
                                   </div>
-                                )}
-                                {metaInfo.language && (
-                                  <div>
-                                    <div className="text-xs font-semibold text-[#6B7280] mb-1">Language</div>
-                                    <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.language}</div>
-                                  </div>
-                                )}
-                                {metaInfo.author && (
-                                  <div>
-                                    <div className="text-xs font-semibold text-[#6B7280] mb-1">Author</div>
-                                    <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.author}</div>
-                                  </div>
-                                )}
-                                {metaInfo.keywords && (
-                                  <div>
-                                    <div className="text-xs font-semibold text-[#6B7280] mb-1">Keywords</div>
-                                    <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.keywords}</div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SEO Section */}
-                          <div>
-                            <div className="text-xs font-bold text-[#111827] mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                              </svg>
-                              SEO Settings
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
+                                </div>
+                              )}
                               {metaInfo.canonical && (
-                                <div className="col-span-2">
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Canonical URL</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.canonical}</div>
-                                </div>
-                              )}
-                              {metaInfo.robots && (
                                 <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Robots</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.robots}</div>
-                                </div>
-                              )}
-                              {metaInfo.viewport && (
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Viewport</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.viewport}</div>
+                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Domain Name</div>
+                                  <div className="text-sm text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">
+                                    {metaInfo.canonical}
+                                  </div>
                                 </div>
                               )}
                             </div>
                           </div>
-
-                          {/* Open Graph Section */}
-                          {(metaInfo.ogTitle || metaInfo.ogDescription || metaInfo.ogType || metaInfo.ogImage || metaInfo.ogUrl || metaInfo.ogSiteName) && (
-                            <div>
-                              <div className="text-xs font-bold text-[#111827] mb-3 flex items-center">
-                                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                </svg>
-                                Open Graph (Facebook/LinkedIn)
-                              </div>
-                              <div className="space-y-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                  {metaInfo.ogTitle && (
-                                    <div className="col-span-2">
-                                      <div className="text-xs font-semibold text-[#6B7280] mb-1">OG Title</div>
-                                      <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.ogTitle}</div>
-                                    </div>
-                                  )}
-                                  {metaInfo.ogDescription && (
-                                    <div className="col-span-2">
-                                      <div className="text-xs font-semibold text-[#6B7280] mb-1">OG Description</div>
-                                      <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.ogDescription}</div>
-                                    </div>
-                                  )}
-                                  {metaInfo.ogType && (
-                                    <div>
-                                      <div className="text-xs font-semibold text-[#6B7280] mb-1">Type</div>
-                                      <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded">{metaInfo.ogType}</div>
-                                    </div>
-                                  )}
-                                  {metaInfo.ogSiteName && (
-                                    <div>
-                                      <div className="text-xs font-semibold text-[#6B7280] mb-1">Site Name</div>
-                                      <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.ogSiteName}</div>
-                                    </div>
-                                  )}
-                                  {metaInfo.ogUrl && (
-                                    <div className="col-span-2">
-                                      <div className="text-xs font-semibold text-[#6B7280] mb-1">URL</div>
-                                      <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded truncate">{metaInfo.ogUrl}</div>
-                                    </div>
-                                  )}
-                                </div>
-                                {metaInfo.ogImage && (
-                                  <div>
-                                    <div className="text-xs font-semibold text-[#6B7280] mb-1">OG Image</div>
-                                    <div className="bg-[#F9FAFB] px-3 py-2 rounded">
-                                      <img 
-                                        src={metaInfo.ogImage} 
-                                        alt="OG preview" 
-                                        className="max-h-32 object-contain rounded"
-                                        onError={(e) => {
-                                          e.currentTarget.style.display = 'none';
-                                          e.currentTarget.parentElement!.innerHTML = `<div class="text-xs text-[#6B7280] break-all">${metaInfo.ogImage}</div>`;
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
 
                           {/* Twitter Card Section */}
                           {(metaInfo.twitterCard || metaInfo.twitterTitle || metaInfo.twitterDescription || metaInfo.twitterImage || metaInfo.twitterSite) && (
@@ -1108,74 +986,6 @@ export default function SiteContextModal({
                             </div>
                           )}
 
-                          {/* Performance & Analytics Section */}
-                          <div>
-                            <div className="text-xs font-bold text-[#111827] mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                              </svg>
-                              Performance & Analytics
-                            </div>
-                            <div className="space-y-2">
-                              <div className="grid grid-cols-3 gap-2">
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Scripts</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded text-center">{metaInfo.scriptCount}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Stylesheets</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded text-center">{metaInfo.stylesheetCount}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Preloads</div>
-                                  <div className="text-xs text-[#111827] bg-[#F9FAFB] px-3 py-2 rounded text-center">{metaInfo.preloadCount}</div>
-                                </div>
-                              </div>
-                              
-                              {/* Analytics Services */}
-                              {(metaInfo.hasGoogleAnalytics || metaInfo.hasGTM || metaInfo.hasPostHog) && (
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Analytics Services</div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {metaInfo.hasGoogleAnalytics && (
-                                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-[#4285F4] text-white">
-                                        Google Analytics
-                                      </span>
-                                    )}
-                                    {metaInfo.hasGTM && (
-                                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-[#FF6C37] text-white">
-                                        GTM
-                                      </span>
-                                    )}
-                                    {metaInfo.hasPostHog && (
-                                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-[#FF6C37] text-white">
-                                        PostHog
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Performance Hints */}
-                              {(metaInfo.preconnects.length > 0 || metaInfo.dnsPrefetch.length > 0) && (
-                                <div>
-                                  <div className="text-xs font-semibold text-[#6B7280] mb-1">Performance Hints</div>
-                                  <div className="bg-[#F9FAFB] px-3 py-2 rounded space-y-1">
-                                    {metaInfo.preconnects.length > 0 && (
-                                      <div className="text-xs text-[#111827]">
-                                        <span className="font-semibold">Preconnect:</span> {metaInfo.preconnects.length} domains
-                                      </div>
-                                    )}
-                                    {metaInfo.dnsPrefetch.length > 0 && (
-                                      <div className="text-xs text-[#111827]">
-                                        <span className="font-semibold">DNS Prefetch:</span> {metaInfo.dnsPrefetch.length} domains
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
                         </div>
                       );
                     })()}

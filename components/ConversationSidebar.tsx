@@ -53,12 +53,6 @@ export default function ConversationSidebar({
     itemCount?: number;
   } | null>(null);
   const [expandedOnSite, setExpandedOnSite] = useState(true);
-  const [expandedBrandAssets, setExpandedBrandAssets] = useState(true);
-  const [expandedMetaInfo, setExpandedMetaInfo] = useState(true);
-  const [expandedHeroSection, setExpandedHeroSection] = useState(false);
-  const [expandedSocialProof, setExpandedSocialProof] = useState(false);
-  const [expandedAboutUs, setExpandedAboutUs] = useState(false);
-  const [expandedContactInfo, setExpandedContactInfo] = useState(false);
 
   // Auto-expand first project when content loads
   useEffect(() => {
@@ -87,68 +81,145 @@ export default function ConversationSidebar({
     const metaContext = siteContexts.find(ctx => ctx.type === 'meta');
     const sitemapContext = siteContexts.find(ctx => ctx.type === 'sitemap');
     
-    // Helper to check if JSON content has any meaningful values
+    // Helper to check if a string value is meaningful (not null, undefined, empty, or only whitespace)
+    const hasStringValue = (value: string | null | undefined): boolean => {
+      return !!value && value.trim().length > 0;
+    };
+    
+    // Helper to check if JSON content has any meaningful values (recursively checks nested objects)
     const hasJsonContent = (content: string | null | undefined): boolean => {
-      if (!content) return false;
+      if (!content || !content.trim()) return false;
+      
       try {
         const parsed = JSON.parse(content);
-        // Check if any value in the object is non-empty
-        return Object.values(parsed).some(val => val && String(val).trim() !== '');
+        
+        // Handle array type
+        if (Array.isArray(parsed)) {
+          return parsed.length > 0 && parsed.some(item => 
+            typeof item === 'object' ? hasJsonContent(JSON.stringify(item)) : hasStringValue(String(item))
+          );
+        }
+        
+        // Handle object type - recursively check all values
+        if (typeof parsed === 'object' && parsed !== null) {
+          return Object.values(parsed).some(val => {
+            if (val === null || val === undefined) return false;
+            if (typeof val === 'object') {
+              // Recursively check nested objects/arrays
+              return hasJsonContent(JSON.stringify(val));
+            }
+            // For primitive values, check if they're meaningful strings
+            return hasStringValue(String(val));
+          });
+        }
+        
+        // For primitive JSON values (string, number, boolean)
+        return hasStringValue(String(parsed));
       } catch {
-        // If not JSON, treat as regular string
-        return !!content && content.trim() !== '';
+        // If not valid JSON, treat as regular string and check if it has content
+        return hasStringValue(content);
       }
     };
     
     switch (field) {
       case 'meta-info':
-        return !!(logoContext?.brand_name || logoContext?.subtitle || logoContext?.meta_description);
+        return hasStringValue(logoContext?.brand_name) || 
+               hasStringValue(logoContext?.subtitle) || 
+               hasStringValue(logoContext?.meta_description) ||
+               hasStringValue(logoContext?.og_image) ||
+               hasStringValue(logoContext?.favicon);
       case 'logo':
-        return !!(logoContext?.file_url || logoContext?.logo_light || logoContext?.logo_dark);
+        return hasStringValue(logoContext?.file_url) || 
+               hasStringValue(logoContext?.logo_light_url) || 
+               hasStringValue(logoContext?.logo_dark_url) ||
+               hasStringValue(logoContext?.logo_light) || 
+               hasStringValue(logoContext?.logo_dark);
       case 'colors':
-        return !!(logoContext?.primary_color || logoContext?.secondary_color);
+        return hasStringValue(logoContext?.primary_color) || 
+               hasStringValue(logoContext?.secondary_color);
       case 'typography':
-        return !!(logoContext?.heading_font || logoContext?.body_font);
+        return hasStringValue(logoContext?.heading_font) || 
+               hasStringValue(logoContext?.body_font);
       case 'tone':
-        return !!logoContext?.tone;
+        return hasStringValue(logoContext?.tone);
       case 'languages':
-        return !!logoContext?.languages;
+        return hasStringValue(logoContext?.languages);
       case 'header':
-        return !!headerContext?.content;
+        return hasStringValue(headerContext?.content);
       case 'footer':
-        return !!footerContext?.content;
+        return hasStringValue(footerContext?.content);
       case 'meta-tags':
-        return !!metaContext?.content;
+        return hasStringValue(metaContext?.content);
       case 'sitemap':
-        return !!sitemapContext?.content;
-      case 'hero-section':
-        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'hero-section')?.content);
+        return hasJsonContent(sitemapContext?.content);
       case 'problem-statement':
-        return !!siteContexts.find(ctx => ctx.type === 'problem-statement')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'problem-statement')?.content);
       case 'who-we-serve':
-        return !!siteContexts.find(ctx => ctx.type === 'who-we-serve')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'who-we-serve')?.content);
       case 'use-cases':
-        return !!siteContexts.find(ctx => ctx.type === 'use-cases')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'use-cases')?.content);
       case 'industries':
-        return !!siteContexts.find(ctx => ctx.type === 'industries')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'industries')?.content);
       case 'products-services':
-        return !!siteContexts.find(ctx => ctx.type === 'products-services')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'products-services')?.content);
       case 'social-proof':
         return hasJsonContent(siteContexts.find(ctx => ctx.type === 'social-proof-trust')?.content);
       case 'about-us':
         return hasJsonContent(siteContexts.find(ctx => ctx.type === 'about-us')?.content);
       case 'leadership-team':
-        return !!siteContexts.find(ctx => ctx.type === 'leadership-team')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'leadership-team')?.content);
       case 'faq':
-        return !!siteContexts.find(ctx => ctx.type === 'faq')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'faq')?.content);
       case 'contact-info':
         return hasJsonContent(siteContexts.find(ctx => ctx.type === 'contact-information')?.content);
       case 'key-pages':
-        return !!siteContexts.find(ctx => ctx.type === 'key-website-pages')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'key-website-pages')?.content);
       case 'landing-pages':
-        return !!siteContexts.find(ctx => ctx.type === 'landing-pages')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'landing-pages')?.content);
       case 'blog-resources':
-        return !!siteContexts.find(ctx => ctx.type === 'blog-resources')?.content;
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'blog-resources')?.content);
+      // Category-level checks for simplified sidebar
+      // STRICT: All fields must be filled for the red dot to disappear
+      case 'brand-site':
+        // All Brand & Site fields must have value (except header/footer which are optional)
+        return hasStringValue(logoContext?.brand_name) && 
+               hasStringValue(logoContext?.meta_description) &&
+               (hasStringValue(logoContext?.file_url) || hasStringValue(logoContext?.logo_light_url) || hasStringValue(logoContext?.logo_dark_url)) &&
+               hasStringValue(logoContext?.primary_color) &&
+               hasStringValue(logoContext?.heading_font) &&
+               hasStringValue(logoContext?.tone) &&
+               hasStringValue(logoContext?.languages);
+      case 'pages':
+        // All Pages fields must have value
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'key-website-pages')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'landing-pages')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'blog-resources')?.content);
+      case 'business-context':
+        // All Business Context fields must have value
+        return hasStringValue(siteContexts.find(ctx => ctx.type === 'problem-statement')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'who-we-serve')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'use-cases')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'industries')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'products-services')?.content);
+      case 'trust-company':
+        // All Trust & Company fields must have value
+        return hasJsonContent(siteContexts.find(ctx => ctx.type === 'social-proof-trust')?.content) &&
+               hasJsonContent(siteContexts.find(ctx => ctx.type === 'about-us')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'leadership-team')?.content) &&
+               hasStringValue(siteContexts.find(ctx => ctx.type === 'faq')?.content) &&
+               hasJsonContent(siteContexts.find(ctx => ctx.type === 'contact-information')?.content);
+      case 'hero-section':
+        // Hero section needs headline at minimum
+        const heroContent = siteContexts.find(ctx => ctx.type === 'hero-section')?.content;
+        if (!heroContent) return false;
+        try {
+          const hero = JSON.parse(heroContent);
+          return hasStringValue(hero?.headline) && 
+                 hasStringValue(hero?.subheadline) && 
+                 hasStringValue(hero?.callToAction);
+        } catch {
+          return false;
+        }
       default:
         return false;
     }
@@ -264,477 +335,44 @@ export default function ConversationSidebar({
                   </div>
                 </button>
 
-                {/* On Site Sub-items */}
+                {/* On Site Sub-items - Simplified: Click to open modal */}
                 {expandedOnSite && (
-                  <div className="ml-5 mt-0.5 space-y-0">
-                    {/* Brand Assets - Expandable */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedBrandAssets(!expandedBrandAssets)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedBrandAssets ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Brand Assets
-                        </span>
-                      </button>
-                      
-                      {expandedBrandAssets && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          {/* Meta Info */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Meta Info</span>
-                            {!hasContextValue('meta-info') && <RedDot />}
-                          </button>
-                          
-                          {/* Logo URL */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Logo URL</span>
-                            {!hasContextValue('logo') && <RedDot />}
-                          </button>
-                          
-                          {/* Colors */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Colors</span>
-                            {!hasContextValue('colors') && <RedDot />}
-                          </button>
-                          
-                          {/* Typography */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Typography</span>
-                            {!hasContextValue('typography') && <RedDot />}
-                          </button>
-                          
-                          {/* Tone */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Tone</span>
-                            {!hasContextValue('tone') && <RedDot />}
-                          </button>
-                          
-                          {/* Languages */}
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Languages</span>
-                            {!hasContextValue('languages') && <RedDot />}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Site Elements */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedMetaInfo(!expandedMetaInfo)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedMetaInfo ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Site Elements
-                        </span>
-                      </button>
-                      
-                      {expandedMetaInfo && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Header</span>
-                            {!hasContextValue('header') && <RedDot />}
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Footer</span>
-                            {!hasContextValue('footer') && <RedDot />}
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Meta Tags</span>
-                            {!hasContextValue('meta-tags') && <RedDot />}
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full flex items-center px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            <span>Sitemap</span>
-                            {!hasContextValue('sitemap') && <RedDot />}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Key Website Pages */}
+                  <div className="ml-5 mt-0.5 space-y-0.5">
                     <button
                       onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                     >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Key Pages
-                      </span>
-                      {!hasContextValue('key-pages') && <RedDot />}
+                      <span className="text-[11px] text-[#6B7280]">Brand & Site</span>
+                      {!hasContextValue('brand-site') && <RedDot />}
                     </button>
-
-                    {/* Landing Pages */}
                     <button
                       onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                     >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Landing Pages
-                      </span>
-                      {!hasContextValue('landing-pages') && <RedDot />}
+                      <span className="text-[11px] text-[#6B7280]">Hero Section</span>
+                      {!hasContextValue('hero-section') && <RedDot />}
                     </button>
-
-                    {/* Blog & Resources */}
                     <button
                       onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                     >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Blog & Resources
-                      </span>
-                      {!hasContextValue('blog-resources') && <RedDot />}
+                      <span className="text-[11px] text-[#6B7280]">Pages</span>
+                      {!hasContextValue('pages') && <RedDot />}
                     </button>
-
-                    {/* Hero Section - Expandable */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedHeroSection(!expandedHeroSection)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedHeroSection ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Hero Section
-                        </span>
-                        {!hasContextValue('hero-section') && <RedDot />}
-                      </button>
-                      
-                      {expandedHeroSection && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Headline
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Subheadline
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Call to Action
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Media
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Metrics
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Problem Statement */}
                     <button
                       onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                     >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Problem Statement
-                      </span>
-                      {!hasContextValue('problem-statement') && <RedDot />}
+                      <span className="text-[11px] text-[#6B7280]">Business Context</span>
+                      {!hasContextValue('business-context') && <RedDot />}
                     </button>
-
-                    {/* Who We Serve */}
                     <button
                       onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
                     >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Who We Serve
-                      </span>
-                      {!hasContextValue('who-we-serve') && <RedDot />}
+                      <span className="text-[11px] text-[#6B7280]">Trust & Company</span>
+                      {!hasContextValue('trust-company') && <RedDot />}
                     </button>
-
-                    {/* Use Cases */}
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Use Cases
-                      </span>
-                      {!hasContextValue('use-cases') && <RedDot />}
-                    </button>
-
-                    {/* Industries */}
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Industries
-                      </span>
-                      {!hasContextValue('industries') && <RedDot />}
-                    </button>
-
-                    {/* Products & Services */}
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Products & Services
-                      </span>
-                      {!hasContextValue('products-services') && <RedDot />}
-                    </button>
-
-                    {/* Social Proof & Trust - Expandable */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedSocialProof(!expandedSocialProof)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedSocialProof ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Social Proof
-                        </span>
-                        {!hasContextValue('social-proof') && <RedDot />}
-                      </button>
-                      
-                      {expandedSocialProof && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Testimonials
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Case Studies
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Badges
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Awards
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Guarantees
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Integrations
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Leadership Team */}
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        Leadership Team
-                      </span>
-                      {!hasContextValue('leadership-team') && <RedDot />}
-                    </button>
-
-                    {/* About Us - Expandable */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedAboutUs(!expandedAboutUs)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedAboutUs ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          About Us
-                        </span>
-                        {!hasContextValue('about-us') && <RedDot />}
-                      </button>
-                      
-                      {expandedAboutUs && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Company Story
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Mission & Vision
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Core Values
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* FAQ */}
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <div className="w-2.5 h-2.5" />
-                      <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                        FAQ
-                      </span>
-                      {!hasContextValue('faq') && <RedDot />}
-                    </button>
-
-                    {/* Contact Information - Expandable */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedContactInfo(!expandedContactInfo)}
-                        className="w-full flex items-center gap-2 px-2 py-0.5 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                      >
-                        <svg 
-                          className={`w-2.5 h-2.5 text-[#9CA3AF] transition-transform ${expandedContactInfo ? 'rotate-90' : ''}`} 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.5"
-                        >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                          Contact Info
-                        </span>
-                        {!hasContextValue('contact-info') && <RedDot />}
-                      </button>
-                      
-                      {expandedContactInfo && (
-                        <div className="ml-4 mt-0 space-y-0">
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Primary Contact
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Location & Hours
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Support Channels
-                          </button>
-                          <button
-                            onClick={() => onOpenContextModal?.()}
-                            className="w-full px-2 py-0.5 rounded-lg text-left text-[11px] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors"
-                          >
-                            Additional
-                          </button>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>

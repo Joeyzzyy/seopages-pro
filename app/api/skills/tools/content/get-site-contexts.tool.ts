@@ -48,6 +48,7 @@ Available context types:
 Use this tool BEFORE generating HTML pages to ensure the generated pages include the user's branding, layout, and relevant content.`,
   parameters: z.object({
     user_id: z.string().describe('The user ID to fetch contexts for'),
+    projectId: z.string().optional().describe('The SEO project ID to scope this request to'),
     types: z.array(z.enum([
       'logo', 'header', 'footer', 'meta', 'sitemap',
       'key-website-pages', 'landing-pages', 'blog-resources',
@@ -57,12 +58,18 @@ Use this tool BEFORE generating HTML pages to ensure the generated pages include
       'faq', 'contact-information'
     ])).optional().describe('Specific context types to fetch. If not provided, fetches all types.')
   }),
-  execute: async ({ user_id, types }) => {
+  execute: async ({ user_id, projectId, types }) => {
     try {
       let query = supabase
         .from('site_contexts')
         .select('*')
         .eq('user_id', user_id);
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      } else {
+        query = query.is('project_id', null);
+      }
 
       // Filter by specific types if provided
       if (types && types.length > 0) {

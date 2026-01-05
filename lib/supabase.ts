@@ -30,6 +30,7 @@ export function getServiceSupabase() {
 export interface Conversation {
   id: string;
   user_id: string;
+  project_id?: string | null; // Scope conversation to an SEO project
   title: string;
   description?: string;
   created_at: string;
@@ -114,23 +115,40 @@ export interface SiteContext {
         'social-proof-trust' | 'leadership-team' | 'about-us' | 
         'faq' | 'contact-information';
   content: string | null; // For header/footer/meta code or sitemap JSON, or structured JSON for new types
-  file_url: string | null; // For logo image
+  file_url: string | null; // Deprecated: Use logo_light_url or logo_dark_url instead
   // Brand Assets fields
   brand_name?: string | null; // Brand name
   subtitle?: string | null; // Brand subtitle
   meta_description?: string | null; // Meta description for SEO
   og_image?: string | null; // Open Graph image URL
-  favicon?: string | null; // Favicon URL
-  logo_light?: string | null; // Light theme logo URL
-  logo_dark?: string | null; // Dark theme logo URL
-  icon_light?: string | null; // Light theme icon URL
-  icon_dark?: string | null; // Dark theme icon URL
+  // Logo URLs (for different themes)
+  logo_light_url?: string | null; // Light theme logo URL
+  logo_dark_url?: string | null; // Dark theme logo URL
+  // Favicon URLs (for different themes)
+  favicon_light_url?: string | null; // Light theme favicon URL
+  favicon_dark_url?: string | null; // Dark theme favicon URL
+  // Deprecated fields (kept for backward compatibility)
+  favicon?: string | null; // Deprecated: Use favicon_light_url or favicon_dark_url
+  logo_light?: string | null; // Deprecated: Use logo_light_url
+  logo_dark?: string | null; // Deprecated: Use logo_dark_url
+  icon_light?: string | null; // Deprecated: Use favicon_light_url
+  icon_dark?: string | null; // Deprecated: Use favicon_dark_url
+  // Brand colors and typography
   primary_color?: string | null; // Brand primary color
   secondary_color?: string | null; // Brand secondary color
   heading_font?: string | null; // Heading font family
   body_font?: string | null; // Body font family
   tone?: string | null; // Brand tone and voice
   languages?: string | null; // Supported languages
+  project_id?: string | null; // Scope context to a specific SEO project
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SEOProject {
+  id: string;
+  user_id: string;
+  domain: string;
   created_at: string;
   updated_at: string;
 }
@@ -221,12 +239,20 @@ export async function getConversationMessages(conversationId: string) {
   return data as Message[];
 }
 
-export async function getUserConversations(userId: string) {
-  const { data, error } = await supabase
+export async function getUserConversations(userId: string, projectId?: string) {
+  let query = supabase
     .from('conversations')
     .select('*')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false });
+    .eq('user_id', userId);
+  
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  } else {
+    // For global conversations or non-scoped ones
+    query = query.is('project_id', null);
+  }
+
+  const { data, error } = await query.order('updated_at', { ascending: false });
 
   if (error) throw error;
   return data as Conversation[];
@@ -243,11 +269,12 @@ export async function getConversationById(id: string) {
   return data as Conversation;
 }
 
-export async function createConversation(userId: string, title: string = 'New Conversation') {
+export async function createConversation(userId: string, projectId?: string, title: string = 'New Conversation') {
   const { data, error } = await supabase
     .from('conversations')
     .insert({
       user_id: userId,
+      project_id: projectId || null,
       title,
     })
     .select()
@@ -653,6 +680,62 @@ export async function getUserContentProjects(userId: string): Promise<ContentPro
   return data as ContentProject[];
 }
 
+// SEO Projects (Domain-based)
+
+export async function getSEOProjects(userId: string): Promise<SEOProject[]> {
+  const { data, error } = await supabase
+    .from('seo_projects')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getSEOProjectById(projectId: string): Promise<SEOProject | null> {
+  const { data, error } = await supabase
+    .from('seo_projects')
+    .select('*')
+    .eq('id', projectId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+  return data;
+}
+
+export async function createSEOProject(userId: string, domain: string): Promise<SEOProject> {
+  // Normalize domain: remove protocol if present, trim whitespace
+  let normalizedDomain = domain.trim().toLowerCase();
+  if (normalizedDomain.startsWith('http://')) normalizedDomain = normalizedDomain.slice(7);
+  if (normalizedDomain.startsWith('https://')) normalizedDomain = normalizedDomain.slice(8);
+  if (normalizedDomain.endsWith('/')) normalizedDomain = normalizedDomain.slice(0, -1);
+
+  const { data, error } = await supabase
+    .from('seo_projects')
+    .insert({
+      user_id: userId,
+      domain: normalizedDomain,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSEOProject(projectId: string): Promise<void> {
+  const { error } = await supabase
+    .from('seo_projects')
+    .delete()
+    .eq('id', projectId);
+
+  if (error) throw error;
+}
+
 export async function getContentItemById(itemId: string): Promise<ContentItem | null> {
   const { data, error } = await supabase
     .from('content_items')
@@ -711,40 +794,103 @@ export async function deleteContentProject(projectId: string): Promise<void> {
 }
 
 // Site Context functions
-export async function getSiteContexts(userId: string): Promise<SiteContext[]> {
-  const { data, error } = await supabase
+export async function getSiteContexts(userId: string, projectId?: string): Promise<SiteContext[]> {
+  let query = supabase
     .from('site_contexts')
     .select('*')
-    .eq('user_id', userId)
-    .order('type', { ascending: true });
+    .eq('user_id', userId);
+  
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  } else {
+    // If no projectId, fetch global contexts (where project_id is null)
+    query = query.is('project_id', null);
+  }
+
+  const { data: rawData, error } = await query.order('type', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  
+  // Transform data: only return relevant fields per type to reduce payload size
+  const data = (rawData || []).map((ctx: any) => {
+    // Base fields every type needs
+    const base: any = {
+      id: ctx.id,
+      user_id: ctx.user_id,
+      type: ctx.type,
+      content: ctx.content,
+      project_id: ctx.project_id,
+      created_at: ctx.created_at,
+      updated_at: ctx.updated_at,
+    };
+
+    // Only 'logo' type needs the brand asset columns
+    if (ctx.type === 'logo') {
+      return {
+        ...base,
+        file_url: ctx.file_url,
+        brand_name: ctx.brand_name,
+        subtitle: ctx.subtitle,
+        meta_description: ctx.meta_description,
+        og_image: ctx.og_image,
+        favicon: ctx.favicon,
+        logo_light: ctx.logo_light,
+        logo_dark: ctx.logo_dark,
+        icon_light: ctx.icon_light,
+        icon_dark: ctx.icon_dark,
+        primary_color: ctx.primary_color,
+        secondary_color: ctx.secondary_color,
+        heading_font: ctx.heading_font,
+        body_font: ctx.body_font,
+        tone: ctx.tone,
+        languages: ctx.languages,
+        // Compatibility aliases for Modal
+        logo_light_url: ctx.logo_light,
+        logo_dark_url: ctx.logo_dark,
+        favicon_light_url: ctx.icon_light,
+        favicon_dark_url: ctx.icon_dark,
+      };
+    }
+
+    // Other types just need content
+    return base;
+  });
+  
+  return data;
 }
 
 export async function getSiteContextByType(
   userId: string,
-  type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap'
+  type: string,
+  projectId?: string
 ): Promise<SiteContext | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('site_contexts')
     .select('*')
     .eq('user_id', userId)
-    .eq('type', type)
-    .single();
+    .eq('type', type);
+  
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  } else {
+    query = query.is('project_id', null);
+  }
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
   return data || null;
 }
 
 export async function upsertSiteContext(
   userId: string,
-  type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap',
+  type: string,
   content?: string,
-  fileUrl?: string
+  fileUrl?: string,
+  projectId?: string
 ): Promise<SiteContext> {
   // First try to get existing
-  const existing = await getSiteContextByType(userId, type);
+  const existing = await getSiteContextByType(userId, type, projectId);
   
   if (existing) {
     // Update existing
@@ -753,6 +899,7 @@ export async function upsertSiteContext(
       .update({
         content: content || null,
         file_url: fileUrl || null,
+        project_id: projectId || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id)
@@ -770,6 +917,7 @@ export async function upsertSiteContext(
         type,
         content: content || null,
         file_url: fileUrl || null,
+        project_id: projectId || null,
       })
       .select()
       .single();

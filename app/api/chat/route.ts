@@ -223,13 +223,25 @@ export async function POST(req: Request) {
     
     const userId = data?.userId;
     const conversationId = data?.conversationId;
+    const projectId = data?.projectId;
     const activeSkillId = data?.activeSkillId;
     const attachedContentItems = data?.attachedContentItems || [];
     const referenceImageUrl = data?.referenceImageUrl || null;
     
     // Import database functions
-    const { getFileContent } = await import('@/lib/supabase');
+    const { getFileContent, getSEOProjectById } = await import('@/lib/supabase');
     
+    // Fetch project info if projectId is provided
+    let projectInfo = null;
+    if (projectId) {
+      try {
+        projectInfo = await getSEOProjectById(projectId);
+        console.log(`[Chat Route] Active Project: ${projectInfo?.domain || 'Unknown'} (${projectId})`);
+      } catch (e) {
+        console.error(`[Chat Route] Failed to fetch project info for ${projectId}:`, e);
+      }
+    }
+
     // Create server-side Supabase client for content items (bypasses RLS)
     const { createClient } = await import('@supabase/supabase-js');
     const serverSupabase = createClient(
@@ -381,39 +393,39 @@ ${fullItem.reference_urls && fullItem.reference_urls.length > 0 ? fullItem.refer
       }
       
       if (validDetails.length > 0) {
+        let routingInfo = '';
+        if (autoSelectedSkill) {
+          routingInfo = `\n🎯 AUTO-ROUTING DETECTED 🎯\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPage Type: ${attachedContentItems[0].page_type}\nSelected Skill: ${autoSelectedSkill.name} (${autoSelectedSkill.id})\n\n⚠️ CRITICAL INSTRUCTION:\nYOU MUST use the "${autoSelectedSkill.name}" workflow for this content generation.\nDO NOT use the generic blog writing approach.\nDO NOT use the blog-writer skill unless this is a blog page.\nThe specialized workflow will be provided below.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        }
+
+        let skillAck = '2. Acknowledge the content items provided';
+        if (autoSelectedSkill) {
+          skillAck = `2. IMMEDIATELY acknowledge that you're using the "${autoSelectedSkill.name}" workflow for this ${attachedContentItems[0].page_type} page`;
+        }
+
+        const itemsList = validDetails.join('\n\n');
+
         contentItemsContext = `
 
 ====================
 CRITICAL - ATTACHED CONTENT ITEMS FROM LIBRARY:
 ====================
 
-The user has selected ${validDetails.length} planned content item${validDetails.length > 1 ? 's' : ''} from their content library to work with.
+The user has selected ${validDetails.length} planned content item(s) from their content library to work with.
 
 ⚠️ CRITICAL: CURRENT REQUEST CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-If the user says "生成这个页面" (generate this page) or similar phrases WITHOUT specifying a page name:
+If the user says "Generate this page" or similar phrases WITHOUT specifying a page name:
 - YOU MUST use the CURRENTLY ATTACHED content item(s) below
 - DO NOT refer to pages from previous conversation turns
 - The currently attached item(s) represent what the user wants NOW
 - Ignore any previously generated pages in the conversation history
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${routingInfo}
 
-${autoSelectedSkill ? `
-🎯 AUTO-ROUTING DETECTED 🎯
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Page Type: ${attachedContentItems[0].page_type}
-Selected Skill: ${autoSelectedSkill.name} (${autoSelectedSkill.id})
-
-⚠️ CRITICAL INSTRUCTION:
-YOU MUST use the "${autoSelectedSkill.name}" workflow for this content generation.
-DO NOT use the generic blog writing approach.
-DO NOT use the blog-writer skill unless this is a blog page.
-The specialized workflow will be provided below.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-` : ''}
 MANDATORY INSTRUCTIONS:
 1. IMMEDIATELY acknowledge which content item(s) you're working on (mention by title)
-2. ${autoSelectedSkill ? `IMMEDIATELY acknowledge that you're using the "${autoSelectedSkill.name}" workflow for this ${attachedContentItems[0].page_type} page` : ''}
+${skillAck}
 3. Use the EXACT outlines, keywords, and SERP insights provided below
 4. Follow the page type and structure specified
 5. DO NOT ask the user to provide these details again - you already have them
@@ -424,13 +436,14 @@ MANDATORY INSTRUCTIONS:
    - Then execute the FULL workflow (Steps 0 to 7) for the appropriate page type without stopping.
    - Use the exact structure, keywords, and insights from the attached content item.
    - DO NOT stop after drafting sections. You MUST generate images, assemble the HTML, and call 'save_final_page' in this same turn.
+   - If the user asks for a specific page by title, prioritize that over others.
+   - If multiple pages are attached, ask for confirmation which one to generate first, or generate them sequentially.
 
 Attached Content Items:
-${validDetails.join('\n\n')}
+${itemsList}
 
 ====================`;
         console.log('[Content Items] Prepared content items context for system prompt');
-        console.log('[Content Items] Context length:', contentItemsContext.length, 'characters');
       } else {
         console.warn('[Content Items] No valid content item details found');
       }
@@ -505,8 +518,33 @@ ${validDetails.join('\n\n')}
           // Execute the actual tool
           console.log(`🔧 Executing tool: ${toolName}${isFirstTool ? ' (first tool in response)' : ''}`);
           
+          // Inject context if needed by the tool
+          const toolArgs = { ...args };
+          const toolSchema = (toolDef as any).parameters;
+          
+          // FORCE inject userId - always use the authenticated user
+          if (userId && toolSchema?.shape && 'userId' in toolSchema.shape) {
+            if (toolArgs.userId !== userId) {
+              console.log(`[Auto-Injection] Overriding userId for tool: ${toolName}`);
+            }
+            toolArgs.userId = userId;
+          }
+          
+          // FORCE inject projectId - always override AI's guess with the real project ID
+          if (projectId && toolSchema?.shape && 'projectId' in toolSchema.shape) {
+            if (toolArgs.projectId !== projectId) {
+              console.log(`[Auto-Injection] Overriding projectId: ${toolArgs.projectId} -> ${projectId} for tool: ${toolName}`);
+            }
+            toolArgs.projectId = projectId;
+          }
+          
+          // Fallback for domainId (legacy)
+          if (projectId && toolSchema?.shape && 'domainId' in toolSchema.shape) {
+            toolArgs.domainId = projectId;
+          }
+
           try {
-            const result = await (toolDef as any).execute(args);
+            const result = await (toolDef as any).execute(toolArgs);
             
             // Find which skill this tool belongs to
             // Optimization: If an activeSkillId is provided (from a Playbook), check it first
@@ -552,14 +590,6 @@ ${validDetails.join('\n\n')}
               toolName
             };
           }
-          
-          // For file generation tools, we DON'T clean content here anymore
-          // The content will be sent to client for upload
-          // Client will handle upload and cleaning
-          // We only need to ensure AI context doesn't get polluted in NEXT requests
-          // (which is handled by cleanedMessages at the start of POST handler)
-          
-          return result;
         }
       };
     }
