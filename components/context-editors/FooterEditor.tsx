@@ -66,6 +66,49 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
     textColor: initialConfig?.textColor || '#E5E7EB',
   });
 
+  // Update config when initialConfig changes
+  useEffect(() => {
+    if (initialConfig) {
+      setFooterConfig({
+        companyName: initialConfig.companyName || 'My Company',
+        tagline: initialConfig.tagline || 'Building the future, one line of code at a time.',
+        logo: initialConfig.logo || logoUrl || '',
+        columns: initialConfig.columns || [
+          {
+            title: 'Product',
+            links: [
+              { label: 'Features', url: '/features' },
+              { label: 'Pricing', url: '/pricing' },
+              { label: 'FAQ', url: '/faq' },
+            ],
+          },
+          {
+            title: 'Company',
+            links: [
+              { label: 'About', url: '/about' },
+              { label: 'Blog', url: '/blog' },
+              { label: 'Careers', url: '/careers' },
+            ],
+          },
+          {
+            title: 'Support',
+            links: [
+              { label: 'Help Center', url: '/help' },
+              { label: 'Contact', url: '/contact' },
+              { label: 'Privacy', url: '/privacy' },
+            ],
+          },
+        ],
+        socialMedia: initialConfig.socialMedia || [
+          { platform: 'twitter', url: 'https://twitter.com/example' },
+          { platform: 'linkedin', url: 'https://linkedin.com/company/example' },
+        ],
+        backgroundColor: initialConfig.backgroundColor || BRAND_GRADIENT,
+        textColor: initialConfig.textColor || '#E5E7EB',
+      });
+    }
+  }, [initialConfig, logoUrl]);
+
   useEffect(() => {
     if (logoUrl && !footerConfig.logo) {
       const updatedConfig = { ...footerConfig, logo: logoUrl };
@@ -109,7 +152,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
   </style>
 </head>
 <body>
-  <div style="transform: scale(0.6); transform-origin: top left; width: 166.67%; min-height: 100vh;">
+  <div style="transform: scale(0.75); transform-origin: top left; width: 133.33%; min-height: 100vh;">
     ${processedContent}
   </div>
 </body>

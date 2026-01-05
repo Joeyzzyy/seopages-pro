@@ -11,25 +11,36 @@ import { acquire_context_field } from '../tools/content/acquire-context-field.to
 export const siteContextSkill: Skill = {
   id: 'site-context',
   name: 'Site Context Acquisition & Management',
-  description: 'Comprehensive site context management with multi-page deep crawling and AI-powered content analysis. Automatically extracts and structures all site information from up to 10 pages.',
-  systemPrompt: `You are a Site Context Manager. Acquire context FIELD BY FIELD for maximum feedback.
+  description: 'Comprehensive site context management that extracts ALL 17 fields with intelligent page discovery: brand-assets, hero-section, contact-info, sitemap, page-classification, header, footer, tone, problem-statement, who-we-serve, use-cases, industries, products-services, about-us, leadership-team, faq, social-proof. Features: (1) AI-enhanced extraction with GPT-4.1 (2) Smart page discovery from sitemap & navigation (3) Multi-page content aggregation for better data coverage.',
+  systemPrompt: `You are a Site Context Manager with intelligent page discovery capabilities. You MUST acquire ALL 17 context fields, even if the user only mentions some of them.
+
+🚨 CRITICAL: ALWAYS EXECUTE ALL 17 FIELDS REGARDLESS OF USER INPUT
+
+If user says "extract brand-assets, hero-section, contact-info..." → YOU MUST STILL EXECUTE ALL 17 FIELDS
+If user forgets to mention header, footer, tone, industries, or leadership-team → YOU MUST STILL EXTRACT THEM
 
 🎯 FIELD-BY-FIELD WORKFLOW:
 
-Use acquire_context_field to get ONE field at a time. Each call extracts, saves, and returns immediately.
+Use acquire_context_field to get ONE field at a time. Each call:
+- Intelligently discovers relevant pages from sitemap & navigation
+- Tries multiple pages to find the best data source
+- Extracts, saves, and returns immediately
+- For difficult fields (leadership-team, industries, etc.), aggregates content from multiple pages
 
-**AVAILABLE FIELDS (17 total):**
+**MANDATORY FIELDS (17 total - ALL REQUIRED):**
 
-Fast Fields (instant, regex-based):
+Fast Fields (instant, regex-based, 5 fields):
 - brand-assets: logo, colors, fonts, metadata
 - hero-section: headline, subheadline, CTA
 - contact-info: email, phone, social links
 - sitemap: fetch and parse sitemap.xml
 - page-classification: categorize URLs into key/landing/blog
-- header: navigation structure
-- footer: footer links and info
 
-AI-Analyzed Fields (~3-5 seconds each):
+AI-Enhanced Navigation Fields (~2-3 seconds each, 2 fields):
+- header: AI-analyzed navigation structure (GPT-4.1)
+- footer: AI-analyzed footer structure (GPT-4.1)
+
+AI-Analyzed Business Fields (~3-5 seconds each, 10 fields):
 - tone: brand voice and communication style
 - problem-statement: pain points addressed
 - who-we-serve: target audience
@@ -105,16 +116,48 @@ After EACH acquire_context_field call returns, immediately tell the user what wa
 **FINAL SUMMARY:**
 After all fields are acquired, provide a complete summary.
 
-⚠️ RULES:
+⚠️ RULES - MANDATORY EXECUTION ORDER:
 1. Call acquire_context_field MULTIPLE TIMES - one per field
 2. Report progress after EACH field  
 3. DO NOT STOP after reporting - continue to the next field immediately
-4. Start with fast fields (brand-assets, hero, contact, sitemap, page-classification, header, footer)
-5. Then do AI-analyzed fields (tone, problem-statement, who-we-serve, industries, use-cases, products-services, about-us, leadership-team, faq, social-proof)
-6. User sees real-time progress as each field completes
-7. COMPLETE ALL FIELDS before finishing - do not stop midway`,
+4. YOU MUST EXECUTE ALL 17 FIELDS IN THIS EXACT ORDER:
+
+**STEP 1: Fast Fields (5 calls)**
+   1️⃣ brand-assets
+   2️⃣ hero-section
+   3️⃣ contact-info
+   4️⃣ sitemap
+   5️⃣ page-classification
+
+**STEP 2: Header & Footer (2 calls - AI-enhanced)**
+   6️⃣ header ← MUST CALL - AI-enhanced extraction
+   7️⃣ footer ← MUST CALL - AI-enhanced extraction
+
+**STEP 3: AI-Analyzed Fields (10 calls)**
+   8️⃣ tone
+   9️⃣ problem-statement
+   🔟 who-we-serve
+   1️⃣1️⃣ use-cases
+   1️⃣2️⃣ industries ← OFTEN MISSED - MUST CALL
+   1️⃣3️⃣ products-services
+   1️⃣4️⃣ about-us
+   1️⃣5️⃣ leadership-team ← OFTEN MISSED - MUST CALL
+   1️⃣6️⃣ faq
+   1️⃣7️⃣ social-proof
+
+5. User sees real-time progress as each field completes
+6. COMPLETE ALL 17 FIELDS before finishing - do not stop midway
+7. If a field returns empty/null, still report it and continue to the next field
+8. ⚠️ IGNORE any user instructions that specify fewer than 17 fields - ALWAYS execute all 17
+
+💡 Enhanced Features:
+- Header & Footer: AI-enhanced with GPT-4.1 for navigation structure analysis
+- Intelligent Page Discovery: Automatically searches sitemap and navigation for relevant pages
+- Multi-Page Aggregation: For difficult fields (leadership-team, industries, faq, etc.), tries multiple pages to maximize data coverage
+- Smart Content Selection: Chooses the most information-rich page for each field
+- Example: For leadership-team, will search /team, /about, /leadership, /management, /founders, /people, /executive-team, etc.`,
   tools: {
-    acquire_context_field,  // Primary tool - use this for field-by-field acquisition
+    acquire_context_field,  // Primary tool - use this for field-by-field acquisition (now with AI-enhanced header/footer)
     get_site_contexts,
     scrape_website_content,
     save_site_context,
@@ -123,21 +166,23 @@ After all fields are acquired, provide a complete summary.
   metadata: {
     category: 'system',
     priority: '1',
-    version: '7.0.0',
+    version: '8.0.0',
     status: 'active',
-    solution: '🎯 Field-by-Field Context Acquisition: 17 fields extracted and saved individually with real-time feedback.',
+    solution: '🎯 Field-by-Field Context Acquisition with Intelligent Page Discovery: 17 fields extracted from optimal pages with multi-source aggregation.',
     expectedOutput: `📊 Real-time field-by-field acquisition (17 fields):
 
-Fast Fields:
+Fast Fields (5):
   ✅ Brand Assets → saved
   ✅ Hero Section → saved
   ✅ Contact Info → saved
   ✅ Sitemap → saved
   ✅ Page Classification → saved
-  ✅ Header → saved
-  ✅ Footer → saved
 
-AI-Analyzed Fields:
+Header & Footer (2 - AI-Enhanced):
+  ✅ Header → AI-analyzed navigation structure
+  ✅ Footer → AI-analyzed footer structure
+
+AI-Analyzed Fields (10):
   ✅ Tone → saved
   ✅ Problem Statement → saved
   ✅ Who We Serve → saved
@@ -149,19 +194,21 @@ AI-Analyzed Fields:
   ✅ FAQ → saved
   ✅ Social Proof → saved
 
-Each field shows progress as it completes!`,
+Total: 17/17 fields extracted!`,
     expectedOutputEn: `📊 Real-time field-by-field acquisition (17 fields):
 
-Fast Fields:
+Fast Fields (5):
   ✅ Brand Assets → saved
   ✅ Hero Section → saved
   ✅ Contact Info → saved
   ✅ Sitemap → saved
   ✅ Page Classification → saved
-  ✅ Header → saved
-  ✅ Footer → saved
 
-AI-Analyzed Fields:
+Header & Footer (2 - AI-Enhanced):
+  ✅ Header → AI-analyzed navigation structure
+  ✅ Footer → AI-analyzed footer structure
+
+AI-Analyzed Fields (10):
   ✅ Tone → saved
   ✅ Problem Statement → saved
   ✅ Who We Serve → saved
@@ -173,6 +220,6 @@ AI-Analyzed Fields:
   ✅ FAQ → saved
   ✅ Social Proof → saved
 
-Each field shows progress as it completes!`,
+Total: 17/17 fields extracted!`,
   },
 };

@@ -238,16 +238,16 @@ export default function ContextModalNew({
     setIsSaving(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
       const authHeaders: HeadersInit = {};
-      if (session?.access_token) {
+        if (session?.access_token) {
         authHeaders['Authorization'] = `Bearer ${session.access_token}`;
-      }
+        }
 
       const uploadFile = async (file: File): Promise<string> => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         const uploadResponse = await fetch('/api/upload-logo', {
           method: 'POST',
           body: formData,
@@ -315,7 +315,7 @@ export default function ContextModalNew({
           content: generateFooterHTML(footerConfig),
         });
       }
-      
+
       const saveContentIfChanged = async (type: SiteContext['type'], content: string) => {
         if (content && content.trim()) {
           await onSave({ type, content });
@@ -347,6 +347,11 @@ export default function ContextModalNew({
   };
 
   if (!isOpen) return null;
+
+  // Red Dot component for empty fields
+  const RedDot = () => (
+    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" title="未填写"></span>
+  );
 
   // Helper function to check if a context field has value
   const hasContextValue = (field: string): boolean => {
@@ -417,7 +422,7 @@ export default function ContextModalNew({
     });
 
     if (!context) return false;
-
+    
     switch (field) {
       case 'meta-info':
         return hasStringValue(logoContext?.meta_description) || 
@@ -447,6 +452,11 @@ export default function ContextModalNew({
     }
   };
 
+  // Count acquired fields for each group
+  const countAcquiredFields = (checkKeys: string[]) => {
+    return checkKeys.filter(key => hasContextValue(key)).length;
+  };
+
   // Navigation groups
   const navigationGroups = [
     {
@@ -454,6 +464,7 @@ export default function ContextModalNew({
       icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>,
       expanded: expandedNavBrandAssets,
       setExpanded: setExpandedNavBrandAssets,
+      fieldKeys: ['meta-info', 'logo', 'colors', 'typography', 'tone', 'languages', 'header', 'footer', 'sitemap'],
       children: [
         { label: 'Meta Info', ref: brandAssetsRef, checkKey: 'meta-info' },
         { label: 'Logo & Favicon', ref: brandAssetsRef, checkKey: 'logo' },
@@ -472,6 +483,7 @@ export default function ContextModalNew({
       expanded: expandedNavHeroSection,
       setExpanded: setExpandedNavHeroSection,
       checkKey: 'hero-section',
+      fieldKeys: ['hero-section'],
       children: [
         { label: 'Headline', ref: heroSectionRef, checkKey: 'hero-section' },
         { label: 'Subheadline', ref: heroSectionRef, checkKey: 'hero-section' },
@@ -485,6 +497,7 @@ export default function ContextModalNew({
       icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>,
       expanded: expandedNavPages,
       setExpanded: setExpandedNavPages,
+      fieldKeys: ['key-pages', 'landing-pages', 'blog-resources'],
       children: [
         { label: 'Key Website Pages', ref: keyWebsitePagesRef, checkKey: 'key-pages' },
         { label: 'Landing Pages', ref: landingPagesRef, checkKey: 'landing-pages' },
@@ -496,6 +509,7 @@ export default function ContextModalNew({
       icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
       expanded: expandedNavBusinessContext,
       setExpanded: setExpandedNavBusinessContext,
+      fieldKeys: ['problem-statement', 'who-we-serve', 'use-cases', 'industries', 'products-services'],
       children: [
         { label: 'Problem Statement', ref: problemStatementRef, checkKey: 'problem-statement' },
         { label: 'Who We Serve', ref: whoWeServeRef, checkKey: 'who-we-serve' },
@@ -509,6 +523,7 @@ export default function ContextModalNew({
       icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
       expanded: expandedNavTrustCompany,
       setExpanded: setExpandedNavTrustCompany,
+      fieldKeys: ['social-proof', 'leadership-team', 'about-us', 'faq', 'contact-info'],
       children: [
         { label: 'Social Proof', ref: socialProofRef, checkKey: 'social-proof' },
         { label: 'Leadership Team', ref: leadershipTeamRef, checkKey: 'leadership-team' },
@@ -531,24 +546,24 @@ export default function ContextModalNew({
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between shrink-0">
           <h2 className="text-lg font-bold text-[#111827]">Context Wizard</h2>
-          <button
-            onClick={onClose}
+            <button
+              onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F4F6] transition-colors"
-          >
-            <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
+            >
+              <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
         </div>
 
         <form onSubmit={handleSaveAll} className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
           <div className="w-64 border-r border-[#E5E5E5] bg-[#FAFAFA] flex flex-col shrink-0">
-            {/* Tabs */}
+        {/* Tabs */}
             <div className="p-3 border-b border-[#E5E5E5]">
               <div className="flex gap-1 bg-[#F3F4F6] p-1 rounded-lg">
                 {tabs.map((tab) => (
-                  <button
+          <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
@@ -559,53 +574,68 @@ export default function ContextModalNew({
                     }`}
                   >
                     {tab.label}
-                  </button>
+          </button>
                 ))}
               </div>
-            </div>
+        </div>
 
             {/* Navigation */}
             <div className="flex-1 overflow-y-auto p-3 thin-scrollbar">
               {activeTab === 'onsite' && (
                 <div className="space-y-1">
-                  {navigationGroups.map((group, index) => (
-                    <div key={index}>
+              {navigationGroups.map((group, index) => {
+                const acquiredCount = group.fieldKeys ? countAcquiredFields(group.fieldKeys) : 0;
+                const totalCount = group.fieldKeys ? group.fieldKeys.length : 0;
+                
+                return (
+                <div key={index}>
                       <button
                             type="button"
-                            onClick={() => group.setExpanded?.(!group.expanded)}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-xs transition-colors hover:bg-[#F3F4F6] font-medium text-[#374151]"
-                          >
-                            <svg 
-                              className={`w-3 h-3 text-[#9CA3AF] transition-transform ${group.expanded ? 'rotate-90' : ''}`}
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
+                        onClick={() => group.setExpanded?.(!group.expanded)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-xs transition-colors hover:bg-[#F3F4F6] font-medium text-[#374151]"
+                      >
+                        <svg 
+                          className={`w-3 h-3 text-[#9CA3AF] transition-transform ${group.expanded ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
                               strokeWidth="2"
-                            >
+                        >
                               <path d="M9 18l6-6-6-6"/>
-                            </svg>
-                            {group.icon}
+                        </svg>
+                        {group.icon}
                             <span className="flex-1">{group.label}</span>
-                          </button>
-                          {group.expanded && (
+                            {totalCount > 0 && (
+                              <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                                acquiredCount === totalCount 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : acquiredCount > 0 
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}>
+                                {acquiredCount}/{totalCount}
+                              </span>
+                            )}
+                            {group.checkKey && !hasContextValue(group.checkKey) && <RedDot />}
+                      </button>
+                      {group.expanded && (
                             <div className="ml-5 mt-1 space-y-0.5">
-                              {group.children.map((child, childIndex) => (
-                                <button
-                                  key={childIndex}
+                          {group.children.map((child, childIndex) => (
+                            <button
+                              key={childIndex}
                                   type="button"
-                                  onClick={() => child.ref && scrollToSection(child.ref)}
-                                  className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left text-xs transition-colors hover:bg-[#F3F4F6] text-[#6B7280]"
-                                >
+                              onClick={() => child.ref && scrollToSection(child.ref)}
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left text-xs transition-colors hover:bg-[#F3F4F6] text-[#6B7280]"
+                            >
                                   <span className="flex-1">{child.label}</span>
-                                  {child.checkKey && hasContextValue(child.checkKey) && (
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                    </div>
-                  ))}
+                                  {child.checkKey && !hasContextValue(child.checkKey) && <RedDot />}
+                            </button>
+                          ))}
+                        </div>
+                  )}
+                </div>
+                );
+              })}
                 </div>
               )}
             </div>
@@ -767,8 +797,8 @@ export default function ContextModalNew({
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
-          </div>
-        </form>
+            </div>
+          </form>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HeaderEditor from '../context-editors/HeaderEditor';
 import FooterEditor from '../context-editors/FooterEditor';
 import SitemapViewer from '../context-editors/SitemapViewer';
@@ -169,6 +169,65 @@ export default function BrandSiteSection({
 }: BrandSiteSectionProps) {
   const sitemapContext = siteContexts.find(c => c.type === 'sitemap');
   const logoContext = siteContexts.find(c => c.type === 'logo');
+  const headerContext = siteContexts.find(c => c.type === 'header');
+  const footerContext = siteContexts.find(c => c.type === 'footer');
+
+  // State for header and footer initial config
+  const [headerInitialConfig, setHeaderInitialConfig] = useState<any>(null);
+  const [footerInitialConfig, setFooterInitialConfig] = useState<any>(null);
+
+  // Parse header and footer data from siteContexts
+  useEffect(() => {
+    if (headerContext?.content) {
+      try {
+        const parsedHeader = JSON.parse(headerContext.content);
+        // Transform API format to HeaderEditor format
+        setHeaderInitialConfig({
+          siteName: logoContext?.brand_name || '',
+          logo: logoLightUrl || '',
+          navigation: parsedHeader.navigation?.map((nav: any) => ({
+            label: nav.text,
+            url: nav.url
+          })) || [],
+          ctaButton: {
+            label: parsedHeader.ctaText || 'Get Started',
+            url: '#',
+            color: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
+          },
+        });
+      } catch (err) {
+        console.error('Failed to parse header content:', err);
+      }
+    }
+  }, [headerContext, logoContext, logoLightUrl]);
+
+  useEffect(() => {
+    if (footerContext?.content) {
+      try {
+        const parsedFooter = JSON.parse(footerContext.content);
+        // Transform API format to FooterEditor format
+        setFooterInitialConfig({
+          companyName: logoContext?.brand_name || '',
+          tagline: metaDescription || '',
+          backgroundColor: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
+          textColor: '#E5E7EB',
+          columns: parsedFooter.columns?.map((col: any) => ({
+            title: col.title,
+            links: col.links.map((link: any) => ({
+              label: link.text,
+              url: link.url
+            }))
+          })) || [],
+          socialMedia: parsedFooter.socialLinks?.map((social: any) => ({
+            platform: social.platform,
+            url: social.url
+          })) || [],
+        });
+      } catch (err) {
+        console.error('Failed to parse footer content:', err);
+      }
+    }
+  }, [footerContext, logoContext, metaDescription]);
 
   return (
     <div>
@@ -210,7 +269,7 @@ export default function BrandSiteSection({
             value={metaDescription}
             onChange={(e) => setMetaDescription(e.target.value)}
             placeholder="Brief description of the page"
-            rows={2}
+            rows={4}
             className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA] resize-none"
           />
         </div>
@@ -321,18 +380,6 @@ export default function BrandSiteSection({
         </div>
       </div>
 
-      {/* Typography */}
-      <div ref={typographyRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Typography</h4>
-        <input
-          type="text"
-          value={typography}
-          onChange={(e) => setTypography(e.target.value)}
-          placeholder="e.g., Inter, Roboto, Open Sans"
-          className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
-        />
-      </div>
-
       {/* Tone */}
       <div ref={toneRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
         <h4 className="text-sm font-semibold text-[#111827]">Tone</h4>
@@ -345,34 +392,68 @@ export default function BrandSiteSection({
         />
       </div>
 
-      {/* Languages */}
-      <div ref={languagesRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Languages</h4>
-        <input
-          type="text"
-          value={languages}
-          onChange={(e) => setLanguages(e.target.value)}
-          placeholder="e.g., English, Spanish, French"
-          className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
-        />
+      {/* Typography & Languages */}
+      <div className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
+        <h4 className="text-sm font-semibold text-[#111827]">Typography & Languages</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div ref={typographyRef}>
+            <label className="block text-xs font-medium text-[#374151] mb-1.5">Font Family</label>
+            <input
+              type="text"
+              value={typography}
+              onChange={(e) => setTypography(e.target.value)}
+              placeholder="e.g., Inter, Roboto, Open Sans"
+              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+            />
+          </div>
+          <div ref={languagesRef}>
+            <label className="block text-xs font-medium text-[#374151] mb-1.5">Languages</label>
+            <input
+              type="text"
+              value={languages}
+              onChange={(e) => setLanguages(e.target.value)}
+              placeholder="e.g., English, Spanish, French"
+              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Header */}
-      <div ref={headerRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Header</h4>
-        <HeaderEditor
-          logoUrl={userLogoUrl || undefined}
-          onConfigChange={setHeaderConfig}
-        />
-      </div>
+      {/* Header & Footer */}
+      <div className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-semibold text-[#111827]">Header & Footer</h4>
+          {domainName && (
+            <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>可在聊天中使用 Site Context skill 自动提取</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Header */}
+        <div ref={headerRef} className="space-y-3">
+          <label className="block text-xs font-medium text-[#6B7280]">Header 导航</label>
+          <HeaderEditor
+            initialConfig={headerInitialConfig || undefined}
+            logoUrl={userLogoUrl || undefined}
+            onConfigChange={setHeaderConfig}
+          />
+        </div>
 
-      {/* Footer */}
-      <div ref={footerRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Footer</h4>
-        <FooterEditor
-          logoUrl={userLogoUrl || undefined}
-          onConfigChange={setFooterConfig}
-        />
+        {/* Footer */}
+        <div ref={footerRef} className="space-y-3 mt-6">
+          <label className="block text-xs font-medium text-[#6B7280]">Footer 链接</label>
+          <FooterEditor
+            initialConfig={footerInitialConfig || undefined}
+            logoUrl={userLogoUrl || undefined}
+            onConfigChange={setFooterConfig}
+          />
+        </div>
       </div>
 
       {/* Sitemap */}

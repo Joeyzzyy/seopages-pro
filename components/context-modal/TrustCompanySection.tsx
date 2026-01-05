@@ -1,11 +1,44 @@
 'use client';
 
+import { useMemo } from 'react';
 import TextContentEditor from '../context-editors/TextContentEditor';
 import SocialProofEditor from '../context-editors/SocialProofEditor';
 import AboutUsEditor from '../context-editors/AboutUsEditor';
 import ContactInformationEditor from '../context-editors/ContactInformationEditor';
 import FaqEditor from '../context-editors/FaqEditor';
 import type { TrustCompanySectionProps } from './types';
+
+// Helper function to extract text from JSON for leadership team
+function extractLeadershipText(jsonString: string | null | undefined): string {
+  if (!jsonString) return '';
+  
+  try {
+    const parsed = JSON.parse(jsonString);
+    
+    // If it's a string, return directly
+    if (typeof parsed === 'string') return parsed;
+    
+    // If it's an empty array, return empty
+    if (Array.isArray(parsed) && parsed.length === 0) return '';
+    
+    // If it's an array of team members
+    if (Array.isArray(parsed)) {
+      return parsed.map((member, index) => {
+        if (typeof member === 'string') return `${index + 1}. ${member}`;
+        if (member.name && member.role) {
+          const parts = [member.name, member.role];
+          if (member.bio) parts.push(member.bio);
+          return parts.join(' - ');
+        }
+        return JSON.stringify(member);
+      }).join('\n\n');
+    }
+    
+    return jsonString;
+  } catch {
+    return jsonString;
+  }
+}
 
 export default function TrustCompanySection({
   siteContexts,
@@ -32,6 +65,12 @@ export default function TrustCompanySection({
   const faqContext = siteContexts.find(c => c.type === 'faq');
   const contactInfoContext = siteContexts.find(c => c.type === 'contact-information');
 
+  // Extract readable text for leadership team
+  const leadershipTeamText = useMemo(() => 
+    extractLeadershipText(leadershipTeamContext?.content), 
+    [leadershipTeamContext]
+  );
+
   return (
     <div className="border-t border-[#E5E5E5] pt-8">
       <div className="flex items-center gap-2 mb-6">
@@ -55,11 +94,16 @@ export default function TrustCompanySection({
       <div ref={leadershipTeamRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
         <h4 className="text-sm font-semibold text-[#111827]">Leadership Team</h4>
         <TextContentEditor
-          initialContent={leadershipTeamContext?.content || undefined}
+          initialContent={leadershipTeamText || undefined}
           onContentChange={setLeadershipTeamContent}
-          placeholder="Describe your leadership team"
-          rows={4}
+          placeholder="Describe your leadership team (e.g., Name - Role - Bio)"
+          rows={6}
         />
+        {!leadershipTeamText && (
+          <p className="text-xs text-[#9CA3AF] italic">
+            No leadership team data found. Run context acquisition or add manually.
+          </p>
+        )}
       </div>
 
       {/* About Us */}

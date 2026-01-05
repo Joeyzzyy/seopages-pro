@@ -74,23 +74,25 @@ export function generateFooterHTML(config: FooterConfig): string {
   
   return `<footer ${bgStyle}>
   <div class="container mx-auto px-4 py-12" style="color: ${textColor};">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-16">
       <!-- Company Info -->
       <div class="md:col-span-1">
-        ${config.logo ? `
-        <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.companyName)}" class="h-10 w-auto mb-4" />
-        ` : `
-        <h3 class="text-xl font-bold mb-4" style="color: ${headingColor};">${escapeHtml(config.companyName)}</h3>
-        `}
-        ${config.tagline ? `
-        <p class="text-sm mb-4">
-          ${escapeHtml(config.tagline)}
-        </p>
-        ` : ''}
+        <div class="flex flex-col space-y-3">
+          ${config.logo ? `
+          <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.companyName)}" class="h-10 w-auto" />
+          ` : `
+          <h3 class="text-xl font-bold" style="color: ${headingColor};">${escapeHtml(config.companyName)}</h3>
+          `}
+          ${config.tagline ? `
+          <p class="text-xs font-normal opacity-90">
+            ${escapeHtml(config.tagline)}
+          </p>
+          ` : ''}
+        </div>
         
         <!-- Social Media -->
         ${config.socialMedia && config.socialMedia.length > 0 ? `
-        <div class="flex space-x-4 mt-6">
+        <div class="flex space-x-6 mt-6">
           ${config.socialMedia.map(social => `
           <a href="${escapeHtml(social.url)}" target="_blank" rel="noopener noreferrer" class="hover:opacity-75 transition-opacity" aria-label="${social.platform}">
             ${getSocialIcon(social.platform)}
@@ -106,7 +108,7 @@ export function generateFooterHTML(config: FooterConfig): string {
         <h4 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: ${headingColor};">
           ${escapeHtml(column.title)}
         </h4>
-        <ul class="space-y-3">
+        <ul class="space-y-4">
           ${column.links.map(link => `
           <li>
             <a href="${escapeHtml(link.url)}" class="text-sm hover:opacity-75 transition-opacity">

@@ -73,6 +73,22 @@ export default function ConversationSidebar({
   // Items without a project (Uncategorized)
   const uncategorizedItems = contentItems.filter(item => !item.project_id);
 
+  // Count acquired fields for each category
+  const getFieldCount = (category: string): { acquired: number; total: number } => {
+    const fieldMappings: Record<string, string[]> = {
+      'brand-site': ['meta-info', 'logo', 'colors', 'typography', 'tone', 'languages', 'header', 'footer', 'sitemap'],
+      'hero-section': ['hero-section'],
+      'pages': ['key-pages', 'landing-pages', 'blog-resources'],
+      'business-context': ['problem-statement', 'who-we-serve', 'use-cases', 'industries', 'products-services'],
+      'trust-company': ['social-proof', 'leadership-team', 'about-us', 'faq', 'contact-info'],
+    };
+    
+    const fields = fieldMappings[category] || [];
+    const acquired = fields.filter(field => hasContextValue(field)).length;
+    
+    return { acquired, total: fields.length };
+  };
+
   // Helper function to check if a context field has value
   const hasContextValue = (field: string): boolean => {
     const logoContext = siteContexts.find(ctx => ctx.type === 'logo');
@@ -338,41 +354,33 @@ export default function ConversationSidebar({
                 {/* On Site Sub-items - Simplified: Click to open modal */}
                 {expandedOnSite && (
                   <div className="ml-5 mt-0.5 space-y-0.5">
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <span className="text-[11px] text-[#6B7280]">Brand & Site</span>
-                      {!hasContextValue('brand-site') && <RedDot />}
-                    </button>
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <span className="text-[11px] text-[#6B7280]">Hero Section</span>
-                      {!hasContextValue('hero-section') && <RedDot />}
-                    </button>
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <span className="text-[11px] text-[#6B7280]">Pages</span>
-                      {!hasContextValue('pages') && <RedDot />}
-                    </button>
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <span className="text-[11px] text-[#6B7280]">Business Context</span>
-                      {!hasContextValue('business-context') && <RedDot />}
-                    </button>
-                    <button
-                      onClick={() => onOpenContextModal?.()}
-                      className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                    >
-                      <span className="text-[11px] text-[#6B7280]">Trust & Company</span>
-                      {!hasContextValue('trust-company') && <RedDot />}
-                    </button>
+                    {[
+                      { label: 'Brand & Site', key: 'brand-site' },
+                      { label: 'Hero Section', key: 'hero-section' },
+                      { label: 'Pages', key: 'pages' },
+                      { label: 'Business Context', key: 'business-context' },
+                      { label: 'Trust & Company', key: 'trust-company' },
+                    ].map(({ label, key }) => {
+                      const { acquired, total } = getFieldCount(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => onOpenContextModal?.()}
+                          className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
+                        >
+                          <span className="text-[11px] text-[#6B7280] flex-1">{label}</span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded ${
+                            acquired === total 
+                              ? 'bg-green-100 text-green-700' 
+                              : acquired > 0 
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {acquired}/{total}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

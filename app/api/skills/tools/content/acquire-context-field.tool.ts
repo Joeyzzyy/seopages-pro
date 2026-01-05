@@ -111,13 +111,20 @@ Return ONLY the text content, no JSON.`,
     extractionMethod: 'ai',
     aiPrompt: `List the main USE CASES for this product/service.
 What can customers accomplish? What problems does it solve?
-Write 2-3 paragraphs or a detailed bullet list (200-400 words).
-Include specific scenarios and outcomes if mentioned.
-Return ONLY the text content, no JSON.`,
+
+Return as a simple string (NOT JSON) with this format:
+- Use Case 1: [Name] - [Brief description]
+- Use Case 2: [Name] - [Brief description]
+- Use Case 3: [Name] - [Brief description]
+
+Include 5-10 use cases total. Write 1-2 sentences per use case.
+Focus on practical scenarios and outcomes.
+
+Return ONLY plain text, no JSON structure.`,
     dbType: 'use-cases',
   },
   'industries': {
-    targetPages: ['/', '/industries', '/solutions', '/customers', '/case-studies'],
+    targetPages: ['/', '/industries', '/solutions', '/customers', '/case-studies', '/verticals', '/sectors', '/who-we-serve', '/use-cases', '/for-enterprise', '/for-business'],
     extractionMethod: 'ai',
     aiPrompt: `Identify the INDUSTRIES this product/service targets.
 List all mentioned industries/verticals with brief descriptions of how the product applies to each.
@@ -130,7 +137,7 @@ Return ONLY the text content, no JSON.`,
     dbType: 'industries',
   },
   'products-services': {
-    targetPages: ['/', '/products', '/services', '/features', '/pricing', '/solutions'],
+    targetPages: ['/', '/products', '/services', '/features', '/pricing', '/solutions', '/what-we-do', '/offerings', '/plans', '/packages'],
     extractionMethod: 'ai',
     aiPrompt: `Describe the PRODUCTS and SERVICES offered.
 Write 2-4 paragraphs (300-500 words) covering:
@@ -155,7 +162,7 @@ Return as JSON:
     dbType: 'about-us',
   },
   'leadership-team': {
-    targetPages: ['/about', '/about-us', '/team', '/our-team', '/leadership', '/company'],
+    targetPages: ['/about', '/about-us', '/team', '/our-team', '/leadership', '/company', '/management', '/founders', '/people', '/meet-the-team', '/executive-team', '/who-we-are'],
     extractionMethod: 'ai',
     aiPrompt: `Extract LEADERSHIP TEAM information.
 Look for executives, founders, key team members.
@@ -173,19 +180,29 @@ If no team information found, return empty array: []`,
     dbType: 'leadership-team',
   },
   'faq': {
-    targetPages: ['/faq', '/faqs', '/help', '/support', '/frequently-asked-questions', '/'],
+    targetPages: ['/faq', '/faqs', '/help', '/support', '/frequently-asked-questions', '/', '/help-center', '/knowledge-base', '/questions', '/common-questions'],
     extractionMethod: 'ai',
     aiPrompt: `Extract FAQ (Frequently Asked Questions) from this content.
 Look for Q&A sections, FAQ pages, or common questions answered.
-Return as JSON array:
+
+IMPORTANT: Return ONLY a valid JSON array with this exact structure:
 [
-  {"question": "The question text", "answer": "The answer text"}
+  {"question": "Question text here", "answer": "Complete answer text here"}
 ]
-If no FAQs found, return empty array: []`,
+
+Rules:
+- Extract ALL FAQs found on the page (aim for 10-30 items)
+- Keep question text concise but complete
+- Include full answer text (can be multiple paragraphs)
+- If answer is very long (500+ words), summarize key points
+- Maintain the original order if possible
+- If no FAQs found, return: []
+
+Do NOT include any text before or after the JSON array.`,
     dbType: 'faq',
   },
   'social-proof': {
-    targetPages: ['/', '/customers', '/testimonials', '/case-studies', '/about'],
+    targetPages: ['/', '/customers', '/testimonials', '/case-studies', '/about', '/reviews', '/clients', '/success-stories', '/wall-of-love'],
     extractionMethod: 'ai',
     aiPrompt: `Extract SOCIAL PROOF elements from this website.
 Look for testimonials, customer quotes, statistics, awards, badges, partner logos.
@@ -212,6 +229,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Cache for discovered navigation links
 const navigationCache: Map<string, { links: string[]; timestamp: number }> = new Map();
+
+// Cache for sitemap URLs
+const sitemapCache: Map<string, { urls: string[]; timestamp: number }> = new Map();
 
 export const acquire_context_field = tool({
   description: `Acquire a SINGLE context field from a website and save it to database.
@@ -406,18 +426,30 @@ Return ONLY valid JSON, no explanation.`;
           break;
 
         case 'contact-info':
-          // Try to find contact page first
+          // 智能发现联系方式相关页面
+          const contactDiscoveredPages = await discoverRelevantPages('contact-info', origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${contactDiscoveredPages.length} pages for contact-info:`, contactDiscoveredPages);
+          
           let contactHtml = pageData.html;
-          const navLinks = extractNavigationLinks(pageData.html, origin);
-          const contactPage = navLinks.find(l => /contact|get-in-touch|reach-us/i.test(l));
-          if (contactPage) {
-            const contactResult = await getPageData(contactPage);
-            if (contactResult.success) {
-              contactHtml = contactResult.html!;
-              console.log(`[acquire_context_field] Found contact page: ${contactPage}`);
+          let contactBestResult = extractContactInfo(pageData.html);
+          
+          // 尝试每个发现的页面，选择联系信息最多的
+          for (const discoveredPage of contactDiscoveredPages) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.html) {
+              const tempContact = extractContactInfo(result.html);
+              // 比较哪个页面有更多联系信息
+              const currentCount = (contactBestResult.emails?.length || 0) + (contactBestResult.phones?.length || 0) + Object.keys(contactBestResult.social || {}).length;
+              const newCount = (tempContact.emails?.length || 0) + (tempContact.phones?.length || 0) + Object.keys(tempContact.social || {}).length;
+              if (newCount > currentCount) {
+                contactHtml = result.html;
+                contactBestResult = tempContact;
+                console.log(`[acquire_context_field] Found better contact info at ${discoveredPage}`);
+              }
             }
           }
-          extractedData = extractContactInfo(contactHtml);
+          
+          extractedData = contactBestResult;
           await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(extractedData));
           break;
 
@@ -435,12 +467,12 @@ Return ONLY valid JSON, no explanation.`;
           break;
 
         case 'header':
-          extractedData = extractHeader(pageData.html, origin);
+          extractedData = await extractHeader(pageData.html, origin, true); // 使用AI增强
           await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(extractedData));
           break;
 
         case 'footer':
-          extractedData = extractFooter(pageData.html, origin);
+          extractedData = await extractFooter(pageData.html, origin, true); // 使用AI增强
           await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(extractedData));
           break;
 
@@ -459,79 +491,182 @@ Return ONLY valid JSON, no explanation.`;
         // AI-analyzed fields with smart page discovery
         case 'about-us':
         case 'leadership-team':
-          // Try to find about/team page
-          const aboutLinks = extractNavigationLinks(pageData.html, origin);
-          const aboutPage = aboutLinks.find(l => /about|team|leadership|company|our-story/i.test(l));
-          let aboutPageData = pageData;
-          if (aboutPage) {
-            const aboutResult = await getPageData(aboutPage);
-            if (aboutResult.success) {
-              aboutPageData = { html: aboutResult.html!, text: aboutResult.text! };
-              console.log(`[acquire_context_field] Using ${aboutPage} for ${field}`);
+          // 智能发现相关页面
+          const aboutDiscoveredPages = await discoverRelevantPages(field, origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${aboutDiscoveredPages.length} pages for ${field}:`, aboutDiscoveredPages);
+          
+          let aboutBestPageData = pageData;
+          let aboutPageUsed = '/';
+          
+          // 尝试每个发现的页面，选择内容最丰富的
+          for (const discoveredPage of aboutDiscoveredPages) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.text && result.text.length > aboutBestPageData.text.length) {
+              aboutBestPageData = { html: result.html!, text: result.text };
+              aboutPageUsed = discoveredPage;
+              console.log(`[acquire_context_field] Using ${discoveredPage} for ${field} (${result.text.length} chars)`);
             }
           }
-          extractedData = await analyzeWithAI(config.aiPrompt!, aboutPageData.text, origin);
+          
+          extractedData = await analyzeWithAI(config.aiPrompt!, aboutBestPageData.text, origin);
+          
+          // 如果是空结果且有多个页面，尝试合并多个页面的内容再分析
+          if (field === 'leadership-team' && Array.isArray(extractedData) && extractedData.length === 0 && aboutDiscoveredPages.length > 1) {
+            console.log(`[acquire_context_field] Empty result, trying multiple pages for ${field}`);
+            let combinedText = aboutBestPageData.text;
+            for (let i = 1; i < Math.min(3, aboutDiscoveredPages.length); i++) {
+              const extraResult = await getPageData(aboutDiscoveredPages[i]);
+              if (extraResult.success && extraResult.text) {
+                combinedText += '\n\n--- Page ' + (i+1) + ' ---\n\n' + extraResult.text.substring(0, 3000);
+              }
+            }
+            extractedData = await analyzeWithAI(config.aiPrompt!, combinedText.substring(0, 12000), origin);
+          }
+          
           await saveToDatabase(userId, projectId, config.dbType, 
             typeof extractedData === 'string' ? extractedData : JSON.stringify(extractedData));
           break;
 
         case 'faq':
-          // Try to find FAQ page
-          const faqLinks = extractNavigationLinks(pageData.html, origin);
-          const faqPage = faqLinks.find(l => /faq|help|support|questions/i.test(l));
-          let faqPageData = pageData;
-          if (faqPage) {
-            const faqResult = await getPageData(faqPage);
-            if (faqResult.success) {
-              faqPageData = { html: faqResult.html!, text: faqResult.text! };
-              console.log(`[acquire_context_field] Using ${faqPage} for FAQ`);
+          // 智能发现FAQ相关页面
+          const faqDiscoveredPages = await discoverRelevantPages('faq', origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${faqDiscoveredPages.length} pages for FAQ:`, faqDiscoveredPages);
+          
+          let faqBestPageData = pageData;
+          
+          // 尝试每个发现的页面
+          for (const discoveredPage of faqDiscoveredPages) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.text && result.text.length > faqBestPageData.text.length) {
+              faqBestPageData = { html: result.html!, text: result.text };
+              console.log(`[acquire_context_field] Using ${discoveredPage} for FAQ`);
             }
           }
-          extractedData = await analyzeWithAI(config.aiPrompt!, faqPageData.text, origin);
-          await saveToDatabase(userId, projectId, config.dbType,
-            typeof extractedData === 'string' ? extractedData : JSON.stringify(extractedData));
+          
+          // FAQ 需要更多 tokens 和内容来提取完整列表
+          extractedData = await analyzeWithAI(
+            config.aiPrompt!, 
+            faqBestPageData.text, 
+            origin,
+            {
+              maxTokens: 4000,        // FAQ 通常需要更多 tokens（提升到 4000）
+              maxContentChars: 20000  // 允许更长的输入内容（提升到 20000）
+            }
+          );
+          
+          // 验证和修复 FAQ 数据
+          if (extractedData) {
+            // 确保返回的是数组
+            if (!Array.isArray(extractedData)) {
+              if (extractedData.error) {
+                console.log('[acquire_context_field] FAQ extraction error:', extractedData.error);
+                extractedData = [];
+              } else if (typeof extractedData === 'string') {
+                // 尝试解析字符串为 JSON
+                try {
+                  extractedData = JSON.parse(extractedData);
+                } catch (e) {
+                  console.log('[acquire_context_field] Failed to parse FAQ string as JSON');
+                  extractedData = [];
+                }
+              } else {
+                extractedData = [];
+              }
+            }
+            
+            // 验证每个 FAQ 项的结构
+            if (Array.isArray(extractedData)) {
+              extractedData = extractedData.filter(item => 
+                item && 
+                typeof item === 'object' && 
+                item.question && 
+                item.answer &&
+                typeof item.question === 'string' &&
+                typeof item.answer === 'string'
+              );
+              console.log(`[acquire_context_field] Validated ${extractedData.length} FAQ items`);
+            }
+          } else {
+            extractedData = [];
+          }
+          
+          await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(extractedData));
           break;
 
         case 'industries':
         case 'use-cases':
         case 'who-we-serve':
-          // Try to find solutions/industries page
-          const industryLinks = extractNavigationLinks(pageData.html, origin);
-          const industryPage = industryLinks.find(l => 
-            /industries|solutions|customers|use-cases|for-/i.test(l));
-          let industryPageData = pageData;
-          if (industryPage) {
-            const industryResult = await getPageData(industryPage);
-            if (industryResult.success) {
-              industryPageData = { html: industryResult.html!, text: industryResult.text! };
-              console.log(`[acquire_context_field] Using ${industryPage} for ${field}`);
+          // 智能发现相关页面
+          const industryDiscoveredPages = await discoverRelevantPages(field, origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${industryDiscoveredPages.length} pages for ${field}:`, industryDiscoveredPages);
+          
+          let industryBestPageData = pageData;
+          
+          // 尝试每个发现的页面，选择内容最丰富的
+          for (const discoveredPage of industryDiscoveredPages) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.text && result.text.length > industryBestPageData.text.length) {
+              industryBestPageData = { html: result.html!, text: result.text };
+              console.log(`[acquire_context_field] Using ${discoveredPage} for ${field}`);
             }
           }
-          extractedData = await analyzeWithAI(config.aiPrompt!, industryPageData.text, origin);
-          await saveToDatabase(userId, projectId, config.dbType, extractedData);
+          
+          extractedData = await analyzeWithAI(config.aiPrompt!, industryBestPageData.text, origin);
+          
+          // 确保保存的是字符串格式
+          const contentToSave = typeof extractedData === 'string' 
+            ? extractedData 
+            : JSON.stringify(extractedData);
+          
+          await saveToDatabase(userId, projectId, config.dbType, contentToSave);
           break;
 
         case 'products-services':
-          // Try to find products/pricing page
-          const productLinks = extractNavigationLinks(pageData.html, origin);
-          const productPage = productLinks.find(l => 
-            /products|services|features|pricing|solutions/i.test(l));
-          let productPageData = pageData;
-          if (productPage) {
-            const productResult = await getPageData(productPage);
-            if (productResult.success) {
-              productPageData = { html: productResult.html!, text: productResult.text! };
-              console.log(`[acquire_context_field] Using ${productPage} for products-services`);
+          // 智能发现产品/服务相关页面
+          const productDiscoveredPages = await discoverRelevantPages('products-services', origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${productDiscoveredPages.length} pages for products-services:`, productDiscoveredPages);
+          
+          let productBestPageData = pageData;
+          
+          // 尝试每个发现的页面
+          for (const discoveredPage of productDiscoveredPages) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.text && result.text.length > productBestPageData.text.length) {
+              productBestPageData = { html: result.html!, text: result.text };
+              console.log(`[acquire_context_field] Using ${discoveredPage} for products-services`);
             }
           }
-          extractedData = await analyzeWithAI(config.aiPrompt!, productPageData.text, origin);
-          await saveToDatabase(userId, projectId, config.dbType, extractedData);
+          
+          extractedData = await analyzeWithAI(config.aiPrompt!, productBestPageData.text, origin);
+          
+          // 确保保存的是字符串格式
+          const productContentToSave = typeof extractedData === 'string' 
+            ? extractedData 
+            : JSON.stringify(extractedData);
+          
+          await saveToDatabase(userId, projectId, config.dbType, productContentToSave);
           break;
 
-        case 'social-proof-trust':
+        case 'social-proof':
+          // 智能发现social proof相关页面
+          const socialDiscoveredPages = await discoverRelevantPages('social-proof', origin, pageData.html);
+          console.log(`[acquire_context_field] Discovered ${socialDiscoveredPages.length} pages for social-proof:`, socialDiscoveredPages);
+          
+          // 收集多个页面的内容来提取social proof
+          let socialProofTexts = [pageData.text.substring(0, 4000)];
+          for (const discoveredPage of socialDiscoveredPages.slice(0, 3)) {
+            const result = await getPageData(discoveredPage);
+            if (result.success && result.text) {
+              socialProofTexts.push(result.text.substring(0, 3000));
+              console.log(`[acquire_context_field] Added content from ${discoveredPage}`);
+            }
+          }
+          
+          const combinedSocialText = socialProofTexts.join('\n\n--- Next Page ---\n\n').substring(0, 12000);
+          
           // First, analyze the website itself for social proof
           console.log('[acquire_context_field] Extracting social proof from website...');
-          const websiteSocialProof = await analyzeWithAI(config.aiPrompt!, pageData.text, origin);
+          const websiteSocialProof = await analyzeWithAI(config.aiPrompt!, combinedSocialText, origin);
           
           // Parse the result if it's a string
           let socialProofData: any;
@@ -549,71 +684,170 @@ Return ONLY valid JSON, no explanation.`;
             };
           }
 
-          // Now try to fetch external platform reviews
-          console.log('[acquire_context_field] Fetching external platform reviews...');
+          // Now try to fetch external platform reviews with enhanced search
+          console.log('[acquire_context_field] Fetching external platform reviews with enhanced search...');
           const companyDomain = new URL(origin).hostname.replace('www.', '');
           const companyName = socialProofData.companyName || companyDomain.split('.')[0];
           
+          // 生成多个名称变体以提高匹配率
+          const nameVariants = [
+            companyDomain.replace(/\./g, '-'),        // seopage-ai
+            companyDomain.replace(/\./g, ''),         // seopageai
+            companyName,                               // seopage
+            companyName + '-ai',                       // seopage-ai (如果 companyName 是 seopage)
+          ];
+          // 去重
+          const uniqueVariants = [...new Set(nameVariants)];
+          console.log(`[acquire_context_field] Trying name variants:`, uniqueVariants);
+          
           const externalReviews: any[] = [];
           
-          // Try each platform
+          // Enhanced platform URLs with multiple attempts
           const platforms = [
-            { name: 'producthunt', searchUrl: `https://www.producthunt.com/search?q=${encodeURIComponent(companyName)}`, directUrl: `https://www.producthunt.com/products/${companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')}` },
-            { name: 'trustpilot', searchUrl: `https://www.trustpilot.com/search?query=${encodeURIComponent(companyName)}`, directUrl: `https://www.trustpilot.com/review/${companyDomain}` },
-            { name: 'g2', searchUrl: `https://www.g2.com/search?query=${encodeURIComponent(companyName)}`, directUrl: `https://www.g2.com/products/${companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')}/reviews` },
-            { name: 'capterra', searchUrl: `https://www.capterra.com/search/?search=${encodeURIComponent(companyName)}`, directUrl: null },
+            { 
+              name: 'producthunt', 
+              attempts: uniqueVariants.flatMap(variant => [
+                `https://www.producthunt.com/products/${variant.toLowerCase()}`,
+                `https://www.producthunt.com/posts/${variant.toLowerCase()}`,
+              ])
+            },
+            { 
+              name: 'trustpilot', 
+              attempts: [
+                `https://www.trustpilot.com/review/${companyDomain}`,
+                `https://www.trustpilot.com/review/www.${companyDomain}`,
+              ]
+            },
+            { 
+              name: 'g2', 
+              attempts: uniqueVariants.map(variant => 
+                `https://www.g2.com/products/${variant.toLowerCase()}/reviews`
+              )
+            },
+            { 
+              name: 'capterra', 
+              attempts: uniqueVariants.map(variant => 
+                `https://www.capterra.com/p/${variant.toLowerCase()}/`
+              )
+            },
           ];
 
           for (const platform of platforms) {
-            try {
-              // Try to fetch the direct URL if available
-              const urlToTry = platform.directUrl || platform.searchUrl;
-              console.log(`[acquire_context_field] Trying ${platform.name}: ${urlToTry}`);
+            let platformFound = false;
+            
+            for (const urlToTry of platform.attempts) {
+              if (platformFound) break;
               
-              const platformResult = await getPageData(urlToTry);
-              if (platformResult.success && platformResult.text) {
-                // Check if this is actually the right page (not a 404 or search results)
-                const text = platformResult.text.toLowerCase();
-                const domainLower = companyDomain.toLowerCase();
-                const nameLower = companyName.toLowerCase();
+              try {
+                console.log(`[acquire_context_field] Trying ${platform.name}: ${urlToTry}`);
                 
-                if (text.includes(domainLower) || text.includes(nameLower)) {
-                  // Extract rating if present
-                  const ratingMatch = platformResult.html?.match(/(\d+\.?\d*)\s*(?:out of|\/)\s*5|★\s*(\d+\.?\d*)/i);
-                  const reviewCountMatch = platformResult.html?.match(/(\d+[\d,]*)\s*(?:reviews?|ratings?)/i);
+                const platformResult = await getPageData(urlToTry);
+                if (platformResult.success && platformResult.text && platformResult.html) {
+                  const text = platformResult.text.toLowerCase();
+                  const html = platformResult.html;
+                  const domainLower = companyDomain.toLowerCase();
+                  const nameLower = companyName.toLowerCase();
                   
-                  // Look for awards (especially ProductHunt badges)
-                  const awards: string[] = [];
-                  if (platform.name === 'producthunt') {
-                    if (text.includes('product of the day')) awards.push('Product of the Day');
-                    if (text.includes('product of the week')) awards.push('Product of the Week');
-                    if (text.includes('product of the month')) awards.push('Product of the Month');
-                    if (text.includes('golden kitty')) awards.push('Golden Kitty Award');
+                  // Check if page is valid (not 404 or empty search results)
+                  const isValidPage = text.includes(nameLower) || 
+                                     text.includes(domainLower.replace(/\./g, '')) ||
+                                     html.includes(companyDomain);
+                  
+                  if (isValidPage && !text.includes('no results found') && !text.includes('page not found')) {
+                    // Extract rating (multiple patterns)
+                    let rating = null;
+                    const ratingPatterns = [
+                      /(\d+\.?\d*)\s*(?:out of|\/)\s*5/i,
+                      /★\s*(\d+\.?\d*)/i,
+                      /rating[:\s]+(\d+\.?\d*)/i,
+                      /score[:\s]+(\d+\.?\d*)/i,
+                      /"ratingValue":\s*"?(\d+\.?\d*)"?/i,
+                    ];
+                    for (const pattern of ratingPatterns) {
+                      const match = html.match(pattern);
+                      if (match) {
+                        rating = match[1];
+                        break;
+                      }
+                    }
+                    
+                    // Extract review count (multiple patterns)
+                    let reviewCount = null;
+                    const reviewPatterns = [
+                      /(\d+[\d,]*)\s*(?:reviews?|ratings?)/i,
+                      /"reviewCount":\s*"?(\d+[\d,]*)"?/i,
+                      /based on\s+(\d+[\d,]*)\s+reviews/i,
+                    ];
+                    for (const pattern of reviewPatterns) {
+                      const match = html.match(pattern);
+                      if (match) {
+                        reviewCount = match[1].replace(/,/g, '');
+                        break;
+                      }
+                    }
+                    
+                    // Look for awards (especially ProductHunt badges)
+                    const awards: string[] = [];
+                    if (platform.name === 'producthunt') {
+                      if (text.includes('product of the day')) awards.push('Product of the Day');
+                      if (text.includes('product of the week')) awards.push('Product of the Week');
+                      if (text.includes('product of the month')) awards.push('Product of the Month');
+                      if (text.includes('golden kitty')) awards.push('Golden Kitty Award');
+                      if (html.match(/#\d+\s+product of the day/i)) {
+                        const rank = html.match(/#(\d+)\s+product of the day/i)?.[1];
+                        if (rank) awards.push(`#${rank} Product of the Day`);
+                      }
+                    }
+                    
+                    // Try to extract upvotes/likes for ProductHunt
+                    let upvotes = null;
+                    if (platform.name === 'producthunt') {
+                      const upvoteMatch = html.match(/(\d+)\s*upvotes?/i);
+                      if (upvoteMatch) upvotes = upvoteMatch[1];
+                    }
+                    
+                    externalReviews.push({
+                      platform: platform.name,
+                      rating: rating,
+                      reviewCount: reviewCount,
+                      upvotes: upvotes,
+                      url: urlToTry,
+                      awards: awards.length > 0 ? awards : undefined,
+                      found: true
+                    });
+                    
+                    platformFound = true;
+                    console.log(`[acquire_context_field] ✅ Found ${platform.name} listing: rating=${rating}, reviews=${reviewCount}`);
                   }
-                  
-                  externalReviews.push({
-                    platform: platform.name,
-                    rating: ratingMatch?.[1] || ratingMatch?.[2] || null,
-                    reviewCount: reviewCountMatch?.[1]?.replace(',', '') || null,
-                    url: urlToTry,
-                    awards: awards.length > 0 ? awards : undefined,
-                    found: true
-                  });
-                  
-                  console.log(`[acquire_context_field] ✅ Found ${platform.name} listing for ${companyName}`);
                 }
+              } catch (e: any) {
+                console.log(`[acquire_context_field] Could not fetch ${platform.name} (${urlToTry}): ${e.message}`);
               }
-            } catch (e: any) {
-              console.log(`[acquire_context_field] Could not fetch ${platform.name}: ${e.message}`);
+            }
+            
+            // If not found, still provide the search URL
+            if (!platformFound) {
+              const searchUrl = platform.name === 'producthunt' 
+                ? `https://www.producthunt.com/search?q=${encodeURIComponent(companyName)}`
+                : platform.name === 'trustpilot'
+                ? `https://www.trustpilot.com/search?query=${encodeURIComponent(companyName)}`
+                : platform.name === 'g2'
+                ? `https://www.g2.com/search?query=${encodeURIComponent(companyName)}`
+                : `https://www.capterra.com/search/?search=${encodeURIComponent(companyName)}`;
+              
+              externalReviews.push({
+                platform: platform.name,
+                found: false,
+                searchUrl: searchUrl,
+                message: `自动抓取失败，请手动访问：${searchUrl}`
+              });
             }
           }
 
           // Merge external reviews with website data
-          socialProofData.externalReviews = externalReviews.filter(r => r.found);
-          socialProofData.platformSearchUrls = platforms.map(p => ({
-            platform: p.name,
-            url: p.searchUrl
-          }));
+          socialProofData.externalReviews = externalReviews;
+          socialProofData.companyName = companyName;
+          socialProofData.companyDomain = companyDomain;
           
           await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(socialProofData));
           extractedData = socialProofData;
@@ -685,6 +919,88 @@ async function getPageData(url: string): Promise<{ success: boolean; html?: stri
     console.log(`[getPageData] Failed to fetch ${url}: ${error.message}`);
     return { success: false, error: error.message };
   }
+}
+
+// ========== Intelligent Page Discovery ==========
+
+/**
+ * 智能页面发现：根据字段类型从sitemap和导航中找到最相关的页面
+ */
+async function discoverRelevantPages(field: string, origin: string, homePageHtml: string): Promise<string[]> {
+  const discovered: string[] = [];
+  
+  // 定义每个字段的关键词模式
+  const fieldKeywords: Record<string, string[]> = {
+    'leadership-team': ['team', 'leadership', 'about', 'management', 'founders', 'people', 'executive', 'who-we-are'],
+    'industries': ['industries', 'verticals', 'sectors', 'solutions', 'customers', 'case-studies', 'use-cases'],
+    'products-services': ['products', 'services', 'pricing', 'features', 'solutions', 'offerings', 'plans'],
+    'faq': ['faq', 'help', 'support', 'questions', 'knowledge', 'docs'],
+    'about-us': ['about', 'company', 'story', 'mission', 'values', 'who-we-are'],
+    'use-cases': ['use-cases', 'solutions', 'examples', 'customers', 'case-studies', 'applications'],
+    'who-we-serve': ['customers', 'industries', 'for-', 'solutions', 'who-we-serve', 'target'],
+    'contact-info': ['contact', 'get-in-touch', 'reach-us', 'reach-out', 'connect', 'office', 'location'],
+    'social-proof': ['testimonials', 'reviews', 'customers', 'case-studies', 'success', 'clients', 'wall-of-love'],
+  };
+  
+  const keywords = fieldKeywords[field] || [];
+  if (keywords.length === 0) return [];
+  
+  // 1. 从sitemap中查找相关页面
+  try {
+    const cached = sitemapCache.get(origin);
+    let sitemapUrls: string[] = [];
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      sitemapUrls = cached.urls;
+    } else {
+      const sitemapResult = await fetchSitemap(origin);
+      if (sitemapResult.found && sitemapResult.urls) {
+        sitemapUrls = sitemapResult.urls;
+        sitemapCache.set(origin, { urls: sitemapUrls, timestamp: Date.now() });
+      }
+    }
+    
+    // 根据关键词过滤sitemap URLs
+    for (const url of sitemapUrls) {
+      try {
+        const pathname = new URL(url).pathname.toLowerCase();
+        // 检查路径是否包含任何关键词
+        if (keywords.some(kw => pathname.includes(kw.toLowerCase()))) {
+          discovered.push(url);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+  } catch (e) {
+    console.log(`[discoverRelevantPages] Sitemap search failed: ${e}`);
+  }
+  
+  // 2. 从导航链接中查找
+  const navLinks = extractNavigationLinks(homePageHtml, origin);
+  for (const link of navLinks) {
+    try {
+      const pathname = new URL(link).pathname.toLowerCase();
+      if (keywords.some(kw => pathname.includes(kw.toLowerCase()))) {
+        discovered.push(link);
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  
+  // 3. 去重并限制数量
+  const unique = [...new Set(discovered)];
+  console.log(`[discoverRelevantPages] Found ${unique.length} relevant pages for ${field}`);
+  
+  // 按关键词相关性排序（包含更多关键词的页面排在前面）
+  unique.sort((a, b) => {
+    const aScore = keywords.filter(kw => a.toLowerCase().includes(kw.toLowerCase())).length;
+    const bScore = keywords.filter(kw => b.toLowerCase().includes(kw.toLowerCase())).length;
+    return bScore - aScore;
+  });
+  
+  return unique.slice(0, 5); // 最多返回5个相关页面
 }
 
 // ========== Navigation Discovery ==========
@@ -1073,14 +1389,68 @@ function extractContactInfo(html: string): any {
   };
 }
 
-function extractHeader(html: string, origin: string): any {
+async function extractHeader(html: string, origin: string, useAI: boolean = true): Promise<any> {
   const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/i);
   const navMatch = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/i);
   
   const headerHtml = headerMatch?.[1] || navMatch?.[1] || '';
   
-  // Extract navigation items
-  const navItems: Array<{ label: string; href: string; children?: any[] }> = [];
+  if (!headerHtml) {
+    return {
+      navigation: [],
+      hasSearch: false,
+      hasCTA: false,
+      error: 'No header/nav found',
+    };
+  }
+
+  // 如果启用AI且HTML较长，使用AI分析
+  if (useAI && headerHtml.length > 100) {
+    try {
+      const aiPrompt = `分析以下网站 header HTML，提取导航结构。返回纯 JSON：
+{
+  "navigation": [{"text": "链接文字", "url": "链接地址"}],
+  "hasSearch": true/false,
+  "hasCTA": true/false,
+  "ctaText": "CTA按钮文字（如果有）"
+}
+
+Header HTML:
+${headerHtml.substring(0, 4000)}`;
+
+      const { text } = await generateText({
+        model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+        messages: [
+          {
+            role: 'system',
+            content: 'Extract navigation structure from HTML. Return valid JSON only.',
+          },
+          {
+            role: 'user',
+            content: aiPrompt,
+          },
+        ],
+        temperature: 0,
+      });
+
+      let cleanedText = text.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/```\n?/g, '');
+      }
+
+      const aiResult = JSON.parse(cleanedText);
+      console.log('[extractHeader] ✅ AI 分析成功');
+      return aiResult;
+    } catch (err) {
+      console.error('[extractHeader] AI 分析失败，使用正则 fallback:', err);
+      // Fall through to regex extraction
+    }
+  }
+
+  // Regex fallback
+  const navItems: Array<{ text: string; url: string }> = [];
   const linkPattern = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   
   let match;
@@ -1089,8 +1459,8 @@ function extractHeader(html: string, origin: string): any {
     const label = cleanText(match[2]);
     if (label && !href.startsWith('#') && !href.includes('javascript:')) {
       navItems.push({
-        label,
-        href: href.startsWith('/') ? origin + href : href,
+        text: label,
+        url: href.startsWith('/') ? origin + href : href,
       });
     }
   }
@@ -1098,8 +1468,8 @@ function extractHeader(html: string, origin: string): any {
   // Dedupe by label
   const seen = new Set();
   const uniqueItems = navItems.filter(item => {
-    if (seen.has(item.label.toLowerCase())) return false;
-    seen.add(item.label.toLowerCase());
+    if (seen.has(item.text.toLowerCase())) return false;
+    seen.add(item.text.toLowerCase());
     return true;
   });
 
@@ -1110,12 +1480,72 @@ function extractHeader(html: string, origin: string): any {
   };
 }
 
-function extractFooter(html: string, origin: string): any {
+async function extractFooter(html: string, origin: string, useAI: boolean = true): Promise<any> {
   const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/i);
   const footerHtml = footerMatch?.[1] || '';
 
-  // Extract footer links grouped by section
-  const sections: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [];
+  if (!footerHtml) {
+    return {
+      columns: [],
+      copyright: '',
+      hasSocialLinks: false,
+      hasNewsletter: false,
+      error: 'No footer found',
+    };
+  }
+
+  // 如果启用AI且HTML较长，使用AI分析
+  if (useAI && footerHtml.length > 100) {
+    try {
+      const aiPrompt = `分析以下网站 footer HTML，提取链接结构。返回纯 JSON：
+{
+  "columns": [
+    {
+      "title": "栏目标题",
+      "links": [{"text": "链接文字", "url": "链接地址"}]
+    }
+  ],
+  "socialLinks": [{"platform": "平台名", "url": "链接地址"}],
+  "copyright": "版权信息",
+  "address": "地址信息（如果有）"
+}
+
+Footer HTML:
+${footerHtml.substring(0, 4000)}`;
+
+      const { text } = await generateText({
+        model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+        messages: [
+          {
+            role: 'system',
+            content: 'Extract footer structure from HTML. Return valid JSON only.',
+          },
+          {
+            role: 'user',
+            content: aiPrompt,
+          },
+        ],
+        temperature: 0,
+      });
+
+      let cleanedText = text.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/```\n?/g, '');
+      }
+
+      const aiResult = JSON.parse(cleanedText);
+      console.log('[extractFooter] ✅ AI 分析成功');
+      return aiResult;
+    } catch (err) {
+      console.error('[extractFooter] AI 分析失败，使用正则 fallback:', err);
+      // Fall through to regex extraction
+    }
+  }
+
+  // Regex fallback
+  const sections: Array<{ title: string; links: Array<{ text: string; url: string }> }> = [];
   
   // Find column/section patterns
   const columnPatterns = [
@@ -1130,7 +1560,7 @@ function extractFooter(html: string, origin: string): any {
       const titleMatch = columnHtml.match(/<(?:h[3-6]|strong|b)[^>]*>([\s\S]*?)<\/(?:h[3-6]|strong|b)>/i);
       const title = titleMatch ? cleanText(titleMatch[1]) : '';
       
-      const links: Array<{ label: string; href: string }> = [];
+      const links: Array<{ text: string; url: string }> = [];
       const linkPattern = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
       
       let linkMatch;
@@ -1139,8 +1569,8 @@ function extractFooter(html: string, origin: string): any {
         const label = cleanText(linkMatch[2]);
         if (label && label.length < 50) {
           links.push({
-            label,
-            href: href.startsWith('/') ? origin + href : href,
+            text: label,
+            url: href.startsWith('/') ? origin + href : href,
           });
         }
       }
@@ -1156,7 +1586,7 @@ function extractFooter(html: string, origin: string): any {
   const copyright = copyrightMatch ? cleanText(copyrightMatch[0]) : '';
 
   return {
-    sections: sections.slice(0, 6),
+    columns: sections.slice(0, 6),
     copyright,
     hasSocialLinks: /twitter|linkedin|facebook|instagram|youtube/i.test(footerHtml),
     hasNewsletter: /newsletter|subscribe|email/i.test(footerHtml),
@@ -1245,11 +1675,24 @@ function classifyPages(urls: string[], origin: string): any {
 
 // ========== AI Analysis ==========
 
-async function analyzeWithAI(prompt: string, pageText: string, url: string): Promise<any> {
+interface AnalyzeOptions {
+  maxTokens?: number;
+  maxContentChars?: number;
+}
+
+async function analyzeWithAI(
+  prompt: string, 
+  pageText: string, 
+  url: string,
+  options: AnalyzeOptions = {}
+): Promise<any> {
+  const maxContentChars = options.maxContentChars || 8000;
+  const maxTokens = options.maxTokens || 1500;
+  
   const fullPrompt = `Website: ${url}
 
-Content (truncated to 8000 chars):
-${pageText.substring(0, 8000)}
+Content (truncated to ${maxContentChars} chars):
+${pageText.substring(0, maxContentChars)}
 
 ${prompt}
 
@@ -1259,7 +1702,7 @@ IMPORTANT: Return ONLY valid JSON. Do not include any explanation, notes, or tex
     const { text } = await generateText({
       model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
       prompt: fullPrompt,
-      maxTokens: 1500,
+      maxTokens: maxTokens,
     });
 
     // Try to extract JSON from the response

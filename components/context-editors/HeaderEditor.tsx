@@ -39,6 +39,27 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
     },
   });
 
+  // Update config when initialConfig changes
+  useEffect(() => {
+    if (initialConfig) {
+      setHeaderConfig({
+        siteName: initialConfig.siteName || 'My Site',
+        logo: initialConfig.logo || logoUrl || '',
+        navigation: initialConfig.navigation || [
+          { label: 'Home', url: '/' },
+          { label: 'About', url: '/about' },
+          { label: 'Services', url: '/services' },
+          { label: 'Contact', url: '/contact' },
+        ],
+        ctaButton: initialConfig.ctaButton || {
+          label: 'Get Started',
+          url: '/get-started',
+          color: BRAND_GRADIENT,
+        },
+      });
+    }
+  }, [initialConfig, logoUrl]);
+
   useEffect(() => {
     if (logoUrl && !headerConfig.logo) {
       const updatedConfig = { ...headerConfig, logo: logoUrl };
@@ -82,7 +103,7 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
   </style>
 </head>
 <body>
-  <div style="transform: scale(0.6); transform-origin: top left; width: 166.67%; min-height: 100vh;">
+  <div style="transform: scale(0.75); transform-origin: top left; width: 133.33%; min-height: 100vh;">
     ${processedContent}
   </div>
 </body>

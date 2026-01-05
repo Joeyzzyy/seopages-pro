@@ -41,13 +41,13 @@ export function generateHeaderHTML(config: HeaderConfig): string {
   const buttonStyle = `background: ${buttonColor}; color: white;`;
   
   return `<header class="bg-white text-gray-900 border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-  <div class="container mx-auto px-4 py-4">
-    <div class="flex items-center justify-between">
+  <div class="container mx-auto px-6 py-4 max-w-7xl">
+    <div class="flex items-center justify-between gap-8">
       <!-- Logo & Site Name -->
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-3 flex-shrink-0">
         ${config.logo ? `
         <a href="/" class="flex items-center">
-          <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.siteName)}" class="h-10 w-auto" />
+          <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.siteName)}" class="h-8 w-auto" />
         </a>
         ` : `
         <a href="/" class="text-2xl font-bold hover:text-blue-600 transition-colors">
@@ -57,9 +57,9 @@ export function generateHeaderHTML(config: HeaderConfig): string {
       </div>
       
       <!-- Navigation -->
-      <nav class="hidden md:flex items-center space-x-8">
+      <nav class="hidden md:flex items-center space-x-8 flex-1 justify-center">
         ${config.navigation.map(link => `
-        <a href="${escapeHtml(link.url)}" class="font-medium hover:text-blue-600 transition-colors">
+        <a href="${escapeHtml(link.url)}" class="text-sm font-medium hover:text-blue-600 transition-colors whitespace-nowrap">
           ${escapeHtml(link.label)}
         </a>
         `).join('')}
@@ -67,8 +67,8 @@ export function generateHeaderHTML(config: HeaderConfig): string {
       
       <!-- CTA Button -->
       ${config.ctaButton ? `
-      <div class="hidden md:block">
-        <a href="${escapeHtml(config.ctaButton.url)}" class="inline-block px-6 py-2 font-medium rounded-lg hover:opacity-90 transition-all" style="${buttonStyle}">
+      <div class="hidden md:block flex-shrink-0">
+        <a href="${escapeHtml(config.ctaButton.url)}" class="inline-block px-6 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-all whitespace-nowrap" style="${buttonStyle}">
           ${escapeHtml(config.ctaButton.label)}
         </a>
       </div>
