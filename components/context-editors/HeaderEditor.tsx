@@ -20,7 +20,7 @@ interface HeaderEditorProps {
   onConfigChange: (config: HeaderConfig) => void;
 }
 
-const BRAND_GRADIENT = 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)';
+const DEFAULT_CTA_COLOR = '#111827';
 
 export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }: HeaderEditorProps) {
   const [headerConfig, setHeaderConfig] = useState<HeaderConfig>({
@@ -35,7 +35,7 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
     ctaButton: initialConfig?.ctaButton || {
       label: 'Get Started',
       url: '/get-started',
-      color: BRAND_GRADIENT,
+      color: DEFAULT_CTA_COLOR,
     },
   });
 
@@ -54,7 +54,7 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
         ctaButton: initialConfig.ctaButton || {
           label: 'Get Started',
           url: '/get-started',
-          color: BRAND_GRADIENT,
+          color: DEFAULT_CTA_COLOR,
         },
       });
     }
@@ -111,20 +111,20 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3 p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E5E5]">
-        <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-3">
+      <div className="space-y-2 p-3 bg-[#F9FAFB] rounded-lg border border-[#E5E5E5]">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">Site Name</label>
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">Site Name</label>
             <input
               type="text"
               value={headerConfig.siteName}
               onChange={(e) => setHeaderConfig({ ...headerConfig, siteName: e.target.value })}
-              className="w-full px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-sm bg-white"
+              className="w-full px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-xs bg-white"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">CTA Label</label>
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">CTA Label</label>
             <input
               type="text"
               value={headerConfig.ctaButton.label}
@@ -133,14 +133,14 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                 ctaButton: { ...headerConfig.ctaButton, label: e.target.value }
               })}
               placeholder="Button Label"
-              className="w-full px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-sm bg-white"
+              className="w-full px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-xs bg-white"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">CTA URL</label>
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">CTA URL</label>
             <input
               type="text"
               value={headerConfig.ctaButton.url}
@@ -149,12 +149,12 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                 ctaButton: { ...headerConfig.ctaButton, url: e.target.value }
               })}
               placeholder="Button URL"
-              className="w-full px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-sm bg-white"
+              className="w-full px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-xs bg-white"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">CTA Color</label>
-            <div className="flex gap-2 items-center">
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">CTA Color</label>
+            <div className="flex gap-1.5 items-center">
               <input
                 type="text"
                 value={headerConfig.ctaButton.color}
@@ -162,10 +162,10 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                   ...headerConfig,
                   ctaButton: { ...headerConfig.ctaButton, color: e.target.value }
                 })}
-                className="flex-1 px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-[10px] font-mono bg-white"
+                className="flex-1 px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-[10px] font-mono bg-white"
               />
               <div 
-                className="w-8 h-8 rounded-lg border border-[#E5E5E5] flex-shrink-0"
+                className="w-6 h-6 rounded border border-[#E5E5E5] flex-shrink-0"
                 style={{ background: headerConfig.ctaButton.color }}
               />
             </div>
@@ -173,10 +173,10 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
         </div>
 
         <div className="pt-2 border-t border-[#E5E5E5]">
-          <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">Navigation Links</label>
-          <div className="space-y-1.5">
+          <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-1.5">Navigation Links</label>
+          <div className="space-y-1">
             {headerConfig.navigation.map((link, index) => (
-              <div key={index} className="flex gap-2 items-center bg-white p-1.5 rounded-lg border border-[#F0F0F0]">
+              <div key={index} className="flex gap-1.5 items-center bg-white p-1 rounded border border-[#F0F0F0]">
                 <input
                   type="text"
                   value={link.label}
@@ -186,7 +186,7 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                     setHeaderConfig({ ...headerConfig, navigation: newNav });
                   }}
                   placeholder="Label"
-                  className="w-1/3 px-2 py-1 border border-transparent hover:border-[#E5E5E5] rounded focus:border-[#9AD6FF] focus:outline-none text-xs"
+                  className="w-1/3 px-1.5 py-0.5 border border-transparent hover:border-[#E5E5E5] rounded focus:border-[#9AD6FF] focus:outline-none text-[10px]"
                 />
                 <input
                   type="text"
@@ -197,7 +197,7 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                     setHeaderConfig({ ...headerConfig, navigation: newNav });
                   }}
                   placeholder="URL"
-                  className="flex-1 px-2 py-1 border border-transparent hover:border-[#E5E5E5] rounded focus:border-[#9AD6FF] focus:outline-none text-xs font-mono"
+                  className="flex-1 px-1.5 py-0.5 border border-transparent hover:border-[#E5E5E5] rounded focus:border-[#9AD6FF] focus:outline-none text-[10px] font-mono"
                 />
                 <button
                   type="button"
@@ -205,9 +205,9 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                     const newNav = headerConfig.navigation.filter((_, i) => i !== index);
                     setHeaderConfig({ ...headerConfig, navigation: newNav });
                   }}
-                  className="p-1.5 text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded transition-colors"
+                  className="p-1 text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded transition-colors"
                 >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
@@ -221,10 +221,10 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
                   navigation: [...headerConfig.navigation, { label: 'New Link', url: '#' }]
                 });
               }}
-              className="w-full py-1.5 text-[10px] font-bold text-[#6B7280] border border-dashed border-[#E5E5E5] rounded-lg hover:bg-white transition-colors uppercase tracking-wider"
+              className="w-full py-1 text-[10px] font-medium text-[#6B7280] border border-dashed border-[#E5E5E5] rounded hover:bg-white transition-colors"
             >
-              <span className="inline-flex items-center gap-1">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <span className="inline-flex items-center gap-0.5">
+                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
                 Add Link
@@ -235,23 +235,17 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[#374151] mb-2">
-          Preview
-        </label>
-        <div className="border border-[#E5E5E5] rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-          <div className="flex items-center justify-center py-4">
-            <iframe 
-              srcDoc={generatePreviewHTML()}
-              className="w-full border-none bg-white shadow-sm h-[100px]"
-              title="Header preview"
-              sandbox="allow-same-origin allow-scripts"
-              style={{ display: 'block' }}
-            />
-          </div>
+        <label className="block text-xs font-medium text-[#374151] mb-1.5">Preview</label>
+        <div className="border border-[#E5E5E5] rounded overflow-hidden bg-white">
+          <iframe 
+            srcDoc={generatePreviewHTML()}
+            className="w-full border-none bg-white h-[80px]"
+            title="Header preview"
+            sandbox="allow-same-origin allow-scripts"
+            style={{ display: 'block' }}
+          />
         </div>
-        <p className="text-xs text-[#9CA3AF] mt-2">
-          Preview is scaled to fit. Local images are replaced with your logo.
-        </p>
+        <p className="text-[10px] text-[#9CA3AF] mt-1">Preview scaled. Local images replaced with your logo.</p>
       </div>
     </div>
   );

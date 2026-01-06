@@ -27,6 +27,7 @@ import { geoAuditorSkill } from './skill-optimize/geo-auditor.skill';
 import { techCheckerSkill } from './skill-optimize/tech-checker.skill';
 import { linkOptimizerSkill } from './skill-optimize/link-optimizer.skill';
 import { siteContextSkill } from './skill-optimize/site-context.skill';
+import { offsiteContextSkill } from './skill-optimize/offsite-context.skill';
 import { metaTagsSkill } from './skill-optimize/meta-tags.skill';
 import { schemaGeneratorSkill } from './skill-optimize/schema-generator.skill';
 
@@ -130,6 +131,7 @@ skillRegistry.register(techCheckerSkill);
 skillRegistry.register(seoAuditorSkill);
 skillRegistry.register(geoAuditorSkill);
 skillRegistry.register(siteContextSkill);
+skillRegistry.register(offsiteContextSkill);
 skillRegistry.register(linkOptimizerSkill);
 skillRegistry.register(performanceSkill);
 skillRegistry.register(rankTrackerSkill);

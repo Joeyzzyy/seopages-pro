@@ -361,9 +361,46 @@ export default function MessageList({
             }`}
           >
             {message.role === 'user' ? (
-              <div className="whitespace-pre-wrap break-words leading-relaxed">
-                {message.content}
-              </div>
+              (() => {
+                // Extract knowledge file references from message content
+                const fileRefPattern = /\[Referenced Knowledge File: "([^"]+)" \(([^)]+)\)(?: - Storage: ([^\]]+))?\]/g;
+                let cleanContent = message.content || '';
+                const knowledgeRefs: { name: string; type: string }[] = [];
+                
+                let match;
+                while ((match = fileRefPattern.exec(message.content || '')) !== null) {
+                  knowledgeRefs.push({ name: match[1], type: match[2] });
+                }
+                
+                // Remove file references from display content
+                cleanContent = cleanContent.replace(fileRefPattern, '').replace(/^\n+/, '').trim();
+                
+                return (
+                  <div>
+                    {/* Knowledge file references */}
+                    {knowledgeRefs.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {knowledgeRefs.map((ref, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#EEF2FF] border border-[#C7D2FE] rounded text-[10px] text-[#4338CA]"
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                            <span className="font-medium">@{ref.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Message content */}
+                    <div className="whitespace-pre-wrap break-words leading-relaxed">
+                      {cleanContent}
+                    </div>
+                  </div>
+                );
+              })()
             ) : (message.content?.startsWith('Error:') || message.content?.startsWith('❌ Error:')) ? (
               <div className="flex items-center gap-3">
                 <div className="text-rose-600 leading-relaxed">

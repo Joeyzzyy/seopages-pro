@@ -490,7 +490,7 @@ Return ONLY valid JSON, no explanation.`;
           break;
 
         case 'footer':
-          extractedData = await extractFooter(pageData.html, origin, true); // 使用AI增强
+          extractedData = await extractFooter(pageData.html, origin); 
           await saveToDatabase(userId, projectId, config.dbType, JSON.stringify(extractedData));
           break;
 
@@ -572,58 +572,152 @@ Return ONLY valid JSON, no explanation.`;
           
           // 合并所有页面的文本
           const combinedFaqText = faqPageTexts.join('\n\n--- NEXT PAGE ---\n\n').substring(0, 50000);
-          const faqBestPageData = { html: pageData.html, text: combinedFaqText };
           console.log(`[acquire_context_field] Combined FAQ text length: ${combinedFaqText.length} chars from ${faqPageTexts.length} pages`);
           
-          // FAQ 需要更多 tokens 和内容来提取完整列表
-          extractedData = await analyzeWithAI(
-            config.aiPrompt!, 
-            faqBestPageData.text, 
-            origin,
-            {
-              maxTokens: 6000,        // FAQ 可能很多，需要更多 tokens
-              maxContentChars: 40000  // 允许分析更长的页面内容
+          // === 两步提取法 ===
+          try {
+            console.log('[acquire_context_field] FAQ Step 1/2: 自由提取所有 Q&A 对...');
+            
+            // STEP 1: 自由提取原始 Q&A 内容
+            const faqStep1Prompt = `分析以下网页内容，提取**所有**问答对（Q&A）。
+
+不要限制格式，记录你找到的所有问题和答案，包括：
+- 标准 FAQ 区块
+- 帮助中心问答
+- 产品说明中的 Q&A
+- 任何"问题-答案"格式的内容
+
+返回纯 JSON：
+{
+  "qaItems": [
+    {
+      "q": "问题文字（任何格式）",
+      "a": "答案文字（任何格式）",
+      "category": "分类（如果有）",
+      "context": "额外的上下文信息（如果有）"
+    }
+  ],
+  "faqSections": [
+    {
+      "sectionTitle": "FAQ 区块标题（如果有）",
+      "items": [{"q": "问题", "a": "答案"}]
+    }
+  ],
+  "totalFound": 数字
+}
+
+要求：
+1. 提取所有找到的 Q&A，不要遗漏
+2. 问题可能以各种形式出现（How、What、Can、Why 等）
+3. 答案可能很长，完整保留
+4. 如果没找到任何 Q&A，返回空数组但保留结构
+5. 只返回 JSON，不要解释
+
+网页内容：
+${combinedFaqText.substring(0, 40000)}`;
+
+            const faqStep1Response = await generateText({
+              model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are an expert at extracting Q&A content from web pages. Find all question-answer pairs regardless of format. Return valid JSON only.',
+                },
+                {
+                  role: 'user',
+                  content: faqStep1Prompt,
+                },
+              ],
+              temperature: 0,
+              maxTokens: 6000,
+            });
+
+            let rawFaqData = faqStep1Response.text.trim();
+            if (rawFaqData.startsWith('```json')) {
+              rawFaqData = rawFaqData.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+            } else if (rawFaqData.startsWith('```')) {
+              rawFaqData = rawFaqData.replace(/```\n?/g, '');
             }
-          );
-          
-          // 验证和修复 FAQ 数据
-          console.log('[acquire_context_field] FAQ AI response type:', typeof extractedData);
-          console.log('[acquire_context_field] FAQ AI response preview:', JSON.stringify(extractedData).substring(0, 200));
-          
-          if (extractedData) {
-            // 确保返回的是数组
+
+            const extractedRawFaq = JSON.parse(rawFaqData);
+            console.log(`[acquire_context_field] ✅ FAQ Step 1 完成: 提取到 ${extractedRawFaq.totalFound || 0} 个原始 Q&A`);
+            console.log(`[acquire_context_field] FAQ 原始数据预览:`, JSON.stringify(extractedRawFaq).substring(0, 300));
+
+            // STEP 2: 转换成标准格式
+            console.log('[acquire_context_field] FAQ Step 2/2: 转换成标准格式...');
+            
+            const faqStep2Prompt = `将以下原始 FAQ 数据转换成标准格式。
+
+原始数据：
+${JSON.stringify(extractedRawFaq, null, 2)}
+
+转换成标准格式的纯 JSON 数组：
+[
+  {
+    "question": "完整的问题文字（保留问号）",
+    "answer": "完整的答案文字（如果太长，总结为 200-300 字）"
+  }
+]
+
+转换规则：
+1. 合并 qaItems 和 faqSections 中的所有问答对
+2. 统一字段名：q/question → question, a/answer → answer
+3. 确保每个问题以问号结尾
+4. 如果答案超过 500 字，精简为 200-300 字的核心内容
+5. 去重：如果有重复的问题，保留最详细的答案
+6. 按逻辑顺序排列（通用问题在前，具体问题在后）
+7. 如果没有任何 Q&A，返回空数组 []
+8. 只返回 JSON 数组，不要解释
+
+开始转换：`;
+
+            const faqStep2Response = await generateText({
+              model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a data transformer. Convert raw FAQ data into clean, standardized format. Return valid JSON array only.',
+                },
+                {
+                  role: 'user',
+                  content: faqStep2Prompt,
+                },
+              ],
+              temperature: 0,
+              maxTokens: 6000,
+            });
+
+            let standardFaqData = faqStep2Response.text.trim();
+            if (standardFaqData.startsWith('```json')) {
+              standardFaqData = standardFaqData.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+            } else if (standardFaqData.startsWith('```')) {
+              standardFaqData = standardFaqData.replace(/```\n?/g, '');
+            }
+
+            extractedData = JSON.parse(standardFaqData);
+            
+            // 验证是数组
             if (!Array.isArray(extractedData)) {
-              if (extractedData.error) {
-                console.log('[acquire_context_field] FAQ extraction error:', extractedData.error);
-                extractedData = [];
-              } else if (typeof extractedData === 'string') {
-                // 尝试解析字符串为 JSON
-                try {
-                  extractedData = JSON.parse(extractedData);
-                  console.log('[acquire_context_field] Successfully parsed FAQ string to array');
-                } catch (e) {
-                  console.log('[acquire_context_field] Failed to parse FAQ string as JSON:', e);
-                  extractedData = [];
-                }
-              } else {
-                console.log('[acquire_context_field] FAQ data is not array, setting to empty');
-                extractedData = [];
-              }
+              console.log('[acquire_context_field] FAQ Step 2 返回的不是数组，设为空数组');
+              extractedData = [];
             }
             
-            // 验证每个 FAQ 项的结构
-            if (Array.isArray(extractedData)) {
-              extractedData = extractedData.filter(item => 
-                item && 
-                typeof item === 'object' && 
-                item.question && 
-                item.answer &&
-                typeof item.question === 'string' &&
-                typeof item.answer === 'string'
-              );
-              console.log(`[acquire_context_field] Validated ${extractedData.length} FAQ items`);
-            }
-          } else {
+            // 验证每个项的结构
+            extractedData = extractedData.filter((item: any) => 
+              item && 
+              typeof item === 'object' && 
+              item.question && 
+              item.answer &&
+              typeof item.question === 'string' &&
+              typeof item.answer === 'string' &&
+              item.question.trim().length > 0 &&
+              item.answer.trim().length > 0
+            );
+            
+            console.log(`[acquire_context_field] ✅ FAQ Step 2 完成: 最终得到 ${extractedData.length} 个标准 FAQ 项`);
+            
+          } catch (err) {
+            console.error('[acquire_context_field] FAQ 两步提取失败:', err);
             extractedData = [];
           }
           
@@ -1594,117 +1688,180 @@ ${headerHtml.substring(0, 4000)}`;
   };
 }
 
-async function extractFooter(html: string, origin: string, useAI: boolean = true): Promise<any> {
+async function extractFooter(html: string, origin: string): Promise<any> {
+  // 1. 尝试寻找 <footer> 标签（首页的 footer 通常在这里）
   const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/i);
-  const footerHtml = footerMatch?.[1] || '';
+  let footerHtml = footerMatch ? footerMatch[0] : '';
 
+  // 2. 如果没找到 <footer> 标签，寻找 class 包含 footer 的 div 作为兜底
   if (!footerHtml) {
-    return {
-      columns: [],
-      copyright: '',
-      hasSocialLinks: false,
-      hasNewsletter: false,
-      error: 'No footer found',
-    };
+    const footerDivMatch = html.match(/<div[^>]*class="[^"]*footer[^"]*"[^>]*>([\s\S]*?)<\/div>(?:\s*<\/body>|\s*<\/html>|$)/i);
+    if (footerDivMatch) {
+      footerHtml = footerDivMatch[0];
+    }
   }
 
-  // 如果启用AI且HTML较长，使用AI分析
-  if (useAI && footerHtml.length > 100) {
-    try {
-      const aiPrompt = `分析以下网站 footer HTML，提取链接结构。返回纯 JSON：
+  // 3. 如果还是没找到，取页面最后 8000 字符（通常 footer 在这里）
+  if (!footerHtml || footerHtml.length < 100) {
+    const bodyEnd = html.toLowerCase().lastIndexOf('</body>');
+    const start = Math.max(0, (bodyEnd > 0 ? bodyEnd : html.length) - 8000);
+    footerHtml = html.substring(start, bodyEnd > 0 ? bodyEnd : html.length);
+  }
+
+  try {
+    console.log(`[extractFooter] Step 1/2: 自由提取原始结构 (${footerHtml.length} chars)...`);
+    
+    // === STEP 1: 自由提取原始结构 ===
+    const step1Prompt = `分析以下网站底部（Footer）区域的 HTML，提取**所有**信息，保留原始结构。
+
+⚠️ 重要提示：Footer 通常包含多个导航列（如 "Products"、"Company"、"Resources" 等），
+每一列下面有多个链接。请**仔细查找**所有这些导航列和链接，不要遗漏！
+
+返回纯 JSON：
 {
-  "columns": [
+  "companyInfo": {
+    "name": "公司名称（如果有）",
+    "tagline": "标语或简介（如果有）",
+    "description": "公司描述（如果有）"
+  },
+  "navigationColumns": [
     {
-      "title": "栏目标题",
-      "links": [{"text": "链接文字", "url": "链接地址"}]
+      "title": "列标题（如 'Products', 'Company', 'Support' 等）",
+      "links": [{"text": "链接文字", "url": "完整链接地址"}]
     }
   ],
-  "socialLinks": [{"platform": "平台名", "url": "链接地址"}],
-  "copyright": "版权信息",
-  "address": "地址信息（如果有）"
+  "statsOrMetrics": [
+    {
+      "label": "统计标签（如 'Happy Users'）",
+      "value": "数值（如 '50,000+'）"
+    }
+  ],
+  "socialMedia": [
+    {"platform": "平台名（如 twitter/facebook/linkedin/github/instagram）", "url": "链接"}
+  ],
+  "newsletter": {
+    "exists": true/false,
+    "heading": "Newsletter 标题",
+    "description": "描述文字",
+    "iframe": "iframe URL（如果有）"
+  },
+  "cta": [
+    {"text": "CTA 按钮文字", "url": "链接地址"}
+  ],
+  "legalLinks": [
+    {"text": "底部法律链接（如 Privacy, Terms）", "url": "链接"}
+  ],
+  "copyright": "版权信息"
 }
 
-Footer HTML:
-${footerHtml.substring(0, 4000)}`;
+要求：
+1. **navigationColumns 是重点**：仔细查找所有导航列和链接，通常在 footer 中部
+2. 相对路径补全 origin: ${origin}
+3. 只返回 JSON，不要解释文字
+4. 如果某个区块不存在，设为 null 或空数组
 
-      const { text } = await generateText({
-        model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
-        messages: [
-          {
-            role: 'system',
-            content: 'Extract footer structure from HTML. Return valid JSON only.',
-          },
-          {
-            role: 'user',
-            content: aiPrompt,
-          },
-        ],
-        temperature: 0,
-      });
+HTML Content:
+${footerHtml.substring(0, 15000)}`;  // 增加到 15000 字符
 
-      let cleanedText = text.trim();
-      if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
-      } else if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.replace(/```\n?/g, '');
-      }
+    const step1Response = await generateText({
+      model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional web content analyzer. Extract all information from the footer HTML. Return valid JSON only.',
+        },
+        {
+          role: 'user',
+          content: step1Prompt,
+        },
+      ],
+      temperature: 0,
+    });
 
-      const aiResult = JSON.parse(cleanedText);
-      console.log('[extractFooter] ✅ AI 分析成功');
-      return aiResult;
-    } catch (err) {
-      console.error('[extractFooter] AI 分析失败，使用正则 fallback:', err);
-      // Fall through to regex extraction
+    let rawData = step1Response.text.trim();
+    if (rawData.startsWith('```json')) {
+      rawData = rawData.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+    } else if (rawData.startsWith('```')) {
+      rawData = rawData.replace(/```\n?/g, '');
     }
-  }
 
-  // Regex fallback
-  const sections: Array<{ title: string; links: Array<{ text: string; url: string }> }> = [];
-  
-  // Find column/section patterns
-  const columnPatterns = [
-    /<div[^>]*class="[^"]*(?:col|column|footer-section|footer-menu)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-    /<ul[^>]*class="[^"]*footer[^"]*"[^>]*>([\s\S]*?)<\/ul>/gi,
-  ];
+    const extractedRaw = JSON.parse(rawData);
+    console.log('[extractFooter] ✅ Step 1 完成: 原始数据提取成功');
 
-  for (const pattern of columnPatterns) {
-    let colMatch;
-    while ((colMatch = pattern.exec(footerHtml)) !== null) {
-      const columnHtml = colMatch[1];
-      const titleMatch = columnHtml.match(/<(?:h[3-6]|strong|b)[^>]*>([\s\S]*?)<\/(?:h[3-6]|strong|b)>/i);
-      const title = titleMatch ? cleanText(titleMatch[1]) : '';
-      
-      const links: Array<{ text: string; url: string }> = [];
-      const linkPattern = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-      
-      let linkMatch;
-      while ((linkMatch = linkPattern.exec(columnHtml)) !== null) {
-        const href = linkMatch[1];
-        const label = cleanText(linkMatch[2]);
-        if (label && label.length < 50) {
-          links.push({
-            text: label,
-            url: href.startsWith('/') ? origin + href : href,
-          });
-        }
-      }
+    // === STEP 2: 转换成标准格式 ===
+    console.log('[extractFooter] Step 2/2: 转换成标准格式...');
+    
+    const step2Prompt = `将以下 footer 原始数据转换成标准格式。
 
-      if (links.length > 0) {
-        sections.push({ title, links: links.slice(0, 10) });
-      }
+原始数据：
+${JSON.stringify(extractedRaw, null, 2)}
+
+转换成以下格式的纯 JSON：
+{
+  "companyName": "公司名称",
+  "tagline": "标语或简介",
+  "columns": [
+    {
+      "title": "列标题",
+      "links": [{"label": "链接文字", "url": "链接地址"}]
     }
+  ],
+  "socialMedia": [
+    {"platform": "twitter/facebook/linkedin/github/instagram", "url": "链接地址"}
+  ],
+  "copyright": "版权信息"
+}
+
+转换规则：
+1. **将 navigationColumns 转换成 columns**（这是重点！）
+2. links 字段中的 "text" → "label"
+3. platform 必须是标准名称（twitter/facebook/linkedin/github/instagram）
+4. 如果 companyName 为空，用域名或品牌名
+5. 如果原始数据中有 statsOrMetrics 或 newsletter，忽略它们（这些不适合标准格式）
+6. legalLinks 可以作为单独的一列添加到 columns 末尾（标题为 "Legal" 或 "Company"）
+7. 只返回 JSON，不要解释
+
+开始转换：`;
+
+    const step2Response = await generateText({
+      model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a data transformer. Convert the raw footer data into standard format. Return valid JSON only.',
+        },
+        {
+          role: 'user',
+          content: step2Prompt,
+        },
+      ],
+      temperature: 0,
+    });
+
+    let standardData = step2Response.text.trim();
+    if (standardData.startsWith('```json')) {
+      standardData = standardData.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+    } else if (standardData.startsWith('```')) {
+      standardData = standardData.replace(/```\n?/g, '');
+    }
+
+    const result = JSON.parse(standardData);
+    console.log('[extractFooter] ✅ Step 2 完成: 标准格式转换成功');
+    
+    // 附加原始数据（可选，供调试或高级用户使用）
+    result._raw = extractedRaw;
+    
+    return result;
+  } catch (err) {
+    console.error('[extractFooter] 两步提取失败:', err);
+    return {
+      companyName: '',
+      columns: [],
+      socialMedia: [],
+      copyright: '',
+      error: `Two-step extraction failed: ${err instanceof Error ? err.message : String(err)}`
+    };
   }
-
-  // Copyright
-  const copyrightMatch = footerHtml.match(/(?:©|copyright|&copy;)\s*(\d{4})?[^<]*/i);
-  const copyright = copyrightMatch ? cleanText(copyrightMatch[0]) : '';
-
-  return {
-    columns: sections.slice(0, 6),
-    copyright,
-    hasSocialLinks: /twitter|linkedin|facebook|instagram|youtube/i.test(footerHtml),
-    hasNewsletter: /newsletter|subscribe|email/i.test(footerHtml),
-  };
 }
 
 async function fetchSitemap(origin: string): Promise<any> {

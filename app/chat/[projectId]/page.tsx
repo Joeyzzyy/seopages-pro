@@ -32,11 +32,12 @@ import {
   getSEOProjectById
 } from '@/lib/supabase';
 import type { Conversation, FileRecord, ContentItem, ContentProject, SiteContext, SEOProject } from '@/lib/supabase';
+import type { OffsiteContext } from '@/components/context-modal/types';
 import { User } from '@supabase/supabase-js';
 import AuthButton from '@/components/AuthButton';
 import ConversationSidebar from '@/components/ConversationSidebar';
 import MessageList from '@/components/MessageList';
-import ChatInput from '@/components/ChatInput';
+import ChatInput, { KnowledgeFileRef } from '@/components/ChatInput';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import ContentDrawer from '@/components/ContentDrawer';
@@ -176,6 +177,7 @@ export default function ProjectChatPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [contentProjects, setContentProjects] = useState<ContentProject[]>([]);
   const [siteContexts, setSiteContexts] = useState<SiteContext[]>([]);
+  const [offsiteContext, setOffsiteContext] = useState<OffsiteContext | null>(null);
   const [tokenStats, setTokenStats] = useState({ inputTokens: 0, outputTokens: 0 });
   const [apiStats, setApiStats] = useState({ tavilyCalls: 0, semrushCalls: 0, serperCalls: 0 });
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
@@ -194,10 +196,13 @@ export default function ProjectChatPage() {
   const [isDomainsOpen, setIsDomainsOpen] = useState(false);
   const [isGSCOpen, setIsGSCOpen] = useState(false);
   const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+  const [contextModalInitialTab, setContextModalInitialTab] = useState<'onsite' | 'offsite' | 'knowledge'>('onsite');
   const [isConversationsListOpen, setIsConversationsListOpen] = useState(false);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [editingChatTitle, setEditingChatTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFileRef[]>([]);
+  const [mentionedFiles, setMentionedFiles] = useState<KnowledgeFileRef[]>([]);
   const allChatsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Chat hook
@@ -346,8 +351,12 @@ export default function ProjectChatPage() {
       const [convos] = await Promise.all([
         loadConversations(userId, projectId),
         loadContentItems(userId),
-        loadContentProjects(userId)
+        loadContentProjects(userId),
+        loadKnowledgeFiles()
       ]);
+
+      // Load offsite context
+      await loadOffsiteContext();
 
       // Check if context is empty and auto-initiate via skill
       // Check for 'logo' type which is our main brand context indicator
@@ -485,6 +494,62 @@ export default function ProjectChatPage() {
     }
   };
 
+  const loadOffsiteContext = async () => {
+    if (!projectId) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      const response = await fetch(`/api/offsite-contexts?projectId=${projectId}`, { headers });
+      if (response.ok) {
+        const result = await response.json();
+        setOffsiteContext(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load offsite context:', error);
+    }
+  };
+
+  const loadKnowledgeFiles = async () => {
+    if (!projectId) {
+      setKnowledgeFiles([]);
+      return;
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      
+      const response = await fetch(`/api/knowledge?projectId=${projectId}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setKnowledgeFiles(data.files.map((f: any) => ({
+          id: f.id,
+          file_name: f.file_name,
+          file_type: f.file_type,
+          storage_path: f.storage_path,
+          url: f.url
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to load knowledge files:', error);
+    }
+  };
+
+  const handleMentionFile = (file: KnowledgeFileRef) => {
+    if (!mentionedFiles.find(f => f.id === file.id)) {
+      setMentionedFiles(prev => [...prev, file]);
+    }
+  };
+
+  const handleRemoveMentionedFile = (fileId: string) => {
+    setMentionedFiles(prev => prev.filter(f => f.id !== fileId));
+  };
+
   const loadTokenStats = async (conversationId: string) => {
     try {
       const [stats, apiCalls] = await Promise.all([
@@ -613,8 +678,20 @@ export default function ProjectChatPage() {
       updateCurrentConversation(conversationToUse);
     }
     
-    const messageContent = input;
+    // Build message content with file references
+    let messageContent = input;
+    const currentMentionedFiles = [...mentionedFiles];
+    
+    // Add file reference info at the start of message for agent
+    if (currentMentionedFiles.length > 0) {
+      const fileRefs = currentMentionedFiles.map(f => 
+        `[Referenced Knowledge File: "${f.file_name}" (${f.file_type}) - Storage: ${f.storage_path}${f.url ? ` - URL: ${f.url}` : ''}]`
+      ).join('\n');
+      messageContent = `${fileRefs}\n\n${messageContent}`;
+    }
+    
     setInput('');
+    setMentionedFiles([]); // Clear mentioned files after sending
     
     saveMessage(conversationToUse.id, 'user', messageContent, Math.ceil(messageContent.length / 4), 0)
       .then(() => loadTokenStats(conversationToUse!.id))
@@ -625,6 +702,7 @@ export default function ProjectChatPage() {
         userId: user.id,
         conversationId: conversationToUse.id,
         projectId: projectId,
+        mentionedKnowledgeFiles: currentMentionedFiles,
       } as any,
     });
   };
@@ -689,9 +767,13 @@ export default function ProjectChatPage() {
               onRefreshContent={() => loadContentItems(user.id)}
               onDeleteProject={() => {}}
               onDeleteContentItem={() => {}}
-              onOpenContextModal={() => setIsContextModalOpen(true)}
+              onOpenContextModal={(tab) => {
+                setContextModalInitialTab(tab || 'onsite');
+                setIsContextModalOpen(true);
+              }}
               conversationId={currentConversation?.id}
               currentTasks={extractCurrentTasks(messages)}
+              offsiteContext={offsiteContext}
             />
           </div>
         )}
@@ -766,8 +848,11 @@ export default function ProjectChatPage() {
                   skills={skills}
                   referenceImageUrl={referenceImageUrl}
                   conversationId={currentConversation?.id}
+                  projectId={projectId}
                   tokenStats={tokenStats}
                   apiStats={apiStats}
+                  knowledgeFiles={knowledgeFiles}
+                  mentionedFiles={mentionedFiles}
                   onInputChange={handleInputChange}
                   onSubmit={handleCustomSubmit}
                   onStop={stop}
@@ -778,6 +863,8 @@ export default function ProjectChatPage() {
                   onPlaybookClick={(s) => setActivePlaybook(s)}
                   onReferenceImageChange={setReferenceImageUrl}
                   onUploadSuccess={() => loadFiles(currentConversation?.id || null)}
+                  onMentionFile={handleMentionFile}
+                  onRemoveMentionedFile={handleRemoveMentionedFile}
                 />
               </>
             )}
@@ -802,6 +889,8 @@ export default function ProjectChatPage() {
           onClose={() => setIsContextModalOpen(false)}
           siteContexts={siteContexts}
           onSave={handleSaveSiteContext}
+          projectId={projectId}
+          initialTab={contextModalInitialTab}
         />
       )}
 

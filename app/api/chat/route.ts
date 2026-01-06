@@ -227,6 +227,7 @@ export async function POST(req: Request) {
     const activeSkillId = data?.activeSkillId;
     const attachedContentItems = data?.attachedContentItems || [];
     const referenceImageUrl = data?.referenceImageUrl || null;
+    const mentionedKnowledgeFiles = data?.mentionedKnowledgeFiles || [];
     
     // Import database functions
     const { getFileContent, getSEOProjectById } = await import('@/lib/supabase');
@@ -287,6 +288,79 @@ ${fileContents.join('\n\n')}`
       // Add to beginning of limitedMessages array (not the original messages)
       limitedMessages.unshift(fileContextMessage);
       console.log('Injected file context into messages');
+    }
+
+    // Handle mentioned knowledge files - fetch and inject their contents
+    if (mentionedKnowledgeFiles.length > 0) {
+      console.log('Mentioned knowledge files:', mentionedKnowledgeFiles.map((f: any) => f.file_name).join(', '));
+      
+      // Read knowledge file contents
+      const knowledgeContents = await Promise.all(
+        mentionedKnowledgeFiles.map(async (file: any) => {
+          try {
+            // Get file content from Supabase Storage
+            const { data: fileData, error: downloadError } = await serverSupabase.storage
+              .from('knowledge')
+              .download(file.storage_path);
+            
+            if (downloadError || !fileData) {
+              console.error(`Failed to download knowledge file ${file.file_name}:`, downloadError);
+              return `=== Knowledge File: ${file.file_name} ===\n[Error: Could not download file]\n=== End of ${file.file_name} ===`;
+            }
+            
+            // For text-based files, read content directly
+            const textMimeTypes = [
+              'text/plain', 'text/csv', 'text/markdown', 'application/json',
+              'application/xml', 'text/html', 'text/css', 'text/javascript'
+            ];
+            
+            if (textMimeTypes.some(t => file.file_type.includes(t))) {
+              const content = await fileData.text();
+              const truncatedContent = content.length > 50000 
+                ? content.substring(0, 50000) + '\n\n... [Content truncated, original size: ' + content.length + ' chars]'
+                : content;
+              return `=== Knowledge File: ${file.file_name} (${file.file_type}) ===\n${truncatedContent}\n=== End of ${file.file_name} ===`;
+            }
+            
+            // For PDFs, try to extract text
+            if (file.file_type === 'application/pdf') {
+              // Return a placeholder - PDF parsing would require additional library
+              return `=== Knowledge File: ${file.file_name} (PDF) ===\n[This is a PDF file. The AI can reference it by name but cannot read its contents directly. Consider converting to text format for better results.]\nFile URL: ${file.url || 'Not available'}\n=== End of ${file.file_name} ===`;
+            }
+            
+            // For images
+            if (file.file_type.startsWith('image/')) {
+              return `=== Knowledge File: ${file.file_name} (Image) ===\n[This is an image file. The AI can reference it by name.]\nFile URL: ${file.url || 'Not available'}\n=== End of ${file.file_name} ===`;
+            }
+            
+            // For other file types
+            return `=== Knowledge File: ${file.file_name} (${file.file_type}) ===\n[File type not directly readable. Reference available by name.]\nFile URL: ${file.url || 'Not available'}\n=== End of ${file.file_name} ===`;
+          } catch (error) {
+            console.error(`Failed to process knowledge file ${file.file_name}:`, error);
+            return `=== Knowledge File: ${file.file_name} ===\n[Error: Could not process file]\n=== End of ${file.file_name} ===`;
+          }
+        })
+      );
+      
+      // Inject knowledge file contents into system message
+      const knowledgeContextMessage = {
+        role: 'system' as const,
+        content: `IMPORTANT - REFERENCED KNOWLEDGE FILES:
+
+The user has referenced ${mentionedKnowledgeFiles.length} knowledge file${mentionedKnowledgeFiles.length > 1 ? 's' : ''} using @ mentions. These files contain important context that should inform your response.
+
+When you respond:
+1. Acknowledge that you have access to these referenced knowledge files
+2. Use the information from these files to provide more accurate and relevant responses
+3. Reference the files by name when discussing specific information from them
+
+Referenced Knowledge Files:
+${knowledgeContents.join('\n\n')}`
+      };
+      
+      // Add to beginning of limitedMessages array
+      limitedMessages.unshift(knowledgeContextMessage);
+      console.log('Injected knowledge file context into messages');
     }
 
     // Handle attached content items - fetch details to include in system prompt

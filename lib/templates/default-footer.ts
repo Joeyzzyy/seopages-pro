@@ -78,12 +78,12 @@ export function generateFooterHTML(config: FooterConfig): string {
       <!-- Company Info -->
       <div class="md:col-span-1">
         <div class="flex flex-col space-y-3">
-          ${config.logo ? `
-          <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.companyName)}" class="h-10 w-auto" />
+          ${config.logo && config.logo.trim() !== '' ? `
+          <img src="${escapeHtml(config.logo)}" alt="${escapeHtml(config.companyName || 'Company')}" class="h-10 w-auto" />
           ` : `
-          <h3 class="text-xl font-bold" style="color: ${headingColor};">${escapeHtml(config.companyName)}</h3>
+          <h3 class="text-xl font-bold" style="color: ${headingColor};">${escapeHtml(config.companyName || 'Company')}</h3>
           `}
-          ${config.tagline ? `
+          ${config.tagline && config.tagline.trim() !== '' ? `
           <p class="text-xs font-normal opacity-90">
             ${escapeHtml(config.tagline)}
           </p>
@@ -94,8 +94,8 @@ export function generateFooterHTML(config: FooterConfig): string {
         ${config.socialMedia && config.socialMedia.length > 0 ? `
         <div class="flex space-x-6 mt-6">
           ${config.socialMedia.map(social => `
-          <a href="${escapeHtml(social.url)}" target="_blank" rel="noopener noreferrer" class="hover:opacity-75 transition-opacity" aria-label="${social.platform}">
-            ${getSocialIcon(social.platform)}
+          <a href="${escapeHtml(social?.url || '#')}" target="_blank" rel="noopener noreferrer" class="hover:opacity-75 transition-opacity" aria-label="${social?.platform || 'social'}">
+            ${getSocialIcon(social?.platform || '')}
           </a>
           `).join('')}
         </div>
@@ -103,16 +103,16 @@ export function generateFooterHTML(config: FooterConfig): string {
       </div>
       
       <!-- Link Columns -->
-      ${config.columns.map(column => `
+      ${(config.columns || []).map(column => `
       <div>
         <h4 class="text-sm font-semibold uppercase tracking-wider mb-4" style="color: ${headingColor};">
-          ${escapeHtml(column.title)}
+          ${escapeHtml(column?.title || '')}
         </h4>
         <ul class="space-y-4">
-          ${column.links.map(link => `
+          ${(column?.links || []).map(link => `
           <li>
-            <a href="${escapeHtml(link.url)}" class="text-sm hover:opacity-75 transition-opacity">
-              ${escapeHtml(link.label)}
+            <a href="${escapeHtml(link?.url || '#')}" class="text-sm hover:opacity-75 transition-opacity">
+              ${escapeHtml(link?.label || '')}
             </a>
           </li>
           `).join('')}
@@ -124,7 +124,7 @@ export function generateFooterHTML(config: FooterConfig): string {
     <!-- Copyright -->
     <div class="border-t border-gray-800 mt-8 pt-8 text-sm text-center" style="opacity: 0.75;">
       <p>
-        ${config.copyright || `© ${new Date().getFullYear()} ${escapeHtml(config.companyName)}. All rights reserved.`}
+        ${config.copyright && config.copyright.trim() !== '' ? escapeHtml(config.copyright) : `© ${new Date().getFullYear()} ${escapeHtml(config.companyName || 'Company')}. All rights reserved.`}
       </p>
     </div>
   </div>
@@ -145,7 +145,16 @@ function getSocialIcon(platform: string): string {
   return icons[platform] || '';
 }
 
-function escapeHtml(text: string): string {
+function escapeHtml(text: any): string {
+  // 处理 null、undefined 或空值
+  if (text === null || text === undefined || text === '') return '';
+  
+  // 确保转换为字符串
+  const str = String(text);
+  
+  // 如果转换后仍然是空字符串，直接返回
+  if (!str || str.length === 0) return '';
+  
   const map: { [key: string]: string } = {
     '&': '&amp;',
     '<': '&lt;',
@@ -153,6 +162,7 @@ function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#039;'
   };
-  return text.replace(/[&<>"']/g, (m) => map[m]);
+  
+  return str.replace(/[&<>"']/g, (m) => map[m]);
 }
 

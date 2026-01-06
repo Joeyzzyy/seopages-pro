@@ -25,7 +25,8 @@ interface FooterEditorProps {
   onConfigChange: (config: FooterConfig) => void;
 }
 
-const BRAND_GRADIENT = 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)';
+const DEFAULT_BG_COLOR = '#FFFFFF';
+const DEFAULT_TEXT_COLOR = '#374151';
 
 export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }: FooterEditorProps) {
   const [footerConfig, setFooterConfig] = useState<FooterConfig>({
@@ -62,8 +63,8 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
       { platform: 'twitter', url: 'https://twitter.com/example' },
       { platform: 'linkedin', url: 'https://linkedin.com/company/example' },
     ],
-    backgroundColor: initialConfig?.backgroundColor || BRAND_GRADIENT,
-    textColor: initialConfig?.textColor || '#E5E7EB',
+    backgroundColor: initialConfig?.backgroundColor || DEFAULT_BG_COLOR,
+    textColor: initialConfig?.textColor || DEFAULT_TEXT_COLOR,
   });
 
   // Update config when initialConfig changes
@@ -103,8 +104,8 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
           { platform: 'twitter', url: 'https://twitter.com/example' },
           { platform: 'linkedin', url: 'https://linkedin.com/company/example' },
         ],
-        backgroundColor: initialConfig.backgroundColor || BRAND_GRADIENT,
-        textColor: initialConfig.textColor || '#E5E7EB',
+        backgroundColor: initialConfig.backgroundColor || DEFAULT_BG_COLOR,
+        textColor: initialConfig.textColor || DEFAULT_TEXT_COLOR,
       });
     }
   }, [initialConfig, logoUrl]);
@@ -160,70 +161,70 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3 p-4 bg-[#F9FAFB] rounded-lg border border-[#E5E5E5]">
-        <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-3">
+      <div className="space-y-2 p-3 bg-[#F9FAFB] rounded-lg border border-[#E5E5E5]">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">Company Name</label>
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">Company Name</label>
             <input
               type="text"
               value={footerConfig.companyName}
               onChange={(e) => setFooterConfig({ ...footerConfig, companyName: e.target.value })}
-              className="w-full px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-sm bg-white"
+              className="w-full px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-xs bg-white"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">Tagline</label>
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">Tagline</label>
             <input
               type="text"
               value={footerConfig.tagline}
               onChange={(e) => setFooterConfig({ ...footerConfig, tagline: e.target.value })}
-              className="w-full px-2.5 py-1.5 border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9AD6FF] text-sm bg-white"
+              className="w-full px-2 py-1 border border-[#E5E5E5] rounded focus:outline-none focus:ring-1 focus:ring-[#9AD6FF] text-xs bg-white"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-2 bg-white rounded-lg border border-[#E5E5E5]">
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">Background</label>
-            <div className="flex gap-2 items-center">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-1.5 bg-white rounded border border-[#E5E5E5]">
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">Background</label>
+            <div className="flex gap-1.5 items-center">
               <input
                 type="text"
                 value={footerConfig.backgroundColor}
                 onChange={(e) => setFooterConfig({ ...footerConfig, backgroundColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 border border-[#E5E5E5] rounded focus:outline-none text-[10px] font-mono"
+                className="flex-1 px-1.5 py-0.5 border border-[#E5E5E5] rounded focus:outline-none text-[10px] font-mono"
               />
               <div 
-                className="w-6 h-6 rounded border border-[#E5E5E5] flex-shrink-0"
+                className="w-5 h-5 rounded border border-[#E5E5E5] flex-shrink-0"
                 style={{ background: footerConfig.backgroundColor }}
               />
             </div>
           </div>
-          <div className="p-2 bg-white rounded-lg border border-[#E5E5E5]">
-            <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">Text Color</label>
-            <div className="flex gap-2 items-center">
+          <div className="p-1.5 bg-white rounded border border-[#E5E5E5]">
+            <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">Text Color</label>
+            <div className="flex gap-1.5 items-center">
               <input
                 type="text"
                 value={footerConfig.textColor}
                 onChange={(e) => setFooterConfig({ ...footerConfig, textColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 border border-[#E5E5E5] rounded focus:outline-none text-[10px] font-mono"
+                className="flex-1 px-1.5 py-0.5 border border-[#E5E5E5] rounded focus:outline-none text-[10px] font-mono"
               />
               <input
                 type="color"
                 value={footerConfig.textColor}
                 onChange={(e) => setFooterConfig({ ...footerConfig, textColor: e.target.value })}
-                className="w-6 h-6 rounded border border-[#E5E5E5] cursor-pointer p-0 overflow-hidden"
+                className="w-5 h-5 rounded border border-[#E5E5E5] cursor-pointer p-0 overflow-hidden"
               />
             </div>
           </div>
         </div>
 
         <div className="pt-2 border-t border-[#E5E5E5]">
-          <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">Link Columns</label>
-          <div className="grid grid-cols-3 gap-2">
+          <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-1.5">Link Columns</label>
+          <div className="grid grid-cols-3 gap-1.5">
             {footerConfig.columns.map((column, colIndex) => (
-              <div key={colIndex} className="p-2 bg-white rounded-lg border border-[#E5E5E5] flex flex-col">
-                <div className="flex items-center gap-1 mb-2">
+              <div key={colIndex} className="p-1.5 bg-white rounded border border-[#E5E5E5] flex flex-col">
+                <div className="flex items-center gap-0.5 mb-1">
                   <input
                     type="text"
                     value={column.title}
@@ -232,7 +233,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                       newColumns[colIndex].title = e.target.value;
                       setFooterConfig({ ...footerConfig, columns: newColumns });
                     }}
-                    className="flex-1 px-1.5 py-0.5 text-[10px] font-bold border-b border-transparent hover:border-[#E5E5E5] focus:border-[#9AD6FF] focus:outline-none uppercase tracking-tight"
+                    className="flex-1 px-1 py-0.5 text-[9px] font-bold border-b border-transparent hover:border-[#E5E5E5] focus:border-[#9AD6FF] focus:outline-none uppercase tracking-tight"
                   />
                   <button
                     type="button"
@@ -240,16 +241,16 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                       const newColumns = footerConfig.columns.filter((_, i) => i !== colIndex);
                       setFooterConfig({ ...footerConfig, columns: newColumns });
                     }}
-                    className="p-1 text-[#9CA3AF] hover:text-[#EF4444]"
+                    className="p-0.5 text-[#9CA3AF] hover:text-[#EF4444]"
                   >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
-                <div className="space-y-1 flex-1">
+                <div className="space-y-0.5 flex-1">
                   {column.links.map((link, linkIndex) => (
-                    <div key={linkIndex} className="flex gap-1 group">
+                    <div key={linkIndex} className="flex gap-0.5 group">
                       <input
                         type="text"
                         value={link.label}
@@ -259,7 +260,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                           setFooterConfig({ ...footerConfig, columns: newColumns });
                         }}
                         placeholder="Link"
-                        className="flex-1 px-1 py-0.5 text-[10px] border border-transparent hover:border-[#F0F0F0] rounded focus:outline-none"
+                        className="flex-1 px-1 py-0.5 text-[9px] border border-transparent hover:border-[#F0F0F0] rounded focus:outline-none"
                       />
                       <button
                         type="button"
@@ -270,7 +271,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                         }}
                         className="p-0.5 text-[#9CA3AF] hover:text-[#EF4444] opacity-0 group-hover:opacity-100"
                       >
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M18 6L6 18M6 6l12 12" />
                         </svg>
                       </button>
@@ -283,14 +284,9 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                       newColumns[colIndex].links.push({ label: 'New Link', url: '#' });
                       setFooterConfig({ ...footerConfig, columns: newColumns });
                     }}
-                    className="w-full py-1 text-[9px] text-[#9CA3AF] border border-dashed border-[#F0F0F0] rounded hover:bg-[#FAFAFA]"
+                    className="w-full py-0.5 text-[8px] text-[#9CA3AF] border border-dashed border-[#F0F0F0] rounded hover:bg-[#FAFAFA]"
                   >
-                    <span className="inline-flex items-center gap-0.5">
-                      <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      Add
-                    </span>
+                    + Add
                   </button>
                 </div>
               </div>
@@ -304,9 +300,9 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                     columns: [...footerConfig.columns, { title: 'New Column', links: [] }]
                   });
                 }}
-                className="flex items-center justify-center border-2 border-dashed border-[#E5E5E5] rounded-lg hover:bg-white transition-colors p-4"
+                className="flex items-center justify-center border border-dashed border-[#E5E5E5] rounded hover:bg-white transition-colors p-3"
               >
-                <svg className="w-4 h-4 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-3 h-3 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
@@ -315,10 +311,10 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
         </div>
 
         <div className="pt-2 border-t border-[#E5E5E5]">
-          <label className="block text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-2">Social Media</label>
-          <div className="grid grid-cols-2 gap-2">
+          <label className="block text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-1.5">Social Media</label>
+          <div className="grid grid-cols-2 gap-1.5">
             {footerConfig.socialMedia.map((social, index) => (
-              <div key={index} className="flex gap-1.5 items-center bg-white p-1.5 rounded-lg border border-[#F0F0F0]">
+              <div key={index} className="flex gap-1 items-center bg-white p-1 rounded border border-[#F0F0F0]">
                 <select
                   value={social.platform}
                   onChange={(e) => {
@@ -326,7 +322,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                     newSocial[index].platform = e.target.value as any;
                     setFooterConfig({ ...footerConfig, socialMedia: newSocial });
                   }}
-                  className="bg-transparent border-none text-[10px] font-bold text-[#374151] focus:ring-0 cursor-pointer uppercase shrink-0"
+                  className="bg-transparent border-none text-[9px] font-bold text-[#374151] focus:ring-0 cursor-pointer uppercase shrink-0"
                 >
                   <option value="twitter">X</option>
                   <option value="facebook">FB</option>
@@ -343,7 +339,7 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                     setFooterConfig({ ...footerConfig, socialMedia: newSocial });
                   }}
                   placeholder="URL"
-                  className="flex-1 px-1 py-0.5 text-[10px] border-none focus:ring-0 font-mono truncate"
+                  className="flex-1 px-1 py-0.5 text-[9px] border-none focus:ring-0 font-mono truncate"
                 />
                 <button
                   type="button"
@@ -351,9 +347,9 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                     const newSocial = footerConfig.socialMedia.filter((_, i) => i !== index);
                     setFooterConfig({ ...footerConfig, socialMedia: newSocial });
                   }}
-                  className="p-1 text-[#9CA3AF] hover:text-[#EF4444]"
+                  className="p-0.5 text-[#9CA3AF] hover:text-[#EF4444]"
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
@@ -367,37 +363,26 @@ export default function FooterEditor({ initialConfig, logoUrl, onConfigChange }:
                   socialMedia: [...footerConfig.socialMedia, { platform: 'twitter', url: '' }]
                 });
               }}
-              className="py-1.5 text-[10px] font-bold text-[#6B7280] border border-dashed border-[#E5E5E5] rounded-lg hover:bg-white transition-colors uppercase tracking-wider"
+              className="py-1 text-[9px] font-medium text-[#6B7280] border border-dashed border-[#E5E5E5] rounded hover:bg-white transition-colors"
             >
-              <span className="inline-flex items-center gap-1">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Social
-              </span>
+              + Social
             </button>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[#374151] mb-2">
-          Preview
-        </label>
-        <div className="border border-[#E5E5E5] rounded-lg overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-          <div className="flex items-center justify-center py-4">
-            <iframe 
-              srcDoc={generatePreviewHTML()}
-              className="w-full border-none bg-white shadow-sm h-[200px]"
-              title="Footer preview"
-              sandbox="allow-same-origin allow-scripts"
-              style={{ display: 'block' }}
-            />
-          </div>
+        <label className="block text-xs font-medium text-[#374151] mb-1.5">Preview</label>
+        <div className="border border-[#E5E5E5] rounded overflow-hidden bg-white">
+          <iframe 
+            srcDoc={generatePreviewHTML()}
+            className="w-full border-none bg-white h-[150px]"
+            title="Footer preview"
+            sandbox="allow-same-origin allow-scripts"
+            style={{ display: 'block' }}
+          />
         </div>
-        <p className="text-xs text-[#9CA3AF] mt-2">
-          Preview is scaled to fit. Local images are replaced with your logo.
-        </p>
+        <p className="text-[10px] text-[#9CA3AF] mt-1">Preview scaled. Local images replaced with your logo.</p>
       </div>
     </div>
   );

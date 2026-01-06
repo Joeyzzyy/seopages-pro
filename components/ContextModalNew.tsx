@@ -11,7 +11,10 @@ import {
   PagesSection,
   BusinessContextSection,
   TrustCompanySection,
+  OffsiteSection,
+  KnowledgeSection,
 } from './context-modal';
+import type { OffsiteContext } from './context-modal/types';
 
 interface ContextModalNewProps {
   isOpen: boolean;
@@ -22,6 +25,8 @@ interface ContextModalNewProps {
     content?: string;
     fileUrl?: string;
   }) => Promise<void>;
+  projectId?: string;
+  initialTab?: 'onsite' | 'offsite' | 'knowledge';
 }
 
 type TabType = 'onsite' | 'offsite' | 'knowledge';
@@ -31,10 +36,48 @@ export default function ContextModalNew({
   onClose,
   siteContexts,
   onSave,
+  projectId,
+  initialTab = 'onsite',
 }: ContextModalNewProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('onsite');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [isSaving, setIsSaving] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+
+  // Sync activeTab with initialTab when modal opens
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  // Fetch offsite context when modal opens and project ID is available
+  useEffect(() => {
+    const fetchOffsiteContext = async () => {
+      if (!isOpen || !projectId) return;
+      
+      setIsLoadingOffsite(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: HeadersInit = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        const response = await fetch(`/api/offsite-contexts?projectId=${projectId}`, {
+          headers,
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          setOffsiteContext(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching offsite context:', error);
+      } finally {
+        setIsLoadingOffsite(false);
+      }
+    };
+
+    fetchOffsiteContext();
+  }, [isOpen, projectId]);
   
   // Navigation expand states
   const [expandedNavBrandAssets, setExpandedNavBrandAssets] = useState(true);
@@ -42,6 +85,14 @@ export default function ContextModalNew({
   const [expandedNavPages, setExpandedNavPages] = useState(false);
   const [expandedNavBusinessContext, setExpandedNavBusinessContext] = useState(false);
   const [expandedNavTrustCompany, setExpandedNavTrustCompany] = useState(false);
+  
+  // Offsite navigation expand states
+  const [expandedNavMonitoring, setExpandedNavMonitoring] = useState(true);
+  const [expandedNavOwned, setExpandedNavOwned] = useState(false);
+  const [expandedNavReviews, setExpandedNavReviews] = useState(false);
+  const [expandedNavCommunity, setExpandedNavCommunity] = useState(false);
+  const [expandedNavMedia, setExpandedNavMedia] = useState(false);
+  const [expandedNavKols, setExpandedNavKols] = useState(false);
 
   // File states
   const [logoLightFile, setLogoLightFile] = useState<File | null>(null);
@@ -92,6 +143,10 @@ export default function ContextModalNew({
   const [aboutUsContent, setAboutUsContent] = useState('');
   const [faqContent, setFaqContent] = useState('');
   const [contactInfoContent, setContactInfoContent] = useState('');
+
+  // Offsite context state
+  const [offsiteContext, setOffsiteContext] = useState<OffsiteContext | null>(null);
+  const [isLoadingOffsite, setIsLoadingOffsite] = useState(false);
 
   // Refs for scrolling
   const brandAssetsRef = useRef<HTMLDivElement>(null);
@@ -233,6 +288,66 @@ export default function ContextModalNew({
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Handle offsite context changes
+  const handleOffsiteContextChange = async (updates: Partial<OffsiteContext>) => {
+    // Update local state immediately for responsiveness
+    setOffsiteContext(prev => {
+      if (!prev) {
+        // Create new context with default empty arrays
+        return {
+          brand_keywords: [],
+          product_keywords: [],
+          key_persons: [],
+          hashtags: [],
+          required_keywords: [],
+          excluded_keywords: [],
+          regions: [],
+          languages: [],
+          official_channels: [],
+          executive_accounts: [],
+          review_platforms: [],
+          directories: [],
+          storefronts: [],
+          forums: [],
+          qa_platforms: [],
+          branded_groups: [],
+          media_channels: [],
+          coverage: [],
+          events: [],
+          creators: [],
+          experts: [],
+          press_contacts: [],
+          ...updates,
+        } as OffsiteContext;
+      }
+      return { ...prev, ...updates };
+    });
+
+    // Save to database (debounced would be better for production)
+    if (projectId) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        await fetch('/api/offsite-contexts', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            projectId,
+            ...updates,
+          }),
+        });
+      } catch (error) {
+        console.error('Error saving offsite context:', error);
+      }
+    }
   };
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -564,6 +679,113 @@ export default function ContextModalNew({
     },
   ];
 
+  // Count acquired fields for offsite categories
+  const getOffsiteFieldCount = (fieldKeys: string[]): { acquired: number; total: number } => {
+    if (!offsiteContext) return { acquired: 0, total: fieldKeys.length };
+    
+    const acquired = fieldKeys.filter(field => {
+      const value = (offsiteContext as any)[field];
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return false;
+    }).length;
+    
+    return { acquired, total: fieldKeys.length };
+  };
+
+  // Offsite navigation groups
+  const offsiteNavigationGroups = [
+    {
+      label: 'Monitoring Scope',
+      sectionId: 'offsite-monitoring',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+      expanded: expandedNavMonitoring,
+      setExpanded: setExpandedNavMonitoring,
+      fieldKeys: ['brand_keywords', 'product_keywords', 'key_persons', 'hashtags', 'regions', 'languages'],
+      children: [
+        { label: 'Brand Keywords' },
+        { label: 'Product Keywords' },
+        { label: 'Key Persons' },
+        { label: 'Hashtags' },
+        { label: 'Regions' },
+        { label: 'Languages' },
+      ]
+    },
+    {
+      label: 'Owned Presence',
+      sectionId: 'offsite-owned',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>,
+      expanded: expandedNavOwned,
+      setExpanded: setExpandedNavOwned,
+      fieldKeys: ['official_channels', 'executive_accounts'],
+      children: [
+        { label: 'Official Channels' },
+        { label: 'Executive Accounts' },
+      ]
+    },
+    {
+      label: 'Reviews & Listings',
+      sectionId: 'offsite-reviews',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>,
+      expanded: expandedNavReviews,
+      setExpanded: setExpandedNavReviews,
+      fieldKeys: ['review_platforms', 'directories', 'storefronts'],
+      children: [
+        { label: 'Review Platforms' },
+        { label: 'Directories' },
+        { label: 'Storefronts' },
+      ]
+    },
+    {
+      label: 'Community',
+      sectionId: 'offsite-community',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+      expanded: expandedNavCommunity,
+      setExpanded: setExpandedNavCommunity,
+      fieldKeys: ['forums', 'qa_platforms', 'branded_groups'],
+      children: [
+        { label: 'Forums' },
+        { label: 'Q&A Platforms' },
+        { label: 'Branded Groups' },
+      ]
+    },
+    {
+      label: 'Media',
+      sectionId: 'offsite-media',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>,
+      expanded: expandedNavMedia,
+      setExpanded: setExpandedNavMedia,
+      fieldKeys: ['media_channels', 'coverage', 'events'],
+      children: [
+        { label: 'Media Channels' },
+        { label: 'Coverage' },
+        { label: 'Events' },
+      ]
+    },
+    {
+      label: 'KOLs',
+      sectionId: 'offsite-kols',
+      icon: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+      expanded: expandedNavKols,
+      setExpanded: setExpandedNavKols,
+      fieldKeys: ['creators', 'experts', 'press_contacts'],
+      children: [
+        { label: 'Creators' },
+        { label: 'Experts' },
+        { label: 'Press Contacts' },
+      ]
+    },
+  ];
+
+  // Scroll to offsite section
+  const scrollToOffsiteSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const tabs = [
     { id: 'onsite' as TabType, label: 'On Site' },
     { id: 'offsite' as TabType, label: 'Off Site' },
@@ -665,6 +887,81 @@ export default function ContextModalNew({
                 </div>
                 );
               })}
+                </div>
+              )}
+              
+              {/* Offsite Navigation */}
+              {activeTab === 'offsite' && (
+                <div className="space-y-1">
+                  {offsiteNavigationGroups.map((group, index) => {
+                    const { acquired, total } = group.fieldKeys ? getOffsiteFieldCount(group.fieldKeys) : { acquired: 0, total: 0 };
+                    return (
+                    <div key={index}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          group.setExpanded?.(!group.expanded);
+                          if (group.sectionId) {
+                            scrollToOffsiteSection(group.sectionId);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-xs transition-colors font-medium ${
+                          group.expanded ? 'bg-[#F3F4F6] text-[#111827]' : 'text-[#374151] hover:bg-[#F3F4F6]'
+                        }`}
+                      >
+                        <svg 
+                          className={`w-3 h-3 text-[#9CA3AF] transition-transform ${group.expanded ? 'rotate-90' : ''}`} 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.5"
+                        >
+                          <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                        {group.icon}
+                        <span className="flex-1">{group.label}</span>
+                        {total > 0 && (
+                          <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                            acquired === total 
+                              ? 'bg-green-100 text-green-700' 
+                              : acquired > 0 
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {acquired}/{total}
+                          </span>
+                        )}
+                      </button>
+                      {group.expanded && group.children && (
+                        <div className="ml-5 mt-1 space-y-0.5">
+                          {group.children.map((child: { label: string }, childIndex: number) => (
+                            <button
+                              key={childIndex}
+                              type="button"
+                              onClick={() => {
+                                if (group.sectionId) {
+                                  scrollToOffsiteSection(group.sectionId);
+                                }
+                              }}
+                              className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left text-xs transition-colors hover:bg-[#F3F4F6] text-[#6B7280]"
+                            >
+                              <span>{child.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Knowledge Navigation */}
+              {activeTab === 'knowledge' && (
+                <div className="space-y-1">
+                  <div className="px-2 py-1.5 text-xs text-[#6B7280]">
+                    Upload and manage knowledge files for AI reference.
+                  </div>
                 </div>
               )}
             </div>
@@ -796,14 +1093,18 @@ export default function ContextModalNew({
               )}
 
               {activeTab === 'offsite' && (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-sm text-[#9CA3AF] italic">Off Site features coming soon</p>
+                <div className="space-y-8 max-w-4xl">
+                  <OffsiteSection 
+                    offsiteContext={offsiteContext}
+                    onOffsiteContextChange={handleOffsiteContextChange}
+                    isLoading={isLoadingOffsite}
+                  />
                 </div>
               )}
 
               {activeTab === 'knowledge' && (
-                <div className="flex items-center justify-center py-12">
-                  <p className="text-sm text-[#9CA3AF] italic">Knowledge base features coming soon</p>
+                <div className="max-w-2xl">
+                  <KnowledgeSection projectId={projectId || null} />
                 </div>
               )}
             </div>

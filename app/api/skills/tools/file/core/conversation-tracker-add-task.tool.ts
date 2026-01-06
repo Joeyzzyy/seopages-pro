@@ -52,12 +52,71 @@ IMPORTANT: This tool will automatically find the existing tracker file for this 
         filesError = altError;
       }
 
+      // If no tracker file exists, create a new one instead of failing
       if (filesError || !files || files.length === 0) {
+        console.log(`[add_task_to_tracker] No existing tracker found, creating new tracker for task #${task_number}`);
+        
+        const displayTime = new Date().toLocaleString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+
+        const newTrackerContent = `# Conversation Tracker
+
+**Conversation ID:** ${conversation_id.slice(0, 8)}...  
+**Created:** ${displayTime}  
+**Last Updated:** ${displayTime}
+
+---
+
+## Task #${task_number}: ${task_summary}
+
+**Status:** 🟡 In Progress  
+**Created:** ${displayTime}  
+**Updated:** ${displayTime}
+
+### Execution Plan
+
+${plan_steps.map((step, idx) => `${idx + 1}. [ ] ${step}`).join('\n')}
+
+### Progress Log
+
+- [${displayTime}] Task initiated
+- [${displayTime}] Plan created with ${plan_steps.length} steps
+
+### Notes
+
+_Task execution in progress..._
+
+---
+
+## Summary
+
+- **Total Tasks:** 1
+- **Completed:** 0
+- **In Progress:** 1
+- **Failed:** 0
+`;
+
         return {
-          success: false,
-          error: 'Tracker file not found',
-          message: `No tracker file exists for this conversation. Please use create_conversation_tracker first.`,
-          conversationId: conversation_id
+          success: true,
+          filename: trackerFilename,
+          content: newTrackerContent,
+          mimeType: 'text/markdown',
+          size: newTrackerContent.length,
+          needsUpload: true,
+          created: true,
+          taskNumber: task_number,
+          message: `Created new tracker with Task #${task_number}`,
+          metadata: {
+            conversationId: conversation_id,
+            createdAt: new Date().toISOString(),
+            taskCount: 1,
+            isTracker: true,
+          }
         };
       }
 

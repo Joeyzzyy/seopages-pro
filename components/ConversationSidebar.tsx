@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { SiteContext, ContentItem, ContentProject } from '@/lib/supabase';
 import TasksPanel from './TasksPanel';
+import type { OffsiteContext } from './context-modal/types';
 
 interface TaskStep {
   step_number: number;
@@ -19,9 +20,10 @@ interface ConversationSidebarProps {
   onRefreshContent: () => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
   onDeleteContentItem: (itemId: string, itemTitle: string) => void;
-  onOpenContextModal?: () => void;
+  onOpenContextModal?: (tab?: 'onsite' | 'offsite' | 'knowledge') => void;
   conversationId?: string;
   currentTasks?: TaskStep[];
+  offsiteContext?: OffsiteContext | null;
 }
 
 export default function ConversationSidebar({
@@ -36,6 +38,7 @@ export default function ConversationSidebar({
   onOpenContextModal,
   conversationId,
   currentTasks = [],
+  offsiteContext,
 }: ConversationSidebarProps) {
   // Group items by project first
   const groupedContent = contentProjects.map(project => ({
@@ -53,6 +56,7 @@ export default function ConversationSidebar({
     itemCount?: number;
   } | null>(null);
   const [expandedOnSite, setExpandedOnSite] = useState(true);
+  const [expandedOffSite, setExpandedOffSite] = useState(false);
 
   // Auto-expand first project when content loads
   useEffect(() => {
@@ -270,6 +274,32 @@ export default function ConversationSidebar({
     <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full ml-1" title="未填充"></span>
   );
 
+  // Count acquired fields for offsite categories
+  const getOffsiteFieldCount = (category: string): { acquired: number; total: number } => {
+    if (!offsiteContext) return { acquired: 0, total: 0 };
+    
+    const fieldMappings: Record<string, (keyof OffsiteContext)[]> = {
+      'monitoring': ['brand_keywords', 'product_keywords', 'key_persons', 'hashtags', 'regions', 'languages'],
+      'owned': ['official_channels', 'executive_accounts'],
+      'reviews': ['review_platforms', 'directories', 'storefronts'],
+      'community': ['forums', 'qa_platforms', 'branded_groups'],
+      'media': ['media_channels', 'coverage', 'events'],
+      'kols': ['creators', 'experts', 'press_contacts'],
+    };
+    
+    const fields = fieldMappings[category] || [];
+    const total = fields.length;
+    const acquired = fields.filter(field => {
+      const value = offsiteContext[field];
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return false;
+    }).length;
+    
+    return { acquired, total };
+  };
+
   const getStatusStyle = (status: string): React.CSSProperties => {
     if (status === 'ready') {
       return {
@@ -409,24 +439,68 @@ export default function ConversationSidebar({
                 )}
               </div>
 
-              {/* Off Site */}
-              <button
-                disabled
-                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left group opacity-50 cursor-not-allowed"
-              >
-                <div className="flex items-center gap-2 flex-1">
-                  <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                  <span className="text-xs font-medium text-[#374151]">Off Site</span>
-                </div>
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-bold">Soon</span>
-              </button>
+              {/* Off Site - Expandable */}
+              <div>
+                <button
+                  onClick={() => setExpandedOffSite(!expandedOffSite)}
+                  className="w-full flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    <svg 
+                      className={`w-3 h-3 text-[#9CA3AF] transition-transform ${expandedOffSite ? 'rotate-90' : ''}`} 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.5"
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                    <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span className="text-xs font-medium text-[#374151]">Off Site</span>
+                  </div>
+                </button>
+
+                {/* Off Site Sub-items */}
+                {expandedOffSite && (
+                  <div className="ml-5 mt-0.5 space-y-0.5">
+                    {[
+                      { label: 'Monitoring Scope', key: 'monitoring' },
+                      { label: 'Owned Presence', key: 'owned' },
+                      { label: 'Reviews & Listings', key: 'reviews' },
+                      { label: 'Community', key: 'community' },
+                      { label: 'Media', key: 'media' },
+                      { label: 'KOLs', key: 'kols' },
+                    ].map(({ label, key }) => {
+                      const { acquired, total } = getOffsiteFieldCount(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => onOpenContextModal?.('offsite')}
+                          className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left cursor-pointer"
+                        >
+                          <span className="text-[11px] text-[#6B7280] flex-1">{label}</span>
+                          <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded ${
+                            acquired === total && total > 0
+                              ? 'bg-green-100 text-green-700' 
+                              : acquired > 0 
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {acquired}/{total}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {/* Knowledge */}
               <button
-                disabled
-                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left group opacity-50 cursor-not-allowed"
+                onClick={() => onOpenContextModal?.('knowledge')}
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-[#F3F4F6] text-left group transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-2 flex-1">
                   <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -435,7 +509,6 @@ export default function ConversationSidebar({
                   </svg>
                   <span className="text-xs font-medium text-[#374151]">Knowledge</span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-bold">Soon</span>
               </button>
             </div>
           </div>

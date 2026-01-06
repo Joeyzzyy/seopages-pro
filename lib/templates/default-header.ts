@@ -85,7 +85,9 @@ export function generateHeaderHTML(config: HeaderConfig): string {
 </header>`;
 }
 
-function escapeHtml(text: string): string {
+function escapeHtml(text: any): string {
+  if (text === null || text === undefined) return '';
+  const str = String(text);
   const map: { [key: string]: string } = {
     '&': '&amp;',
     '<': '&lt;',
@@ -93,6 +95,6 @@ function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#039;'
   };
-  return text.replace(/[&<>"']/g, (m) => map[m]);
+  return str.replace(/[&<>"']/g, (m) => map[m]);
 }
 

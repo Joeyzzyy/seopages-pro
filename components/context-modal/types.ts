@@ -5,6 +5,55 @@ export interface SectionProps {
   showDebugInfo?: boolean;
 }
 
+// Offsite Context Types
+export interface LinkItem {
+  platform: string;
+  url: string;
+}
+
+export interface OffsiteContext {
+  id?: string;
+  user_id?: string;
+  project_id?: string;
+  // Monitoring Scope
+  brand_keywords: string[];
+  product_keywords: string[];
+  key_persons: string[];
+  hashtags: string[];
+  required_keywords: string[];
+  excluded_keywords: string[];
+  regions: string[];
+  languages: string[];
+  // Owned Presence
+  official_channels: LinkItem[];
+  executive_accounts: LinkItem[];
+  // Reviews & Listings
+  review_platforms: LinkItem[];
+  directories: LinkItem[];
+  storefronts: LinkItem[];
+  // Community
+  forums: LinkItem[];
+  qa_platforms: LinkItem[];
+  branded_groups: LinkItem[];
+  // Media
+  media_channels: LinkItem[];
+  coverage: LinkItem[];
+  events: LinkItem[];
+  // KOLs
+  creators: LinkItem[];
+  experts: LinkItem[];
+  press_contacts: LinkItem[];
+  // Metadata
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OffsiteSectionProps {
+  offsiteContext: OffsiteContext | null;
+  onOffsiteContextChange: (context: Partial<OffsiteContext>) => void;
+  isLoading?: boolean;
+}
+
 // Brand & Site Section
 export interface BrandSiteSectionProps extends SectionProps {
   // Meta Info

@@ -1,9 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import ActionHints from './ActionHints';
 import { supabase } from '@/lib/supabase';
 import type { FileRecord, ContentItem } from '@/lib/supabase';
+
+// Knowledge file reference type
+export interface KnowledgeFileRef {
+  id: string;
+  file_name: string;
+  file_type: string;
+  storage_path: string;
+  url?: string | null;
+}
 
 interface ChatInputProps {
   input: string;
@@ -15,8 +24,11 @@ interface ChatInputProps {
   skills: any[];
   referenceImageUrl: string | null;
   conversationId?: string | null;
+  projectId?: string | null;
   tokenStats: { inputTokens: number; outputTokens: number };
   apiStats: { tavilyCalls: number; semrushCalls: number; serperCalls: number };
+  knowledgeFiles?: KnowledgeFileRef[];
+  mentionedFiles?: KnowledgeFileRef[];
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: (e: React.FormEvent) => void;
   onStop: () => void;
@@ -27,6 +39,8 @@ interface ChatInputProps {
   onPlaybookClick: (skill: any) => void;
   onReferenceImageChange: (url: string | null) => void;
   onUploadSuccess?: () => void;
+  onMentionFile?: (file: KnowledgeFileRef) => void;
+  onRemoveMentionedFile?: (fileId: string) => void;
 }
 
 export default function ChatInput({
@@ -39,8 +53,11 @@ export default function ChatInput({
   skills,
   referenceImageUrl,
   conversationId,
+  projectId,
   tokenStats,
   apiStats,
+  knowledgeFiles = [],
+  mentionedFiles = [],
   onInputChange,
   onSubmit,
   onStop,
@@ -51,12 +68,267 @@ export default function ChatInput({
   onPlaybookClick,
   onReferenceImageChange,
   onUploadSuccess,
+  onMentionFile,
+  onRemoveMentionedFile,
 }: ChatInputProps) {
   const [isComposing, setIsComposing] = useState(false);
   const [showFileSelector, setShowFileSelector] = useState(false);
   const [selectorTab, setSelectorTab] = useState<'files' | 'content'>('content');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const lastRangeRef = useRef<Range | null>(null);
+  
+  // @ mention state
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  
+  // Filter knowledge files based on search
+  const filteredKnowledgeFiles = knowledgeFiles.filter(file =>
+    file.file_name.toLowerCase().includes(mentionSearch.toLowerCase())
+  );
+
+  // Save current selection/range
+  const saveSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      lastRangeRef.current = selection.getRangeAt(0).cloneRange();
+    }
+  }, []);
+
+  // Restore selection/range
+  const restoreSelection = useCallback(() => {
+    if (lastRangeRef.current) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(lastRangeRef.current);
+      }
+    }
+  }, []);
+
+  // Get plain text from editor (excluding file tags)
+  const getEditorText = useCallback(() => {
+    if (!editorRef.current) return '';
+    let text = '';
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        // Skip file tag elements - they are handled separately
+        if (el.dataset.fileId) return;
+        if (el.tagName === 'BR') {
+          text += '\n';
+        } else {
+          node.childNodes.forEach(walk);
+        }
+      }
+    };
+    editorRef.current.childNodes.forEach(walk);
+    return text;
+  }, []);
+
+  // Sync editor content with parent input state
+  const syncInputWithEditor = useCallback(() => {
+    const text = getEditorText();
+    // Create a synthetic event
+    const syntheticEvent = {
+      target: { value: text }
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+    onInputChange(syntheticEvent);
+  }, [getEditorText, onInputChange]);
+
+  // Handle editor input
+  const handleEditorInput = useCallback(() => {
+    if (!editorRef.current) return;
+    
+    saveSelection();
+    syncInputWithEditor();
+    
+    // Check for @ mention trigger
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const range = selection.getRangeAt(0);
+    const textNode = range.startContainer;
+    
+    if (textNode.nodeType === Node.TEXT_NODE) {
+      const text = textNode.textContent || '';
+      const cursorPos = range.startOffset;
+      const textBeforeCursor = text.slice(0, cursorPos);
+      const atMatch = textBeforeCursor.match(/@(\S*)$/);
+      
+      if (atMatch) {
+        setMentionSearch(atMatch[1]);
+        setShowMentionDropdown(true);
+        setMentionIndex(0);
+        
+        // Calculate dropdown position
+        const tempRange = document.createRange();
+        tempRange.setStart(textNode, cursorPos - atMatch[0].length);
+        tempRange.setEnd(textNode, cursorPos);
+        const rect = tempRange.getBoundingClientRect();
+        const editorRect = editorRef.current.getBoundingClientRect();
+        setMentionPosition({
+          top: rect.top - editorRect.top - 8,
+          left: rect.left - editorRect.left
+        });
+      } else {
+        setShowMentionDropdown(false);
+        setMentionSearch('');
+      }
+    } else {
+      setShowMentionDropdown(false);
+      setMentionSearch('');
+    }
+  }, [saveSelection, syncInputWithEditor]);
+
+  // Insert file tag at cursor position
+  const insertFileTagAtCursor = useCallback((file: KnowledgeFileRef) => {
+    if (!editorRef.current) return;
+    
+    restoreSelection();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const range = selection.getRangeAt(0);
+    
+    // Find and remove the @search text
+    const textNode = range.startContainer;
+    if (textNode.nodeType === Node.TEXT_NODE) {
+      const text = textNode.textContent || '';
+      const cursorPos = range.startOffset;
+      const textBeforeCursor = text.slice(0, cursorPos);
+      const atMatch = textBeforeCursor.match(/@(\S*)$/);
+      
+      if (atMatch) {
+        // Remove @search text
+        const startPos = cursorPos - atMatch[0].length;
+        textNode.textContent = text.slice(0, startPos) + text.slice(cursorPos);
+        
+        // Create file tag element
+        const tag = document.createElement('span');
+        tag.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#EEF2FF] border border-[#C7D2FE] rounded text-[11px] text-[#4338CA] align-middle select-none';
+        tag.contentEditable = 'false';
+        tag.dataset.fileId = file.id;
+        tag.dataset.fileName = file.file_name;
+        tag.dataset.fileType = file.file_type;
+        tag.dataset.storagePath = file.storage_path;
+        if (file.url) tag.dataset.fileUrl = file.url;
+        tag.innerHTML = `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="font-medium">@${file.file_name}</span>`;
+        
+        // Insert tag at position
+        const newRange = document.createRange();
+        newRange.setStart(textNode, startPos);
+        newRange.setEnd(textNode, startPos);
+        newRange.insertNode(tag);
+        
+        // Add space after tag and move cursor
+        const space = document.createTextNode('\u00A0');
+        tag.after(space);
+        
+        // Move cursor after space
+        newRange.setStartAfter(space);
+        newRange.setEndAfter(space);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        
+        // Notify parent about the file
+        if (onMentionFile) {
+          onMentionFile(file);
+        }
+        
+        syncInputWithEditor();
+      }
+    }
+    
+    setShowMentionDropdown(false);
+    setMentionSearch('');
+    editorRef.current.focus();
+  }, [restoreSelection, onMentionFile, syncInputWithEditor]);
+
+  // Handle keyboard in mention dropdown
+  const handleEditorKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Handle mention dropdown navigation
+    if (showMentionDropdown && filteredKnowledgeFiles.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev + 1) % filteredKnowledgeFiles.length);
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev - 1 + filteredKnowledgeFiles.length) % filteredKnowledgeFiles.length);
+        return;
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        insertFileTagAtCursor(filteredKnowledgeFiles[mentionIndex]);
+        return;
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionDropdown(false);
+        return;
+      }
+    }
+    
+    // Handle submit
+    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
+      e.preventDefault();
+      // Extract mentioned files from editor before submit
+      extractMentionedFilesAndSubmit();
+    }
+  }, [showMentionDropdown, filteredKnowledgeFiles, mentionIndex, insertFileTagAtCursor, isComposing]);
+
+  // Extract all file references and submit
+  const extractMentionedFilesAndSubmit = useCallback(() => {
+    if (!editorRef.current) return;
+    
+    // Extract file tags from editor and add them to mentioned files
+    const fileTags = editorRef.current.querySelectorAll('[data-file-id]');
+    fileTags.forEach(tag => {
+      const fileData: KnowledgeFileRef = {
+        id: tag.getAttribute('data-file-id') || '',
+        file_name: tag.getAttribute('data-file-name') || '',
+        file_type: tag.getAttribute('data-file-type') || '',
+        storage_path: tag.getAttribute('data-storage-path') || '',
+        url: tag.getAttribute('data-file-url') || null
+      };
+      if (fileData.id && onMentionFile) {
+        // Check if not already in mentionedFiles (avoid duplicates)
+        if (!mentionedFiles.find(f => f.id === fileData.id)) {
+          onMentionFile(fileData);
+        }
+      }
+    });
+    
+    // Submit
+    const submitEvent = { preventDefault: () => {} } as React.FormEvent;
+    onSubmit(submitEvent);
+    
+    // Clear editor content after a small delay to let submit process
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = '';
+      }
+    }, 10);
+  }, [onSubmit, onMentionFile, mentionedFiles]);
+
+  // Handle paste - strip formatting
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }, []);
+
+  // Sync editor when input changes externally (e.g., cleared after submit)
+  useEffect(() => {
+    if (editorRef.current && input === '' && editorRef.current.textContent !== '') {
+      editorRef.current.innerHTML = '';
+    }
+  }, [input]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,6 +387,23 @@ export default function ChatInput({
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e);
     const textarea = e.target;
+    const value = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    
+    // Check for @ mention trigger
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\S*)$/);
+    
+    if (atMatch) {
+      setMentionSearch(atMatch[1]);
+      setShowMentionDropdown(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentionDropdown(false);
+      setMentionSearch('');
+    }
+    
+    // Auto-resize textarea
     textarea.style.height = 'auto';
     const minHeight = 120;
     const maxHeight = 200;
@@ -125,6 +414,57 @@ export default function ChatInput({
       textarea.style.overflowY = 'auto';
     } else {
       textarea.style.overflowY = 'hidden';
+    }
+  };
+  
+  // Handle file selection from mention dropdown
+  const handleSelectMentionFile = (file: KnowledgeFileRef) => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const textAfterCursor = input.slice(cursorPos);
+    
+    // Find and remove the @search part
+    const atMatch = textBeforeCursor.match(/@(\S*)$/);
+    if (atMatch) {
+      const newTextBefore = textBeforeCursor.slice(0, -atMatch[0].length);
+      const newValue = newTextBefore + textAfterCursor;
+      
+      // Create a synthetic event to update input
+      const syntheticEvent = {
+        target: { value: newValue }
+      } as React.ChangeEvent<HTMLTextAreaElement>;
+      onInputChange(syntheticEvent);
+      
+      // Add file to mentioned files
+      if (onMentionFile) {
+        onMentionFile(file);
+      }
+    }
+    
+    setShowMentionDropdown(false);
+    setMentionSearch('');
+    textarea.focus();
+  };
+  
+  // Handle keyboard navigation in mention dropdown
+  const handleMentionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showMentionDropdown || filteredKnowledgeFiles.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionIndex(prev => (prev + 1) % filteredKnowledgeFiles.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionIndex(prev => (prev - 1 + filteredKnowledgeFiles.length) % filteredKnowledgeFiles.length);
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSelectMentionFile(filteredKnowledgeFiles[mentionIndex]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowMentionDropdown(false);
     }
   };
 
@@ -144,6 +484,14 @@ export default function ChatInput({
 
   return (
     <footer className="bg-white relative z-10 flex-shrink-0">
+      {/* Placeholder styles for contentEditable */}
+      <style jsx>{`
+        div[data-placeholder]:empty::before {
+          content: attr(data-placeholder);
+          color: #9CA3AF;
+          pointer-events: none;
+        }
+      `}</style>
       <div className="w-full max-w-5xl mx-auto px-4 py-4">
         <form onSubmit={onSubmit}>
           {/* Reference image preview */}
@@ -214,23 +562,101 @@ export default function ChatInput({
           )}
           
           <div className="relative">
-            <textarea
-              value={input}
-              onChange={handleTextareaChange}
+            {/* ContentEditable input area */}
+            <div
+              ref={editorRef}
+              contentEditable={!isLoading}
+              onInput={handleEditorInput}
+              onKeyDown={handleEditorKeyDown}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
-                  e.preventDefault();
-                  onSubmit(e as any);
-                }
+              onPaste={handlePaste}
+              onBlur={saveSelection}
+              data-placeholder="Ask anything about SEO & GEO... Type @ to reference knowledge files"
+              className={`w-full px-4 text-base border border-[#E5E5E5] rounded-3xl focus:outline-none resize-none thin-scrollbar leading-relaxed ${
+                isLoading ? 'bg-[#F5F5F5] cursor-not-allowed opacity-60' : 'bg-white'
+              }`}
+              style={{ 
+                minHeight: '120px', 
+                paddingTop: '16px', 
+                paddingBottom: '48px', 
+                overflowY: 'auto',
+                maxHeight: '200px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
               }}
-              placeholder="Ask me anything about SEO & GEO..."
-              disabled={isLoading}
-              rows={1}
-              className="w-full px-4 text-base border border-[#E5E5E5] rounded-3xl focus:outline-none disabled:bg-[#F5F5F5] disabled:cursor-not-allowed resize-none placeholder:text-[#9CA3AF] thin-scrollbar"
-              style={{ minHeight: '120px', paddingTop: '16px', paddingBottom: '48px', overflowY: 'hidden' }}
+              suppressContentEditableWarning
             />
+            
+            {/* @ Mention Dropdown - positioned near cursor */}
+            {showMentionDropdown && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMentionDropdown(false)} />
+                <div 
+                  className="absolute w-72 bg-white rounded-xl shadow-lg border border-[#E5E5E5] max-h-64 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150"
+                  style={{
+                    top: mentionPosition.top > 60 ? mentionPosition.top - 200 : mentionPosition.top + 24,
+                    left: Math.max(16, Math.min(mentionPosition.left, 200))
+                  }}
+                >
+                  <div className="px-3 py-2 border-b border-[#F5F5F5] bg-[#FAFAFA]">
+                    <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span className="font-medium">Reference Knowledge File</span>
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto max-h-48 thin-scrollbar">
+                    {knowledgeFiles.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-[#9CA3AF]">
+                        No knowledge files uploaded yet.
+                        <br />
+                        <span className="text-[10px]">Upload files in the Knowledge section first.</span>
+                      </div>
+                    ) : filteredKnowledgeFiles.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-[#9CA3AF]">
+                        No files match "{mentionSearch}"
+                      </div>
+                    ) : (
+                      filteredKnowledgeFiles.map((file, index) => (
+                        <button
+                          key={file.id}
+                          type="button"
+                          onClick={() => insertFileTagAtCursor(file)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors cursor-pointer ${
+                            index === mentionIndex ? 'bg-[#EEF2FF]' : 'hover:bg-[#F9FAFB]'
+                          }`}
+                        >
+                          <div className="w-7 h-7 flex items-center justify-center bg-[#F3F4F6] rounded border border-[#E5E5E5] flex-shrink-0">
+                            <svg className="w-3.5 h-3.5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#111827] truncate">{file.file_name}</div>
+                            <div className="text-[10px] text-[#9CA3AF] uppercase">{file.file_type.split('/').pop()}</div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                  {filteredKnowledgeFiles.length > 0 && (
+                    <div className="px-3 py-1.5 border-t border-[#F5F5F5] bg-[#FAFAFA]">
+                      <div className="text-[10px] text-[#9CA3AF]">
+                        <span className="inline-flex items-center gap-1"><kbd className="px-1 py-0.5 bg-white border border-[#E5E5E5] rounded text-[9px]">↑↓</kbd> navigate</span>
+                        <span className="mx-2">•</span>
+                        <span className="inline-flex items-center gap-1"><kbd className="px-1 py-0.5 bg-white border border-[#E5E5E5] rounded text-[9px]">Enter</kbd> select</span>
+                        <span className="mx-2">•</span>
+                        <span className="inline-flex items-center gap-1"><kbd className="px-1 py-0.5 bg-white border border-[#E5E5E5] rounded text-[9px]">Esc</kbd> close</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             
             {/* Left controls - Bottom side */}
             <div className="absolute left-3 bottom-4 flex items-center gap-2">

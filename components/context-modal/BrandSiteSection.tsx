@@ -60,11 +60,11 @@ const AssetUploadField = ({
   const currentPreviewUrl = previewUrl || displayUrl || (value.trim() ? value : null);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label className="block text-xs font-medium text-[#374151]">{label}</label>
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         {/* Preview Box */}
-        <div className="w-16 h-16 border border-[#E5E5E5] rounded-lg flex items-center justify-center bg-[#F9FAFB] flex-shrink-0 overflow-hidden">
+        <div className="w-12 h-12 border border-[#E5E5E5] rounded-lg flex items-center justify-center bg-[#F9FAFB] flex-shrink-0 overflow-hidden">
           {currentPreviewUrl ? (
             <>
               {previewState === 'loading' && (
@@ -87,15 +87,15 @@ const AssetUploadField = ({
         </div>
         
         {/* Input & Upload */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-1.5">
           <input
             type="text"
             value={value}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder={placeholder}
-            className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA] focus:border-transparent"
+            className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA] focus:border-transparent"
           />
-          <label className="flex items-center gap-2 cursor-pointer text-xs text-[#6B7280] hover:text-[#374151]">
+          <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-[#6B7280] hover:text-[#374151]">
             <input
               type="file"
               accept="image/*"
@@ -103,7 +103,7 @@ const AssetUploadField = ({
               className="hidden"
               id={id}
             />
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
             <span>Upload file</span>
@@ -184,6 +184,7 @@ export default function BrandSiteSection({
       try {
         const parsedHeader = JSON.parse(headerContext.content);
         // Transform API format to HeaderEditor format
+        // Use primaryColor from colors if available, otherwise default to dark
         setHeaderInitialConfig({
           siteName: logoContext?.brand_name || '',
           logo: logoLightUrl || '',
@@ -194,25 +195,26 @@ export default function BrandSiteSection({
           ctaButton: {
             label: parsedHeader.ctaText || 'Get Started',
             url: '#',
-            color: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
+            color: primaryColor || '#111827',
           },
         });
       } catch (err) {
         console.error('Failed to parse header content:', err);
       }
     }
-  }, [headerContext, logoContext, logoLightUrl]);
+  }, [headerContext, logoContext, logoLightUrl, primaryColor]);
 
   useEffect(() => {
     if (footerContext?.content) {
       try {
         const parsedFooter = JSON.parse(footerContext.content);
         // Transform API format to FooterEditor format
+        // Use white background by default, with dark text
         setFooterInitialConfig({
           companyName: logoContext?.brand_name || '',
           tagline: metaDescription || '',
-          backgroundColor: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
-          textColor: '#E5E7EB',
+          backgroundColor: '#FFFFFF',
+          textColor: '#374151',
           columns: parsedFooter.columns?.map((col: any) => ({
             title: col.title,
             links: col.links.map((link: any) => ({
@@ -233,56 +235,56 @@ export default function BrandSiteSection({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
-        <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="flex items-center gap-2 mb-4">
+        <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
         <h3 className="text-base font-bold text-[#111827]">Brand & Site</h3>
       </div>
 
       {/* Meta Info */}
-      <div ref={brandAssetsRef} className="space-y-4 pl-7 mb-6">
-        <h4 className="text-sm font-semibold text-[#111827]">Meta Info</h4>
-        <div className="grid grid-cols-2 gap-4">
+      <div ref={brandAssetsRef} className="space-y-3 pl-6 mb-5">
+        <h4 className="text-xs font-semibold text-[#111827]">Meta Info</h4>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Title</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Title</label>
             <input
               type="text"
               value={metaTitle}
               onChange={(e) => setMetaTitle(e.target.value)}
               placeholder="Page title"
-              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+              className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Keywords</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Keywords</label>
             <input
               type="text"
               value={metaKeywords}
               onChange={(e) => setMetaKeywords(e.target.value)}
               placeholder="keyword1, keyword2, keyword3"
-              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+              className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#374151] mb-1.5">Description</label>
+          <label className="block text-xs font-medium text-[#374151] mb-1">Description</label>
           <textarea
             value={metaDescription}
             onChange={(e) => setMetaDescription(e.target.value)}
             placeholder="Brief description of the page"
-            rows={4}
-            className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA] resize-none"
+            rows={3}
+            className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA] resize-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-[#374151] mb-1.5">Domain Name</label>
+          <label className="block text-xs font-medium text-[#374151] mb-1">Domain Name</label>
           <input
             type="text"
             value={domainName}
             onChange={(e) => setDomainName(e.target.value)}
             placeholder="https://example.com"
-            className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+            className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
           />
         </div>
         <AssetUploadField
@@ -297,9 +299,9 @@ export default function BrandSiteSection({
       </div>
 
       {/* Logo & Favicon */}
-      <div className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Logo & Favicon</h4>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Logo & Favicon</h4>
+        <div className="grid grid-cols-2 gap-3">
           <AssetUploadField
             id="logo-light"
             label="Light Theme Logo"
@@ -342,40 +344,40 @@ export default function BrandSiteSection({
       </div>
 
       {/* Colors */}
-      <div ref={colorsRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Colors</h4>
-        <div className="grid grid-cols-2 gap-4">
+      <div ref={colorsRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Colors</h4>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Primary Color</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Primary Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-10 h-10 border border-[#E5E5E5] rounded-lg cursor-pointer"
+                className="w-8 h-8 border border-[#E5E5E5] rounded-lg cursor-pointer"
               />
               <input
                 type="text"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+                className="flex-1 px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Secondary Color</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Secondary Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
                 value={secondaryColor}
                 onChange={(e) => setSecondaryColor(e.target.value)}
-                className="w-10 h-10 border border-[#E5E5E5] rounded-lg cursor-pointer"
+                className="w-8 h-8 border border-[#E5E5E5] rounded-lg cursor-pointer"
               />
               <input
                 type="text"
                 value={secondaryColor}
                 onChange={(e) => setSecondaryColor(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+                className="flex-1 px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
               />
             </div>
           </div>
@@ -383,66 +385,66 @@ export default function BrandSiteSection({
       </div>
 
       {/* Tone */}
-      <div ref={toneRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Tone</h4>
+      <div ref={toneRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Tone</h4>
         <input
           type="text"
           value={tone}
           onChange={(e) => setTone(e.target.value)}
           placeholder="e.g., Professional, Friendly, Casual"
-          className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+          className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
         />
       </div>
 
       {/* Typography */}
-      <div ref={typographyRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Typography</h4>
-        <div className="grid grid-cols-2 gap-4">
+      <div ref={typographyRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Typography</h4>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Heading Font</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Heading Font</label>
             <input
               type="text"
               value={headingFont}
               onChange={(e) => setHeadingFont(e.target.value)}
               placeholder="e.g., Montserrat, Poppins"
-              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+              className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
             />
-            <p className="text-[10px] text-[#9CA3AF] mt-1">Font used for headings (H1, H2, etc.)</p>
+            <p className="text-[10px] text-[#9CA3AF] mt-0.5">Font used for headings (H1, H2, etc.)</p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">Body Font</label>
+            <label className="block text-xs font-medium text-[#374151] mb-1">Body Font</label>
             <input
               type="text"
               value={bodyFont}
               onChange={(e) => setBodyFont(e.target.value)}
               placeholder="e.g., Inter, Roboto, Open Sans"
-              className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+              className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
             />
-            <p className="text-[10px] text-[#9CA3AF] mt-1">Font used for body text and paragraphs</p>
+            <p className="text-[10px] text-[#9CA3AF] mt-0.5">Font used for body text and paragraphs</p>
           </div>
         </div>
       </div>
 
       {/* Languages */}
-      <div ref={languagesRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Languages</h4>
+      <div ref={languagesRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Languages</h4>
         <input
           type="text"
           value={languages}
           onChange={(e) => setLanguages(e.target.value)}
           placeholder="e.g., en, zh, es (comma-separated)"
-          className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
+          className="w-full px-2.5 py-1.5 text-xs border border-[#E5E5E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A8FEA]"
         />
         <p className="text-[10px] text-[#9CA3AF]">Supported languages on the website</p>
       </div>
 
       {/* Header & Footer */}
-      <div className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-[#111827]">Header & Footer</h4>
+      <div className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-semibold text-[#111827]">Header & Footer</h4>
           {domainName && (
-            <div className="flex items-center gap-2 text-xs text-[#6B7280]">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div className="flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="16" x2="12" y2="12" />
                 <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -453,7 +455,7 @@ export default function BrandSiteSection({
         </div>
         
         {/* Header */}
-        <div ref={headerRef} className="space-y-3">
+        <div ref={headerRef} className="space-y-2">
           <label className="block text-xs font-medium text-[#6B7280]">Header 导航</label>
           <HeaderEditor
             initialConfig={headerInitialConfig || undefined}
@@ -463,7 +465,7 @@ export default function BrandSiteSection({
         </div>
 
         {/* Footer */}
-        <div ref={footerRef} className="space-y-3 mt-6">
+        <div ref={footerRef} className="space-y-2 mt-4">
           <label className="block text-xs font-medium text-[#6B7280]">Footer 链接</label>
           <FooterEditor
             initialConfig={footerInitialConfig || undefined}
@@ -474,8 +476,8 @@ export default function BrandSiteSection({
       </div>
 
       {/* Sitemap */}
-      <div ref={sitemapRef} className="space-y-4 pl-7 mb-6 pt-6 border-t border-[#F3F4F6]">
-        <h4 className="text-sm font-semibold text-[#111827]">Sitemap</h4>
+      <div ref={sitemapRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+        <h4 className="text-xs font-semibold text-[#111827]">Sitemap</h4>
         <SitemapViewer content={sitemapContext?.content || undefined} />
       </div>
     </div>
