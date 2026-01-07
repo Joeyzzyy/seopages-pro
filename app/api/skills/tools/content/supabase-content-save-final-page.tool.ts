@@ -62,7 +62,7 @@ export const save_final_page = tool({
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('files')
           .upload(`${item.user_id}/${timestamp}-${filename}`, contentToSave, {
-            contentType: 'text/html',
+            contentType: 'text/html; charset=utf-8',
             upsert: true
           });
 

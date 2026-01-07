@@ -150,7 +150,7 @@ export default function ConversationsDropdown({
                             e.stopPropagation();
                             onDeleteConversation(conv.id);
                           }}
-                          className="p-1 rounded hover:bg-red-50 text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
+                          className="p-1 rounded hover:bg-red-50 text-[#9CA3AF] hover:text-[#EF4444] transition-colors cursor-pointer"
                           title="Delete conversation"
                         >
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -74,7 +74,11 @@ function detectChartType(headers: string[], rows: string[][]): 'line' | 'bar' | 
       if (colIndex === 0) return false; // 跳过第一列（通常是标签）
       const numericCount = rows.filter(row => {
         const val = row[colIndex];
-        return val && !isNaN(parseFloat(val.replace(/[^\d.-]/g, '')));
+        // 必须包含至少一个数字字符
+        if (!val || !/\d/.test(val)) return false;
+        const cleaned = val.replace(/[^\d.-]/g, '');
+        const num = parseFloat(cleaned);
+        return !isNaN(num) && isFinite(num);
       }).length;
       return numericCount >= rows.length * 0.5; // 至少50%的行有数值
     });
@@ -92,6 +96,16 @@ function extractNumber(value: string): number {
   return parseFloat(cleaned) || 0;
 }
 
+// 检查字符串是否包含有效数字
+function hasValidNumber(value: string): boolean {
+  if (!value) return false;
+  // 必须包含至少一个数字
+  if (!/\d/.test(value)) return false;
+  const cleaned = value.replace(/[^\d.-]/g, '');
+  const num = parseFloat(cleaned);
+  return !isNaN(num) && isFinite(num);
+}
+
 // 生成图表配置
 function generateChartConfig(
   headers: string[], 
@@ -102,12 +116,13 @@ function generateChartConfig(
   const labels = rows.map(row => row[0]);
   
   if (chartType === 'line' || chartType === 'bar') {
-    // 找数值列
+    // 找数值列 - 使用 hasValidNumber 确保列真的包含数字
     const numericColumns: number[] = [];
     headers.forEach((h, i) => {
       if (i > 0) {
-        const hasNumbers = rows.some(row => !isNaN(extractNumber(row[i] || '')));
-        if (hasNumbers) numericColumns.push(i);
+        // 至少 50% 的行在该列有有效数字
+        const validCount = rows.filter(row => hasValidNumber(row[i] || '')).length;
+        if (validCount >= rows.length * 0.5) numericColumns.push(i);
       }
     });
 
@@ -162,13 +177,19 @@ function generateChartConfig(
   }
   
   if (chartType === 'pie') {
-    // 找第一个数值列
-    let valueColIndex = 1;
+    // 找第一个真正的数值列（至少50%的行有有效数字）
+    let valueColIndex = -1;
     for (let i = 1; i < headers.length; i++) {
-      if (rows.some(row => !isNaN(extractNumber(row[i] || '')))) {
+      const validCount = rows.filter(row => hasValidNumber(row[i] || '')).length;
+      if (validCount >= rows.length * 0.5) {
         valueColIndex = i;
         break;
       }
+    }
+    
+    // 如果没找到数值列，跳过图表生成
+    if (valueColIndex === -1) {
+      return '';
     }
     
     const values = rows.map(row => extractNumber(row[valueColIndex] || '0'));
@@ -318,7 +339,7 @@ function splitContentIntoTabs(content: string): { tabs: { id: string; title: str
   const matches = [...content.matchAll(h2Regex)];
   
   if (matches.length === 0) {
-    return { tabs: [{ id: 'main', title: '报告内容', content }], header: '' };
+    return { tabs: [{ id: 'main', title: 'Report Content', content }], header: '' };
   }
   
   // 找到第一个 h2 之前的内容作为 header
@@ -361,7 +382,7 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
   ).join('');
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -792,14 +813,14 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <span class="brand-icon">✦</span>
+          <span class="brand-icon">&#10022;</span>
           <span class="brand-text">SeeNOS.ai</span>
         </div>
-        <div class="sidebar-title">报告目录</div>
-        <div class="sidebar-subtitle">共 ${tabs.length} 个章节</div>
+        <div class="sidebar-title">Table of Contents</div>
+        <div class="sidebar-subtitle">${tabs.length} Sections</div>
       </div>
       <nav class="nav-section">
-        <div class="nav-label">章节导航</div>
+        <div class="nav-label">Navigation</div>
         ${navItems}
       </nav>
     </aside>
@@ -808,7 +829,7 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
     <main class="main-content">
       <header class="content-header">
         <h1>${title}</h1>
-        <div class="content-header-meta">包含 ${chartScripts.length} 个交互式图表</div>
+        <div class="content-header-meta">${chartScripts.length} Interactive Charts</div>
       </header>
       
       <div class="content-body">
