@@ -349,7 +349,11 @@ export const get_domain_organic_keywords = tool({
  * 默认限制为 6 个月以控制成本
  */
 export const get_domain_history = tool({
-  description: 'Get historical organic traffic data for a domain over the past 6 months. Cost: ~6 API units. Essential for identifying traffic growth or decline trends.',
+  description: `Get historical organic traffic data for a domain over the past 6 months. Cost: ~6 API units. 
+
+⚠️ CRITICAL: This tool detects significant traffic fluctuations (>15% MoM changes). 
+When fluctuations are detected, the response includes 'fluctuation_investigation.investigation_tasks' which you MUST execute!
+DO NOT skip the investigation - it's the most valuable part of the analysis!`,
   parameters: z.object({
     domain: z.string().describe('The domain to analyze (e.g., example.com)'),
     database: z.string().optional().default('us').describe('Regional database (e.g., us, uk)'),
@@ -445,28 +449,72 @@ export const get_domain_history = tool({
 
       // 检测流量激增月份
       const avgTraffic = history.reduce((sum, h) => sum + h.organic_traffic, 0) / history.length;
-      const spikes = history.filter(h => h.organic_traffic > avgTraffic * 1.5);
-      const drops = history.filter(h => h.organic_traffic < avgTraffic * 0.5);
-
-      // 找出最大增长月份
-      let maxGrowthMonth = null;
-      let maxGrowthPercent = 0;
+      
+      // ⚠️ 计算每月环比变化 (MoM) - 这是波动检测的核心
+      const monthlyChanges: Array<{
+        date: string;
+        traffic: number;
+        prev_traffic: number;
+        mom_change_percent: number;
+        keywords: number;
+        keyword_change: number;
+        is_significant_spike: boolean;
+        is_significant_drop: boolean;
+      }> = [];
+      
       for (let i = 1; i < history.length; i++) {
-        const prevTraffic = history[i - 1].organic_traffic;
-        const currTraffic = history[i].organic_traffic;
-        if (prevTraffic > 0) {
-          const growth = ((currTraffic - prevTraffic) / prevTraffic) * 100;
-          if (growth > maxGrowthPercent) {
-            maxGrowthPercent = growth;
-            maxGrowthMonth = {
-              date: history[i].date,
-              from: prevTraffic,
-              to: currTraffic,
-              growth_percent: growth.toFixed(1)
-            };
-          }
-        }
+        const prev = history[i - 1];
+        const curr = history[i];
+        const momChange = prev.organic_traffic > 0 
+          ? ((curr.organic_traffic - prev.organic_traffic) / prev.organic_traffic) * 100 
+          : 0;
+        const keywordChange = curr.organic_keywords - prev.organic_keywords;
+        
+        monthlyChanges.push({
+          date: curr.date,
+          traffic: curr.organic_traffic,
+          prev_traffic: prev.organic_traffic,
+          mom_change_percent: parseFloat(momChange.toFixed(1)),
+          keywords: curr.organic_keywords,
+          keyword_change: keywordChange,
+          is_significant_spike: momChange > 15,  // >15% 增长
+          is_significant_drop: momChange < -15,  // >15% 下降
+        });
       }
+      
+      // ⚠️ 找出所有需要调查的显著波动
+      const significantFluctuations = monthlyChanges.filter(
+        m => m.is_significant_spike || m.is_significant_drop
+      );
+      
+      // 生成调查指令
+      const investigationTasks = significantFluctuations.map(f => {
+        const changeType = f.is_significant_spike ? '📈 SPIKE' : '📉 DROP';
+        const changeDesc = f.is_significant_spike 
+          ? `+${f.mom_change_percent}% 增长 (${f.prev_traffic.toLocaleString()} → ${f.traffic.toLocaleString()})`
+          : `${f.mom_change_percent}% 下降 (${f.prev_traffic.toLocaleString()} → ${f.traffic.toLocaleString()})`;
+        
+        // 将 YYYYMM15 格式转换为可读格式
+        const year = f.date.substring(0, 4);
+        const month = f.date.substring(4, 6);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthName = monthNames[parseInt(month) - 1] || month;
+        
+        return {
+          type: changeType,
+          date: f.date,
+          readable_date: `${monthName} ${year}`,
+          change: changeDesc,
+          keywords_changed: f.keyword_change,
+          // ⚠️ 必须执行的调查任务
+          required_investigation: [
+            `1. 调用 get_domain_organic_pages 查看 ${domain} 在此期间新增/失去了哪些页面`,
+            `2. 调用 web_search "${domain} ${monthName} ${year}" 搜索该公司在此期间的新闻/发布`,
+            `3. 调用 web_search "Google algorithm update ${monthName} ${year}" 检查是否有算法更新`,
+            `4. 在报告中详细说明根因，不要只说"流量增长/下降"`,
+          ]
+        };
+      });
 
       const result = {
         success: true,
@@ -478,6 +526,8 @@ export const get_domain_history = tool({
           months: history.length
         },
         history,
+        // ⚠️ 每月环比数据 - 用于图表
+        monthly_changes: monthlyChanges,
         trend_analysis: {
           start_traffic: firstMonth.organic_traffic,
           end_traffic: lastMonth.organic_traffic,
@@ -487,31 +537,25 @@ export const get_domain_history = tool({
             : totalGrowth < -15 ? 'declining' 
             : 'stable',
           avg_monthly_traffic: Math.round(avgTraffic),
-          // 流量激增分析
-          spike_detected: spikes.length > 0,
-          spike_months: spikes.map(s => ({
-            date: s.date,
-            traffic: s.organic_traffic,
-            vs_average: ((s.organic_traffic / avgTraffic - 1) * 100).toFixed(1) + '%'
-          })),
-          // 流量下降分析
-          drop_detected: drops.length > 0,
-          drop_months: drops.map(d => ({
-            date: d.date,
-            traffic: d.organic_traffic,
-            vs_average: ((d.organic_traffic / avgTraffic - 1) * 100).toFixed(1) + '%'
-          })),
-          // 最大增长月份
-          biggest_growth_month: maxGrowthMonth,
           // 关键词变化
           keyword_growth: lastMonth.organic_keywords - firstMonth.organic_keywords,
           keyword_growth_percent: firstMonth.organic_keywords > 0
             ? ((lastMonth.organic_keywords - firstMonth.organic_keywords) / firstMonth.organic_keywords * 100).toFixed(1)
             : 'N/A'
+        },
+        // ⚠️⚠️⚠️ 波动调查指令 - AI 必须执行这些！
+        fluctuation_investigation: {
+          fluctuations_detected: significantFluctuations.length,
+          requires_investigation: significantFluctuations.length > 0,
+          investigation_tasks: investigationTasks,
+          // ⚠️ 强制执行提示
+          MANDATORY_ACTION: significantFluctuations.length > 0 
+            ? `⚠️ 检测到 ${significantFluctuations.length} 个显著波动！你必须调查每一个波动的根因。不调查 = 报告不完整！`
+            : '无显著波动，继续下一步分析。'
         }
       };
 
-      console.log(`[get_domain_history] Trend: ${result.trend_analysis.trend_direction}, Growth: ${totalGrowth.toFixed(1)}%`);
+      console.log(`[get_domain_history] Trend: ${result.trend_analysis.trend_direction}, Fluctuations: ${significantFluctuations.length}`);
 
       return result;
     } catch (error: any) {
