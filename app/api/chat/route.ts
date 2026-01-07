@@ -596,12 +596,28 @@ ${itemsList}
           const toolArgs = { ...args };
           const toolSchema = (toolDef as any).parameters;
           
-          // FORCE inject userId - always use the authenticated user
+          // FORCE inject userId - always use the authenticated user (camelCase)
           if (userId && toolSchema?.shape && 'userId' in toolSchema.shape) {
             if (toolArgs.userId !== userId) {
               console.log(`[Auto-Injection] Overriding userId for tool: ${toolName}`);
             }
             toolArgs.userId = userId;
+          }
+          
+          // FORCE inject user_id - snake_case variant (for tools like markdown_to_html_report)
+          if (userId && toolSchema?.shape && 'user_id' in toolSchema.shape) {
+            if (toolArgs.user_id !== userId) {
+              console.log(`[Auto-Injection] Overriding user_id for tool: ${toolName}`);
+            }
+            toolArgs.user_id = userId;
+          }
+          
+          // FORCE inject conversation_id - snake_case variant
+          if (conversationId && toolSchema?.shape && 'conversation_id' in toolSchema.shape) {
+            if (toolArgs.conversation_id !== conversationId) {
+              console.log(`[Auto-Injection] Overriding conversation_id for tool: ${toolName}`);
+            }
+            toolArgs.conversation_id = conversationId;
           }
           
           // FORCE inject projectId - always override AI's guess with the real project ID
