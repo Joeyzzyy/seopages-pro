@@ -536,24 +536,24 @@ export const get_domain_history = tool({
  * Semrush Domain Organic Pages
  * 获取域名的有机流量页面列表
  * 
- * 端点: type=domain_organic_organic
+ * 使用 domain_organic 端点获取关键词数据，然后按 URL 聚合
+ * 这样可以得到该域名自己的页面，而不是竞争对手域名
  * 
  * ⚠️ 成本警告: 按返回行数计费！
- * 默认只返回 20 行以控制成本（约 20 units）
- * 最大限制 50 行以防止意外超支
+ * 默认只返回 50 行关键词以控制成本（约 50 units）
+ * 然后按 URL 聚合得到页面列表
  */
 export const get_domain_organic_pages = tool({
-  description: 'Get top organic pages for a domain. ⚠️ Cost: ~1 unit per row returned. Default 20 pages to control costs. Shows which URLs drive the most traffic.',
+  description: 'Get top organic pages for a domain by aggregating keyword data. ⚠️ Cost: ~50 units. Shows which URLs drive the most traffic based on keyword rankings.',
   parameters: z.object({
     domain: z.string().describe('The domain to analyze'),
     database: z.string().optional().default('us').describe('Regional database'),
-    limit: z.number().optional().default(20).describe('Number of pages to return. Default 20 (costs ~20 units). Max 50 to prevent overspending.'),
+    limit: z.number().optional().default(50).describe('Number of keywords to fetch for aggregation. Default 50 (costs ~50 units). More keywords = more accurate page data.'),
   }),
   execute: async ({ domain, database, limit }) => {
     // ⚠️ 严格限制行数以控制成本
-    // 每行约 1 unit，最大允许 50 行
-    const safeLimit = Math.min(limit || 20, 50);
-    console.log(`[get_domain_organic_pages] Getting top ${safeLimit} organic pages for: ${domain} (cost: ~${safeLimit} units)`);
+    const safeLimit = Math.min(limit || 50, 100);
+    console.log(`[get_domain_organic_pages] Getting organic pages for: ${domain} via keyword aggregation (fetching ${safeLimit} keywords)`);
     
     try {
       const apiKey = process.env.SEMRUSH_API_KEY;
@@ -561,10 +561,10 @@ export const get_domain_organic_pages = tool({
         throw new Error('SEMRUSH_API_KEY is not configured');
       }
 
-      // Domain Organic Pages API
-      // 文档: https://developer.semrush.com/api/v3/analytics/domain-reports/domain-organic-pages/
-      // ⚠️ 成本: 每行约 1 unit
-      const url = `https://api.semrush.com/?type=domain_organic_organic&key=${apiKey}&domain=${encodeURIComponent(domain)}&database=${database}&display_limit=${safeLimit}&export_columns=Ur,Pc,Tg,Tr,Kw&display_sort=tr_desc`;
+      // 使用 domain_organic 端点获取关键词数据（包含 URL）
+      // 然后按 URL 聚合来得到页面列表
+      // 这样可以得到域名自己的页面，而不是竞争对手
+      const url = `https://api.semrush.com/?type=domain_organic&key=${apiKey}&domain=${encodeURIComponent(domain)}&database=${database}&display_limit=${safeLimit}&export_columns=Ph,Po,Nq,Cp,Ur,Tr,Tc,Kd&display_sort=tr_desc`;
 
       console.log(`[get_domain_organic_pages] Calling: ${url.replace(apiKey, 'KEY_HIDDEN')}`);
 
@@ -598,86 +598,138 @@ export const get_domain_organic_pages = tool({
         };
       }
 
-      // 解析: URL;Organic traffic;Organic traffic cost;Traffic %;Keywords
-      const pages = lines.slice(1).map(line => {
+      // 解析关键词数据: Keyword;Position;Search Volume;CPC;URL;Traffic %;Traffic Cost;Keyword Difficulty
+      const keywords = lines.slice(1).map(line => {
         const values = line.split(';');
         return {
-          url: values[0],
-          organic_traffic: parseInt(values[1]) || 0,
-          traffic_cost: parseFloat(values[2]) || 0,
-          traffic_percent: parseFloat(values[3]) || 0,
-          keywords: parseInt(values[4]) || 0,
+          keyword: values[0],
+          position: parseInt(values[1]) || 0,
+          search_volume: parseInt(values[2]) || 0,
+          cpc: parseFloat(values[3]) || 0,
+          url: values[4],
+          traffic_percent: parseFloat(values[5]) || 0,
+          traffic_cost: parseFloat(values[6]) || 0,
+          difficulty: parseInt(values[7]) || 0,
         };
       });
+
+      // 按 URL 聚合关键词数据
+      const pageMap: Record<string, {
+        url: string;
+        keywords: number;
+        total_traffic_percent: number;
+        total_traffic_cost: number;
+        top_keywords: string[];
+        avg_position: number;
+        positions: number[];
+      }> = {};
+
+      keywords.forEach(kw => {
+        if (!kw.url) return;
+        
+        // 提取相对路径（去掉域名部分）
+        let pagePath = kw.url;
+        try {
+          if (kw.url.startsWith('http')) {
+            pagePath = new URL(kw.url).pathname;
+          } else if (!kw.url.startsWith('/')) {
+            // URL like "example.com/page" - extract path
+            const parts = kw.url.split('/');
+            pagePath = '/' + parts.slice(1).join('/');
+          }
+        } catch {
+          // Keep original if parsing fails
+        }
+
+        if (!pageMap[pagePath]) {
+          pageMap[pagePath] = {
+            url: pagePath,
+            keywords: 0,
+            total_traffic_percent: 0,
+            total_traffic_cost: 0,
+            top_keywords: [],
+            avg_position: 0,
+            positions: [],
+          };
+        }
+
+        pageMap[pagePath].keywords++;
+        pageMap[pagePath].total_traffic_percent += kw.traffic_percent;
+        pageMap[pagePath].total_traffic_cost += kw.traffic_cost;
+        pageMap[pagePath].positions.push(kw.position);
+        
+        if (pageMap[pagePath].top_keywords.length < 3) {
+          pageMap[pagePath].top_keywords.push(kw.keyword);
+        }
+      });
+
+      // 计算平均排名并转换为数组
+      const pages = Object.values(pageMap).map(p => ({
+        url: p.url,
+        keywords: p.keywords,
+        traffic_percent: parseFloat(p.total_traffic_percent.toFixed(2)),
+        traffic_cost: parseFloat(p.total_traffic_cost.toFixed(2)),
+        avg_position: parseFloat((p.positions.reduce((a, b) => a + b, 0) / p.positions.length).toFixed(1)),
+        top_keywords: p.top_keywords,
+      })).sort((a, b) => b.traffic_percent - a.traffic_percent);
 
       // 分析页面类型
       const pageTypes = {
         blog: pages.filter(p => p.url.includes('/blog') || p.url.includes('/article') || p.url.includes('/post')).length,
         product: pages.filter(p => p.url.includes('/product') || p.url.includes('/pricing') || p.url.includes('/features')).length,
-        landing: pages.filter(p => p.url.split('/').length <= 4 && !p.url.includes('/blog')).length,
-        tool: pages.filter(p => p.url.includes('/tool') || p.url.includes('/free') || p.url.includes('/generator')).length,
+        landing: pages.filter(p => p.url.split('/').length <= 3 && !p.url.includes('/blog')).length,
+        tool: pages.filter(p => p.url.includes('/tool') || p.url.includes('/free') || p.url.includes('/generator') || p.url.includes('/writing-tools')).length,
       };
 
       // 识别 PSEO 模式（大量相似 URL 结构）
       const urlPatterns: Record<string, number> = {};
       pages.forEach(p => {
-        try {
-          // Semrush 可能返回完整 URL 或相对路径，需要兼容处理
-          let pathname: string;
-          if (p.url.startsWith('http://') || p.url.startsWith('https://')) {
-            pathname = new URL(p.url).pathname;
-          } else if (p.url.startsWith('/')) {
-            pathname = p.url;
-          } else {
-            // 可能是不带协议的 URL，如 example.com/page
-            pathname = '/' + p.url.split('/').slice(1).join('/');
-          }
-          const urlParts = pathname.split('/').filter(Boolean);
-          if (urlParts.length >= 2) {
-            const pattern = `/${urlParts[0]}/*`;
-            urlPatterns[pattern] = (urlPatterns[pattern] || 0) + 1;
-          }
-        } catch {
-          // 忽略无法解析的 URL
+        const urlParts = p.url.split('/').filter(Boolean);
+        if (urlParts.length >= 2) {
+          const pattern = `/${urlParts[0]}/*`;
+          urlPatterns[pattern] = (urlPatterns[pattern] || 0) + 1;
         }
       });
 
       const pseoPatterns = Object.entries(urlPatterns)
-        .filter(([_, count]) => count >= 5)
+        .filter(([_, count]) => count >= 3)
         .map(([pattern, count]) => ({ pattern, count }))
         .sort((a, b) => b.count - a.count);
 
-      const totalTraffic = pages.reduce((sum, p) => sum + p.organic_traffic, 0);
-      const top10Traffic = pages.slice(0, 10).reduce((sum, p) => sum + p.organic_traffic, 0);
+      const totalTrafficPercent = pages.reduce((sum, p) => sum + p.traffic_percent, 0);
+      const top10TrafficPercent = pages.slice(0, 10).reduce((sum, p) => sum + p.traffic_percent, 0);
 
       return {
         success: true,
         domain,
         database,
         total_pages: pages.length,
-        pages,
+        total_keywords_analyzed: keywords.length,
+        pages: pages.slice(0, 20), // Return top 20 pages
         analysis: {
-          total_organic_traffic: totalTraffic,
-          top_10_traffic_share: totalTraffic > 0 ? ((top10Traffic / totalTraffic) * 100).toFixed(1) + '%' : 'N/A',
+          top_10_traffic_share: totalTrafficPercent > 0 ? ((top10TrafficPercent / totalTrafficPercent) * 100).toFixed(1) + '%' : 'N/A',
           page_type_distribution: pageTypes,
           // PSEO 检测
           pseo_detected: pseoPatterns.length > 0,
-          pseo_patterns: pseoPatterns,
+          pseo_patterns: pseoPatterns.slice(0, 5),
           // 流量集中度
-          traffic_concentration: top10Traffic > totalTraffic * 0.8 
+          traffic_concentration: top10TrafficPercent > totalTrafficPercent * 0.8 
             ? 'highly_concentrated' 
-            : top10Traffic > totalTraffic * 0.5 
+            : top10TrafficPercent > totalTrafficPercent * 0.5 
               ? 'moderately_concentrated' 
               : 'diversified',
         },
         insights: {
-          top_traffic_pages: pages.slice(0, 5).map(p => `${p.url} (${p.organic_traffic} visits, ${p.keywords} keywords)`),
+          top_traffic_pages: pages.slice(0, 5).map(p => `${p.url} (${p.traffic_percent}% traffic, ${p.keywords} keywords, avg pos #${p.avg_position})`),
           content_strategy: pseoPatterns.length > 0 
             ? `Detected PSEO pattern: ${pseoPatterns[0].pattern} with ${pseoPatterns[0].count} pages`
             : pageTypes.blog > pageTypes.product
               ? 'Content marketing focused'
-              : 'Product/landing page focused',
-        }
+              : pageTypes.tool > 0
+                ? 'Free tool strategy detected'
+                : 'Product/landing page focused',
+        },
+        note: 'Pages aggregated from keyword ranking data. Traffic % is the sum of individual keyword traffic shares.'
       };
     } catch (error: any) {
       console.error(`[get_domain_organic_pages] ERROR:`, error.message);
