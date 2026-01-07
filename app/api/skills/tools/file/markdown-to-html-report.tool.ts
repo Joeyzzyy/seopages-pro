@@ -217,8 +217,12 @@ function markdownToHtmlWithCharts(markdown: string, title: string): { html: stri
   const chartScripts: string[] = [];
   let chartCounter = 0;
 
+  // 移除开头的 h1 标题（避免与 content-header 重复）
+  html = html.replace(/^#\s+[^\n]+\n+/, '');
+
   // 查找所有表格并处理
-  const tableRegex = /\|[^\n]+\|\n\|[-:\s|]+\|\n(\|[^\n]+\|\n)+/g;
+  // 更宽松的正则：支持行末有或没有 |，支持最后一行没有换行
+  const tableRegex = /\|[^\n]+\|?\n\|[-:\s|]+\|?\n(\|[^\n]+\|?\n?)+/g;
   
   html = html.replace(tableRegex, (tableMatch) => {
     const parsed = parseMarkdownTable(tableMatch);
