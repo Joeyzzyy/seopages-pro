@@ -48,7 +48,8 @@ export default function ToolInvocationDisplay({ toolInvocation }: ToolInvocation
     }
 
     // Check if this is an HTML report result - render in iframe using base64 content
-    if (toolName === 'markdown_to_html_report' && result.success && result.content && result.mimeType === 'text/html') {
+    // Use startsWith to handle 'text/html;charset=utf-8'
+    if (toolName === 'markdown_to_html_report' && result.success && result.content && result.mimeType?.startsWith('text/html')) {
       // Decode base64 content with proper UTF-8 handling
       // atob() returns Latin-1, need to convert to UTF-8 for Chinese/unicode support
       const binaryString = atob(result.content);
@@ -91,7 +92,7 @@ export default function ToolInvocationDisplay({ toolInvocation }: ToolInvocation
               srcDoc={htmlContent}
               className="w-full h-full border-0"
               title="Interactive Report"
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
             />
           </div>
         </div>

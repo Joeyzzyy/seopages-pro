@@ -10,25 +10,25 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 /**
  * Markdown to HTML Report Tool
  * 
- * 将 Markdown 报告转换为带交互式图表的 HTML 页面
- * 特性：
- * - 自动识别表格并转换为 Chart.js 图表
- * - 现代化深色主题设计
- * - 响应式布局
- * - 支持打印
+ * Convert Markdown reports to interactive HTML pages
+ * Features:
+ * - Auto-detect tables and convert to Chart.js charts (when enabled)
+ * - Modern light theme design
+ * - Responsive layout
+ * - Print-friendly
  */
 
-// 解析 markdown 表格为数据
+// Parse markdown table to data structure
 function parseMarkdownTable(tableText: string): { headers: string[]; rows: string[][] } | null {
   const lines = tableText.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return null;
 
-  // 解析表头
+  // Parse header row
   const headerLine = lines[0];
   const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
   
-  // 跳过分隔行 (第二行 |---|---|)
-  // 解析数据行
+  // Skip separator row (second row |---|---|)
+  // Parse data rows
   const rows: string[][] = [];
   for (let i = 2; i < lines.length; i++) {
     const cells = lines[i].split('|').map(c => c.trim()).filter(Boolean);
@@ -40,47 +40,50 @@ function parseMarkdownTable(tableText: string): { headers: string[]; rows: strin
   return { headers, rows };
 }
 
-// 检测表格是否适合转换为图表
-function detectChartType(headers: string[], rows: string[][]): 'line' | 'bar' | 'pie' | 'none' {
+// Detect if table is suitable for chart conversion
+// Note: Chart generation is disabled by default unless explicitly enabled
+function detectChartType(headers: string[], rows: string[][], enableCharts: boolean = false): 'line' | 'bar' | 'pie' | 'none' {
+  // Do not generate charts by default
+  if (!enableCharts) {
+    return 'none';
+  }
+  
   const headerLower = headers.map(h => h.toLowerCase());
   
-  // 时间序列数据 -> 折线图
+  // Time series data -> line chart
   if (headerLower.some(h => 
-    h.includes('month') || h.includes('date') || h.includes('period') || 
-    h.includes('月份') || h.includes('时间') || h.includes('mom')
+    h.includes('month') || h.includes('date') || h.includes('period') || h.includes('mom')
   )) {
     return 'line';
   }
   
-  // 百分比分布 -> 饼图
-  if (headerLower.some(h => h.includes('%') || h.includes('share') || h.includes('ratio') || h.includes('占比'))) {
+  // Percentage distribution -> pie chart
+  if (headerLower.some(h => h.includes('%') || h.includes('share') || h.includes('ratio'))) {
     return 'pie';
   }
   
-  // 有数值数据 -> 柱状图（更宽泛的检测）
+  // Numeric data -> bar chart (broader detection)
   if (headerLower.some(h => 
     h.includes('traffic') || h.includes('keywords') || h.includes('volume') ||
     h.includes('visits') || h.includes('count') || h.includes('score') ||
-    h.includes('rank') || h.includes('backlink') || h.includes('domain') ||
-    h.includes('流量') || h.includes('关键词') || h.includes('搜索量') ||
-    h.includes('排名') || h.includes('得分')
+    h.includes('rank') || h.includes('backlink') || h.includes('domain')
   )) {
     return 'bar';
   }
   
-  // 检查是否有任何数值列（至少2行数据，且有数值）
+  // Check for any numeric columns (at least 2 rows with numeric data)
   if (rows.length >= 2) {
     const hasNumericData = headers.some((_, colIndex) => {
-      if (colIndex === 0) return false; // 跳过第一列（通常是标签）
+      if (colIndex === 0) return false; // Skip first column (usually labels)
       const numericCount = rows.filter(row => {
         const val = row[colIndex];
-        // 必须包含至少一个数字字符
+        // Must contain at least one digit
         if (!val || !/\d/.test(val)) return false;
         const cleaned = val.replace(/[^\d.-]/g, '');
         const num = parseFloat(cleaned);
         return !isNaN(num) && isFinite(num);
       }).length;
-      return numericCount >= rows.length * 0.5; // 至少50%的行有数值
+      return numericCount >= rows.length * 0.5; // At least 50% of rows have numeric values
     });
     if (hasNumericData) {
       return 'bar';
@@ -90,23 +93,23 @@ function detectChartType(headers: string[], rows: string[][]): 'line' | 'bar' | 
   return 'none';
 }
 
-// 提取数字值
+// Extract numeric value from string
 function extractNumber(value: string): number {
   const cleaned = value.replace(/[^\d.-]/g, '');
   return parseFloat(cleaned) || 0;
 }
 
-// 检查字符串是否包含有效数字
+// Check if string contains valid number
 function hasValidNumber(value: string): boolean {
   if (!value) return false;
-  // 必须包含至少一个数字
+  // Must contain at least one digit
   if (!/\d/.test(value)) return false;
   const cleaned = value.replace(/[^\d.-]/g, '');
   const num = parseFloat(cleaned);
   return !isNaN(num) && isFinite(num);
 }
 
-// 生成图表配置
+// Generate chart configuration
 function generateChartConfig(
   headers: string[], 
   rows: string[][], 
@@ -116,11 +119,11 @@ function generateChartConfig(
   const labels = rows.map(row => row[0]);
   
   if (chartType === 'line' || chartType === 'bar') {
-    // 找数值列 - 使用 hasValidNumber 确保列真的包含数字
+    // Find numeric columns - ensure column truly contains numbers
     const numericColumns: number[] = [];
     headers.forEach((h, i) => {
       if (i > 0) {
-        // 至少 50% 的行在该列有有效数字
+        // At least 50% of rows must have valid numbers in this column
         const validCount = rows.filter(row => hasValidNumber(row[i] || '')).length;
         if (validCount >= rows.length * 0.5) numericColumns.push(i);
       }
@@ -177,7 +180,7 @@ function generateChartConfig(
   }
   
   if (chartType === 'pie') {
-    // 找第一个真正的数值列（至少50%的行有有效数字）
+    // Find first column with valid numeric values (at least 50% valid)
     let valueColIndex = -1;
     for (let i = 1; i < headers.length; i++) {
       const validCount = rows.filter(row => hasValidNumber(row[i] || '')).length;
@@ -187,7 +190,7 @@ function generateChartConfig(
       }
     }
     
-    // 如果没找到数值列，跳过图表生成
+    // Skip chart generation if no numeric column found
     if (valueColIndex === -1) {
       return '';
     }
@@ -232,27 +235,27 @@ function generateChartConfig(
   return '';
 }
 
-// 解析 Markdown 并生成 HTML
-function markdownToHtmlWithCharts(markdown: string, title: string): { html: string; chartScripts: string[] } {
+// Parse Markdown and generate HTML
+function markdownToHtmlWithCharts(markdown: string, title: string, enableCharts: boolean = false): { html: string; chartScripts: string[] } {
   let html = markdown;
   const chartScripts: string[] = [];
   let chartCounter = 0;
 
-  // 移除开头的 h1 标题（避免与 content-header 重复）
+  // Remove leading h1 title (avoid duplication with content-header)
   html = html.replace(/^#\s+[^\n]+\n+/, '');
 
-  // 查找所有表格并处理
-  // 更宽松的正则：支持行末有或没有 |，支持最后一行没有换行
+  // Find all tables and process them
+  // Flexible regex: supports trailing | or not, supports last row without newline
   const tableRegex = /\|[^\n]+\|?\n\|[-:\s|]+\|?\n(\|[^\n]+\|?\n?)+/g;
   
   html = html.replace(tableRegex, (tableMatch) => {
     const parsed = parseMarkdownTable(tableMatch);
     if (!parsed) return tableMatch;
     
-    const chartType = detectChartType(parsed.headers, parsed.rows);
+    const chartType = detectChartType(parsed.headers, parsed.rows, enableCharts);
     const chartId = `chart-${chartCounter++}`;
     
-    // 生成 HTML 表格
+    // Generate HTML table
     let tableHtml = '<div class="table-container"><table class="data-table">';
     tableHtml += '<thead><tr>';
     parsed.headers.forEach(h => {
@@ -262,19 +265,17 @@ function markdownToHtmlWithCharts(markdown: string, title: string): { html: stri
     parsed.rows.forEach(row => {
       tableHtml += '<tr>';
       row.forEach((cell, idx) => {
-        // 高亮特定内容
+        // Highlight specific content
         let cellHtml = cell;
-        if (cell.includes('✅')) cellHtml = `<span class="badge success">${cell}</span>`;
-        else if (cell.includes('❌')) cellHtml = `<span class="badge danger">${cell}</span>`;
-        else if (cell.includes('↑')) cellHtml = `<span class="trend up">${cell}</span>`;
-        else if (cell.includes('↓')) cellHtml = `<span class="trend down">${cell}</span>`;
+        if (cell.includes('+')) cellHtml = `<span class="trend up">${cell}</span>`;
+        else if (cell.includes('-') && /\d/.test(cell)) cellHtml = `<span class="trend down">${cell}</span>`;
         tableHtml += `<td>${cellHtml}</td>`;
       });
       tableHtml += '</tr>';
     });
     tableHtml += '</tbody></table></div>';
     
-    // 如果可以生成图表
+    // Generate chart if applicable
     if (chartType !== 'none' && parsed.rows.length >= 2) {
       const chartConfig = generateChartConfig(parsed.headers, parsed.rows, chartType, chartId);
       chartScripts.push(chartConfig);
@@ -292,34 +293,38 @@ function markdownToHtmlWithCharts(markdown: string, title: string): { html: stri
     return tableHtml;
   });
 
-  // 转换其他 Markdown 元素
-  // 标题
+  // Convert other Markdown elements
+  // Headings
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
   
-  // 粗体和斜体
+  // Bold and italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
-  // 列表
+  // Links - convert [text](url) to clickable <a> tags
+  // Must be done before other processing to avoid conflicts
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="report-link">$1</a>');
+  
+  // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
   
-  // 数字列表
+  // Ordered lists
   html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
   
-  // 分割线
+  // Horizontal rules
   html = html.replace(/^---$/gm, '<hr>');
   
-  // 代码块
+  // Code blocks
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
   
-  // 段落（双换行）
+  // Paragraphs (double newlines)
   html = html.replace(/\n\n/g, '</p><p>');
   html = `<p>${html}</p>`;
   
-  // 清理空段落
+  // Clean up empty paragraphs
   html = html.replace(/<p>\s*<\/p>/g, '');
   html = html.replace(/<p>(<h[1-6]>)/g, '$1');
   html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
@@ -332,59 +337,107 @@ function markdownToHtmlWithCharts(markdown: string, title: string): { html: stri
   return { html, chartScripts };
 }
 
-// 将内容按 h2 分割成 tabs
-function splitContentIntoTabs(content: string): { tabs: { id: string; title: string; content: string }[]; header: string } {
-  // 提取标题和头部信息（h1 之前或第一个 h2 之前的内容）
-  const h2Regex = /<h2>(.+?)<\/h2>/g;
-  const matches = [...content.matchAll(h2Regex)];
+// Navigation item type: supports hierarchical structure
+interface NavItem {
+  id: string;
+  title: string;
+  content: string;
+  level: 'h1' | 'h2';
+  children?: NavItem[];
+}
+
+// Split content by h1 and h2 into hierarchical navigation
+function splitContentIntoTabs(content: string): { tabs: NavItem[]; header: string } {
+  // Match h1 and h2 headings
+  const headingRegex = /<(h1|h2)>(.+?)<\/\1>/g;
+  const matches = [...content.matchAll(headingRegex)];
   
   if (matches.length === 0) {
-    return { tabs: [{ id: 'main', title: 'Report Content', content }], header: '' };
+    return { tabs: [{ id: 'main', title: 'Report Content', content, level: 'h1' }], header: '' };
   }
   
-  // 找到第一个 h2 之前的内容作为 header
-  const firstH2Index = content.indexOf('<h2>');
-  const header = firstH2Index > 0 ? content.substring(0, firstH2Index) : '';
+  // Find content before first h1 or h2 as header
+  const firstHeadingIndex = Math.min(
+    content.indexOf('<h1>') >= 0 ? content.indexOf('<h1>') : Infinity,
+    content.indexOf('<h2>') >= 0 ? content.indexOf('<h2>') : Infinity
+  );
+  const header = firstHeadingIndex > 0 && firstHeadingIndex !== Infinity ? content.substring(0, firstHeadingIndex) : '';
   
-  const tabs: { id: string; title: string; content: string }[] = [];
+  const tabs: NavItem[] = [];
+  let currentH1: NavItem | null = null;
   
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i];
-    const title = match[1].replace(/<[^>]+>/g, '').trim(); // 移除 HTML 标签
+    const level = match[1] as 'h1' | 'h2';
+    const title = match[2].replace(/<[^>]+>/g, '').trim();
     const startIndex = match.index!;
     const endIndex = i < matches.length - 1 ? matches[i + 1].index! : content.length;
     const tabContent = content.substring(startIndex, endIndex);
+    const id = `section-${i}`;
     
-    // 生成 tab ID
-    const id = `tab-${i}`;
-    
-    tabs.push({ id, title, content: tabContent });
+    if (level === 'h1') {
+      // New parent category
+      currentH1 = { id, title, content: tabContent, level, children: [] };
+      tabs.push(currentH1);
+    } else {
+      // h2 child item
+      const item: NavItem = { id, title, content: tabContent, level };
+      if (currentH1) {
+        currentH1.children = currentH1.children || [];
+        currentH1.children.push(item);
+      } else {
+        // No parent h1, add to top level
+        tabs.push(item);
+      }
+    }
   }
   
   return { tabs, header };
 }
 
-// 生成完整 HTML 页面
+// Generate complete HTML page
 function generateHtmlPage(content: string, chartScripts: string[], title: string): string {
   const { tabs, header } = splitContentIntoTabs(content);
   
-  // 生成侧边栏导航项
-  const navItems = tabs.map((tab, i) => 
-    `<a href="#${tab.id}" class="nav-item ${i === 0 ? 'active' : ''}" data-section="${tab.id}">
-      <span class="nav-dot"></span>
-      <span class="nav-text">${tab.title}</span>
-    </a>`
-  ).join('');
+  // Generate hierarchical sidebar navigation items
+  const generateNavItems = (items: NavItem[], isFirst: boolean = true): string => {
+    return items.map((tab, i) => {
+      const isActive = isFirst && i === 0;
+      const isParent = tab.level === 'h1' && tab.children && tab.children.length > 0;
+      
+      let html = `<a href="#${tab.id}" class="nav-item ${isActive ? 'active' : ''} ${tab.level === 'h2' ? 'nav-child' : 'nav-parent'}" data-section="${tab.id}">
+        <span class="nav-text">${tab.title}</span>
+      </a>`;
+      
+      // If has children, generate recursively
+      if (isParent) {
+        html += `<div class="nav-children">${generateNavItems(tab.children!, false)}</div>`;
+      }
+      
+      return html;
+    }).join('');
+  };
   
-  // 生成内容区域（所有内容连续显示，通过滚动定位）
-  const sections = tabs.map((tab) => 
-    `<section class="content-section" id="${tab.id}">${tab.content}</section>`
-  ).join('');
+  const navItems = generateNavItems(tabs);
+  
+  // Collect all sections (including nested ones)
+  const collectSections = (items: NavItem[]): string => {
+    return items.map(tab => {
+      let html = `<section class="content-section" id="${tab.id}">${tab.content}</section>`;
+      if (tab.children && tab.children.length > 0) {
+        html += collectSections(tab.children);
+      }
+      return html;
+    }).join('');
+  };
+  
+  const sections = collectSections(tabs);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -425,7 +478,7 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.7;
@@ -452,68 +505,14 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
       z-index: 100;
     }
     
-    .sidebar-header {
-      padding: 0 20px 20px;
-      border-bottom: 1px solid var(--border-light);
-      margin-bottom: 16px;
-    }
-    
-    .sidebar-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-light);
-    }
-    
-    .brand-icon {
-      font-size: 1.1rem;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal), var(--accent-purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .brand-text {
-      font-size: 0.85rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: -0.3px;
-    }
-    
-    .sidebar-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-    
-    .sidebar-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
     
     .nav-section {
-      padding: 0 12px;
-    }
-    
-    .nav-label {
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 12px 8px 8px;
+      padding: 16px 12px;
     }
     
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
       padding: 10px 12px;
       color: var(--text-secondary);
       text-decoration: none;
@@ -521,6 +520,29 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
       border-radius: 6px;
       margin-bottom: 2px;
       transition: all 0.15s ease;
+    }
+    
+    /* Parent navigation (h1 categories) */
+    .nav-parent {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      margin-top: 12px;
+    }
+    
+    .nav-parent:first-child {
+      margin-top: 0;
+    }
+    
+    /* Child navigation (h2 items) */
+    .nav-child {
+      padding-left: 24px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .nav-children {
+      margin-left: 0;
     }
     
     .nav-item:hover {
@@ -534,16 +556,8 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
       font-weight: 500;
     }
     
-    .nav-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--border-color);
-      flex-shrink: 0;
-    }
-    
-    .nav-item.active .nav-dot {
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    .nav-child.active {
+      font-weight: 500;
     }
     
     .nav-text {
@@ -668,6 +682,30 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
       font-family: 'SF Mono', Monaco, monospace;
       font-size: 0.85em;
       color: var(--accent-purple);
+    }
+    
+    /* Links - make them clearly clickable */
+    a, .report-link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    
+    a:hover, .report-link:hover {
+      color: var(--accent-purple);
+      border-bottom-color: var(--accent-purple);
+    }
+    
+    /* Links in tables */
+    .data-table a, .data-table .report-link {
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+    
+    .data-table a:hover, .data-table .report-link:hover {
+      text-decoration: underline;
     }
     
     blockquote {
@@ -811,16 +849,7 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
   <div class="layout">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-brand">
-          <span class="brand-icon">&#10022;</span>
-          <span class="brand-text">SeeNOS.ai</span>
-        </div>
-        <div class="sidebar-title">Table of Contents</div>
-        <div class="sidebar-subtitle">${tabs.length} Sections</div>
-      </div>
       <nav class="nav-section">
-        <div class="nav-label">Navigation</div>
         ${navItems}
       </nav>
     </aside>
@@ -829,7 +858,6 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
     <main class="main-content">
       <header class="content-header">
         <h1>${title}</h1>
-        <div class="content-header-meta">${chartScripts.length} Interactive Charts</div>
       </header>
       
       <div class="content-body">
@@ -885,30 +913,31 @@ function generateHtmlPage(content: string, chartScripts: string[], title: string
 
 
 export const markdown_to_html_report = tool({
-  description: 'Convert a Markdown report to a beautiful HTML page with interactive charts. Tables are automatically converted to Chart.js visualizations. Perfect for SEO reports, analytics dashboards, and data presentations.',
+  description: 'Convert a Markdown report to a beautiful HTML page. Charts are disabled by default - only generates tables. Set enable_charts=true to enable chart generation.',
   parameters: z.object({
     markdown_content: z.string().describe('The Markdown content to convert'),
     title: z.string().describe('The title of the report'),
     filename: z.string().optional().describe('Output filename (without extension). Defaults to report-{timestamp}'),
     user_id: z.string().optional().describe('User ID for file storage'),
     conversation_id: z.string().optional().describe('Conversation ID for file association'),
+    enable_charts: z.boolean().optional().default(false).describe('Enable chart generation from tables. Default is false (no charts).'),
   }),
-  execute: async ({ markdown_content, title, filename, user_id, conversation_id }) => {
-    console.log(`[markdown_to_html_report] Converting markdown to HTML report: ${title}`);
+  execute: async ({ markdown_content, title, filename, user_id, conversation_id, enable_charts }) => {
+    console.log(`[markdown_to_html_report] Converting markdown to HTML report: ${title}, charts: ${enable_charts ? 'enabled' : 'disabled'}`);
     
     try {
-      const { html: contentHtml, chartScripts } = markdownToHtmlWithCharts(markdown_content, title);
+      const { html: contentHtml, chartScripts } = markdownToHtmlWithCharts(markdown_content, title, enable_charts);
       const fullHtml = generateHtmlPage(contentHtml, chartScripts, title);
       
       const safeFilename = filename || `seo-report-${Date.now()}`;
       const htmlFilename = `${safeFilename}.html`;
       
-      // 转换为 Buffer
+      // Convert to Buffer
       const htmlBuffer = Buffer.from(fullHtml, 'utf-8');
       
       console.log(`[markdown_to_html_report] HTML report created: ${htmlFilename}, size: ${htmlBuffer.length} bytes, charts: ${chartScripts.length}`);
 
-      // 直接上传到 Supabase Storage（像 generate_images 那样）
+      // Upload directly to Supabase Storage
       let publicUrl = '';
       let fileId = '';
       
@@ -928,7 +957,7 @@ export const markdown_to_html_report = tool({
           
           if (uploadError) {
             console.error('[markdown_to_html_report] Upload error:', uploadError);
-            // 继续执行，返回 base64 content 作为备选
+            // Continue execution, return base64 content as fallback
           } else {
             const { data: { publicUrl: url } } = supabase.storage
               .from('files')
@@ -937,7 +966,7 @@ export const markdown_to_html_report = tool({
             publicUrl = url;
             console.log(`[markdown_to_html_report] Uploaded to: ${publicUrl}`);
             
-            // 保存文件记录到数据库
+            // Save file record to database
             const { data: fileRecord, error: dbError } = await supabase
               .from('files')
               .insert({
@@ -946,7 +975,7 @@ export const markdown_to_html_report = tool({
                 filename: htmlFilename,
                 original_filename: htmlFilename,
                 file_type: 'report',
-                mime_type: 'text/html',
+                mime_type: 'text/html;charset=utf-8',
                 file_size: htmlBuffer.length,
                 storage_path: storagePath,
                 public_url: publicUrl,
@@ -972,21 +1001,21 @@ export const markdown_to_html_report = tool({
         }
       }
 
-      // 返回结果
+      // Return result
       return {
         success: true,
         filename: htmlFilename,
-        content: htmlBuffer.toString('base64'), // 仍然返回 base64 用于预览
+        content: htmlBuffer.toString('base64'), // Still return base64 for preview
         size: htmlBuffer.length,
-        mimeType: 'text/html',
+        mimeType: 'text/html;charset=utf-8',
         publicUrl: publicUrl || undefined,
         public_url: publicUrl || undefined,
         fileId: fileId || undefined,
-        needsUpload: !publicUrl, // 如果已上传则不需要
+        needsUpload: !publicUrl, // No upload needed if already uploaded
         charts_generated: chartScripts.length,
         message: publicUrl 
-          ? `✅ HTML report generated and saved with ${chartScripts.length} interactive charts!`
-          : `✅ HTML report generated with ${chartScripts.length} interactive charts!`,
+          ? `[OK] HTML report generated and saved with ${chartScripts.length} interactive charts!`
+          : `[OK] HTML report generated with ${chartScripts.length} interactive charts!`,
         metadata: {
           title,
           charts_count: chartScripts.length,

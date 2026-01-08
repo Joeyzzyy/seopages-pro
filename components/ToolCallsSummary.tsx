@@ -468,7 +468,8 @@ export default function ToolCallsSummary({
   // Render HTML report inline with iframe
   const renderHtmlReportPreview = (inv: any) => {
     const result = inv.result;
-    if (!result?.success || !result?.content || result?.mimeType !== 'text/html') {
+    // Check mimeType starts with 'text/html' to handle 'text/html;charset=utf-8'
+    if (!result?.success || !result?.content || !result?.mimeType?.startsWith('text/html')) {
       return null;
     }
 
@@ -520,7 +521,7 @@ export default function ToolCallsSummary({
             srcDoc={htmlContent}
             className="w-full h-full border-0"
             title="Interactive Report"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
           />
         </div>
       </div>
