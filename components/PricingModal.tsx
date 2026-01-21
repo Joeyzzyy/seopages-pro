@@ -496,6 +496,7 @@ export default function PricingModal({
         clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
         currency: 'USD',
         intent: 'capture',
+        disableFunding: 'paylater,credit', // Hide Pay Later and Credit options
       }}
     >
       <ModalContent
