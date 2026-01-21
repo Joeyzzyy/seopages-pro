@@ -8,45 +8,22 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export const get_site_contexts = tool({
-  description: `Retrieve saved site-wide HTML components, brand assets, content sections, and site settings for the current user. 
-  
-This tool fetches the user's saved site context elements that can be used to create consistent, branded web pages.
+  description: `Retrieve saved site contexts for page generation. 
 
-Available context types:
+VALID TYPES (use these exact values in the 'types' array):
+- "logo" - Logo URL + brand assets (primary_color, secondary_color, heading_font, body_font, tone)
+- "header" - Site header HTML
+- "footer" - Site footer HTML  
+- "meta" - Head tags and meta content
+- "competitors" - Competitor list JSON
+- "about-us" - Company information
+- "products-services" - Products/services info
 
-**Site Elements:**
-- "logo": The uploaded logo image URL
-- "header": HTML code for the site header/navigation
-- "footer": HTML code for the site footer
-- "meta": Complete <head> tag content including meta tags, stylesheets, scripts, etc.
-- "sitemap": Website sitemap data
+Other valid types: "sitemap", "key-website-pages", "landing-pages", "blog-resources", "hero-section", "problem-statement", "who-we-serve", "use-cases", "industries", "social-proof-trust", "leadership-team", "faq", "contact-information"
 
-**Brand Assets** (stored with logo type):
-- "primary_color": Brand primary color (hex code)
-- "secondary_color": Brand secondary color (hex code)
-- "heading_font": Font family for headings
-- "body_font": Font family for body text
-- "tone": Brand tone and voice guidelines
-- "languages": Supported languages
+NOTE: Brand colors and fonts are stored WITHIN the "logo" type record, NOT as separate types.
 
-**Content Sections:**
-- "key-website-pages": Key pages of the website
-- "landing-pages": Landing pages information
-- "blog-resources": Blog and resource content
-- "hero-section": Hero section content (headline, subheadline, CTA, media, metrics)
-- "problem-statement": Problem/pain points being addressed
-- "who-we-serve": Target audience and customer personas
-- "use-cases": Common use cases and scenarios
-- "industries": Industries served
-- "products-services": Products and services offerings
-- "social-proof-trust": Testimonials, case studies, badges, awards, guarantees, integrations
-- "leadership-team": Team members and leadership
-- "about-us": Company story, mission & vision, core values
-- "faq": Frequently asked questions
-- "contact-information": Contact details (primary contact, location, hours, support channels)
-- "competitors": Competitor list (JSON array of {name, url} objects)
-
-Use this tool BEFORE generating HTML pages to ensure the generated pages include the user's branding, layout, and relevant content.`,
+Example: types: ["logo", "header", "footer", "competitors"]`,
   parameters: z.object({
     user_id: z.string().describe('The user ID to fetch contexts for'),
     projectId: z.string().optional().describe('The SEO project ID to scope this request to'),
@@ -101,15 +78,41 @@ Use this tool BEFORE generating HTML pages to ensure the generated pages include
         });
       }
 
+      // Extract logo details from logo context
+      const logoContext = data?.find((item: any) => item.type === 'logo');
+      const logoDetails = {
+        logo_light_url: logoContext?.logo_light_url || null,
+        logo_dark_url: logoContext?.logo_dark_url || null,
+        file_url: logoContext?.file_url || null,
+        brand_name: logoContext?.brand_name || null,
+        primary_color: logoContext?.primary_color || '#0ea5e9',
+        secondary_color: logoContext?.secondary_color || '#8b5cf6',
+        heading_font: logoContext?.heading_font || null,
+        body_font: logoContext?.body_font || null,
+      };
+      
+      // Parse competitors if available
+      const competitorsContext = data?.find((item: any) => item.type === 'competitors');
+      let competitors: Array<{ name: string; url: string; logo_url?: string; description?: string }> = [];
+      if (competitorsContext?.content) {
+        try {
+          competitors = JSON.parse(competitorsContext.content);
+        } catch (e) {
+          console.error('[get_site_contexts] Failed to parse competitors:', e);
+        }
+      }
+      
       return {
         success: true,
         contexts,
         message: `Found ${data?.length || 0} site context(s) for user`,
         // Provide convenient access to specific contexts
-        logo: contexts.logo?.fileUrl || null,
+        logo: logoDetails.logo_light_url || logoDetails.logo_dark_url || logoDetails.file_url || null,
+        logo_details: logoDetails,
         header: contexts.header?.content || null,
         footer: contexts.footer?.content || null,
         head: contexts.meta?.content || null,
+        competitors,
       };
     } catch (error: any) {
       console.error('[get_site_contexts] Unexpected error:', error);

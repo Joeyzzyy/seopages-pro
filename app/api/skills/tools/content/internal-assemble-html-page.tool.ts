@@ -86,7 +86,7 @@ export const assemble_html_page = tool({
   parameters: z.object({
     item_id: z.string().describe('The ID of the content item'),
     page_title: z.string().describe('The main H1 title of the page'),
-    page_type: z.enum(['blog', 'landing_page', 'comparison', 'guide', 'listicle']).optional().default('blog').describe('Type of content to apply specific styling'),
+    page_type: z.literal('alternative').optional().default('alternative').describe('Page type - always alternative page with premium styling'),
     seo_title: z.string().optional().describe('SEO title for meta tag'),
     seo_description: z.string().optional().describe('SEO description for meta tag'),
     seo_keywords: z.string().optional().describe('SEO keywords for meta tag (comma-separated)'),
@@ -198,246 +198,263 @@ ${html.split('\n').map(line => '        ' + line).join('\n')}
       </li>`).join('');
 
     const customStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
     
     :root {
-      --primary: #4f46e5;
-      --primary-dark: #4338ca;
+      --primary: #8b5cf6;
+      --primary-dark: #7c3aed;
+      --accent: #06b6d4;
+    }
+
+    * {
+      scroll-behavior: smooth;
     }
 
     body { 
-      font-family: 'Plus Jakarta Sans', sans-serif; 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
       background-color: #ffffff;
-      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Section styling */
+    .page-content-scope section {
+      position: relative;
+      padding: 4rem 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .page-content-scope section:last-child {
+      border-bottom: none;
+    }
+
+    /* Premium card styling for sections */
+    .page-content-scope .prose {
+      background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     }
 
     .page-content-scope .prose a { 
       color: var(--primary); 
       text-decoration: none;
-      border-bottom: 2px solid rgba(79, 70, 229, 0.1);
       font-weight: 600; 
-      transition: all 0.2s; 
+      transition: all 0.2s ease;
+      background: linear-gradient(transparent 60%, rgba(139, 92, 246, 0.15) 60%);
     }
     
     .page-content-scope .prose a:hover { 
-      color: var(--primary-dark); 
-      border-bottom-color: var(--primary-dark);
-      background-color: rgba(79, 70, 229, 0.05); 
+      color: var(--primary-dark);
+      background: linear-gradient(transparent 60%, rgba(139, 92, 246, 0.3) 60%);
+    }
+
+    .page-content-scope .prose h2 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
     }
 
     .page-content-scope .prose h3 { 
-      font-size: 1.75rem; 
-      font-weight: 800; 
-      color: #111827; 
-      margin-top: 4rem; 
-      margin-bottom: 1.5rem;
+      font-size: 1.5rem; 
+      font-weight: 700; 
+      color: #1e293b; 
+      margin-top: 2.5rem; 
+      margin-bottom: 1rem;
       letter-spacing: -0.02em;
     }
 
     .page-content-scope .prose p { 
-      margin-bottom: 1.75rem; 
+      margin-bottom: 1.5rem; 
       font-size: 1.125rem;
-      line-height: 1.8;
+      line-height: 1.85;
+      color: #475569;
     }
 
     .page-content-scope .prose ul, .page-content-scope .prose ol { 
-      margin: 2rem 0; 
+      margin: 1.5rem 0; 
       padding-left: 1.5rem; 
     }
 
     .page-content-scope .prose li { 
-      margin-bottom: 1rem; 
+      margin-bottom: 0.75rem; 
       padding-left: 0.5rem;
+      color: #475569;
+      line-height: 1.7;
     }
 
+    .page-content-scope .prose li::marker {
+      color: var(--primary);
+    }
+
+    /* Premium image styling */
     .page-content-scope .content-image { 
       width: 100%; 
-      border-radius: 2rem; 
-      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15); 
-      margin: 5rem 0; 
-      transition: transform 0.3s ease;
+      border-radius: 1rem; 
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); 
+      margin: 2.5rem 0; 
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #e2e8f0;
     }
     
     .page-content-scope .content-image:hover {
-      transform: scale(1.01);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.2);
     }
 
-    .hero-gradient { 
-      background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.05), transparent),
-                  radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.05), transparent);
+    /* CTA Button styling */
+    .page-content-scope .prose a[href]:has(> strong),
+    .page-content-scope .prose a.cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white !important;
+      font-weight: 700;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      border: none;
+    }
+    
+    .page-content-scope .prose a[href]:has(> strong):hover,
+    .page-content-scope .prose a.cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px -5px rgba(139, 92, 246, 0.5);
     }
 
+    /* Comparison table styling */
+    .page-content-scope table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 2rem 0;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .page-content-scope th {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      font-weight: 700;
+      padding: 1rem 1.5rem;
+      text-align: left;
+    }
+
+    .page-content-scope td {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .page-content-scope tr:last-child td {
+      border-bottom: none;
+    }
+
+    .page-content-scope tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* External link indicator */
     .citation-enhanced a[href^="http"]::after { 
       content: '↗'; 
       font-size: 0.7em; 
       margin-left: 4px; 
       vertical-align: super; 
-      opacity: 0.4; 
+      opacity: 0.5; 
     }
 
-    .sticky-toc {
-      position: sticky;
-      top: 100px;
-      max-height: calc(100vh - 150px);
-      overflow-y: auto;
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .reading-progress {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 0%;
-      height: 4px;
-      background: linear-gradient(to right, #4f46e5, #ec4899);
-      z-index: 100;
+    .page-content-scope section {
+      animation: fadeInUp 0.6s ease-out forwards;
     }
 
-    @media (max-width: 1024px) {
-      .toc-sidebar { display: none; }
-    }
+    .page-content-scope section:nth-child(2) { animation-delay: 0.1s; }
+    .page-content-scope section:nth-child(3) { animation-delay: 0.2s; }
+    .page-content-scope section:nth-child(4) { animation-delay: 0.3s; }
+    .page-content-scope section:nth-child(5) { animation-delay: 0.4s; }
     `;
 
-    // Generate different layouts based on page_type
-    let bodyContent = '';
+    // ALTERNATIVE PAGE: Premium conversion-focused design
+    const bodyContent = `
+  <!-- Hero Section with Gradient Background -->
+  <header class="relative overflow-hidden">
+    <!-- Animated gradient background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-600/20 via-transparent to-transparent"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-blue-600/20 via-transparent to-transparent"></div>
     
-    if (page_type === 'blog') {
-      // BLOG: Sidebar TOC + Article Content
-      bodyContent = `
-  <div class="reading-progress" id="progress-bar"></div>
-  
-  <header class="hero-gradient border-b border-gray-100 relative overflow-hidden">
-    <div class="max-w-7xl mx-auto px-6 py-24 md:py-40">
-      <div class="max-w-3xl">
-        <nav class="flex items-center gap-2 mb-8">
-          <span class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase tracking-wider">${page_type}</span>
-          <span class="text-gray-300">•</span>
-          <span class="text-gray-500 text-xs font-medium">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-        </nav>
-        <h1 class="text-5xl md:text-7xl font-[900] text-gray-900 tracking-tight leading-[1.05] mb-10">
-          ${escapeHtml(page_title)}
-        </h1>
-        ${seo_description ? `<p class="text-xl md:text-2xl text-gray-500 max-w-2xl leading-relaxed font-medium">${escapeHtml(seo_description)}</p>` : ''}
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-7xl mx-auto px-6 py-20">
-    <div class="flex flex-col lg:flex-row gap-16">
-      <!-- Sidebar TOC -->
-      <aside class="lg:w-1/4 toc-sidebar">
-        <div class="sticky-toc">
-          <h4 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Table of Contents</h4>
-          <ul class="space-y-4 text-sm font-bold">
-            ${tocHtml}
-          </ul>
-          
-          <div class="mt-12 p-6 rounded-2xl bg-gray-50 border border-gray-100">
-            <h5 class="text-sm font-bold text-gray-900 mb-2">Expert Guide</h5>
-            <p class="text-xs text-gray-500 leading-relaxed">This content was meticulously crafted using real-time data and expert analysis.</p>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Article Content -->
-      <article class="lg:w-3/4 max-w-3xl">
-        ${sectionsHtml}
-      </article>
-    </div>
-  </main>
-
-  <script>
-    window.addEventListener('scroll', () => {
-      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
-      document.getElementById('progress-bar').style.width = scrolled + '%';
-    });
-  </script>`;
-    } else if (page_type === 'landing_page') {
-      // LANDING PAGE: Full-width, conversion-focused, no TOC
-      bodyContent = `
-  <header class="hero-gradient border-b border-gray-100 relative overflow-hidden">
-    <div class="max-w-6xl mx-auto px-6 py-20 md:py-32 text-center">
-      <h1 class="text-5xl md:text-6xl lg:text-7xl font-[900] text-gray-900 tracking-tight leading-[1.05] mb-8">
-        ${escapeHtml(page_title)}
-      </h1>
-      ${seo_description ? `<p class="text-xl md:text-2xl text-gray-500 max-w-3xl mx-auto leading-relaxed font-medium mb-10">${escapeHtml(seo_description)}</p>` : ''}
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto px-6">
-    ${sectionsHtml}
-  </main>`;
-    } else if (page_type === 'comparison') {
-      // COMPARISON: Full-width, table-optimized, no TOC
-      bodyContent = `
-  <header class="bg-gradient-to-br from-orange-50 via-white to-amber-50 border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-6 py-20 md:py-32">
+    <!-- Grid pattern overlay -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-6 py-24 md:py-36 lg:py-44">
       <div class="max-w-4xl mx-auto text-center">
-        <span class="inline-block px-4 py-2 rounded-full bg-orange-100 text-orange-700 text-sm font-bold uppercase tracking-wider mb-6">Comparison</span>
-        <h1 class="text-4xl md:text-6xl font-[900] text-gray-900 tracking-tight leading-[1.1] mb-8">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-8">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-white/90 text-sm font-semibold tracking-wide">Alternative Solution</span>
+        </div>
+        
+        <!-- Main Title -->
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.05] mb-8">
           ${escapeHtml(page_title)}
         </h1>
-        ${seo_description ? `<p class="text-xl text-gray-600 leading-relaxed font-medium">${escapeHtml(seo_description)}</p>` : ''}
+        
+        <!-- Description -->
+        ${seo_description ? `<p class="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto leading-relaxed font-medium mb-12">${escapeHtml(seo_description)}</p>` : ''}
+        
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="#comparison" class="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-slate-900 font-bold rounded-xl shadow-2xl shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:scale-105 transition-all duration-300">
+            See the Comparison
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+          </a>
+          <a href="#features" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-bold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+            Explore Features
+          </a>
+        </div>
       </div>
     </div>
+    
+    <!-- Bottom fade -->
+    <div class="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent"></div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-6">
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-16 md:py-24">
     ${sectionsHtml}
-  </main>`;
-    } else if (page_type === 'guide') {
-      // GUIDE: Full-width, step-focused, no TOC
-      bodyContent = `
-  <header class="bg-gradient-to-br from-green-50 via-white to-emerald-50 border-b border-gray-100">
-    <div class="max-w-5xl mx-auto px-6 py-20 md:py-32">
-      <span class="inline-block px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-bold uppercase tracking-wider mb-6">Step-by-Step Guide</span>
-      <h1 class="text-4xl md:text-6xl font-[900] text-gray-900 tracking-tight leading-[1.1] mb-8">
-        ${escapeHtml(page_title)}
-      </h1>
-      ${seo_description ? `<p class="text-xl text-gray-600 max-w-3xl leading-relaxed font-medium">${escapeHtml(seo_description)}</p>` : ''}
-    </div>
-  </header>
-
-  <main class="max-w-5xl mx-auto px-6">
-    ${sectionsHtml}
-  </main>`;
-    } else if (page_type === 'listicle') {
-      // LISTICLE: Full-width, numbered items prominent, no TOC
-      bodyContent = `
-  <header class="bg-gradient-to-br from-pink-50 via-white to-rose-50 border-b border-gray-100">
-    <div class="max-w-5xl mx-auto px-6 py-20 md:py-32">
-      <span class="inline-block px-4 py-2 rounded-full bg-pink-100 text-pink-700 text-sm font-bold uppercase tracking-wider mb-6">Curated List</span>
-      <h1 class="text-4xl md:text-6xl font-[900] text-gray-900 tracking-tight leading-[1.1] mb-8">
-        ${escapeHtml(page_title)}
-      </h1>
-      ${seo_description ? `<p class="text-xl text-gray-600 max-w-3xl leading-relaxed font-medium">${escapeHtml(seo_description)}</p>` : ''}
-    </div>
-  </header>
-
-  <main class="max-w-5xl mx-auto px-6">
-    ${sectionsHtml}
-  </main>`;
-    } else {
-      // DEFAULT: Use blog layout as fallback
-      bodyContent = `
-  <div class="reading-progress" id="progress-bar"></div>
-  
-  <header class="hero-gradient border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-6 py-24 md:py-40">
-      <div class="max-w-3xl">
-        <h1 class="text-5xl md:text-7xl font-[900] text-gray-900 tracking-tight leading-[1.05] mb-10">
-          ${escapeHtml(page_title)}
-        </h1>
-        ${seo_description ? `<p class="text-xl md:text-2xl text-gray-500 max-w-2xl leading-relaxed font-medium">${escapeHtml(seo_description)}</p>` : ''}
+    
+    <!-- Final CTA Section -->
+    <section class="mt-24 relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-12 md:p-20 text-center">
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-600/30 via-transparent to-transparent"></div>
+      <div class="relative">
+        <h2 class="text-3xl md:text-5xl font-black text-white mb-6">Ready to Make the Switch?</h2>
+        <p class="text-xl text-white/70 max-w-2xl mx-auto mb-10">Join thousands of satisfied users who have already discovered a better alternative.</p>
+        <a href="/" class="inline-flex items-center justify-center gap-2 px-10 py-5 bg-white text-slate-900 font-bold text-lg rounded-xl shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transform hover:scale-105 transition-all duration-300">
+          Get Started Now
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+        </a>
       </div>
-    </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto px-6 py-20">
-    ${sectionsHtml}
+    </section>
   </main>`;
-    }
 
     // Build meta tags
     const metaTags = [

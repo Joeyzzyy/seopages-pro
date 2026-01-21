@@ -1597,6 +1597,27 @@ function extractContactInfo(html: string): any {
   };
 }
 
+/**
+ * Clean URL by removing .html suffix for cleaner SEO-friendly URLs
+ */
+function cleanNavigationUrl(url: string): string {
+  if (!url) return url;
+  // Remove .html or .htm suffix (but keep external URLs with these as-is if they're truly needed)
+  // Only clean internal paths
+  if (url.startsWith('/') || !url.includes('://')) {
+    return url.replace(/\.html?$/i, '');
+  }
+  // For full URLs, also clean the path portion
+  try {
+    const urlObj = new URL(url);
+    urlObj.pathname = urlObj.pathname.replace(/\.html?$/i, '');
+    return urlObj.toString();
+  } catch {
+    // If URL parsing fails, do simple replacement
+    return url.replace(/\.html?$/i, '');
+  }
+}
+
 async function extractHeader(html: string, origin: string, useAI: boolean = true): Promise<any> {
   const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/i);
   const navMatch = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/i);
@@ -1623,6 +1644,8 @@ async function extractHeader(html: string, origin: string, useAI: boolean = true
   "ctaText": "CTA按钮文字（如果有）"
 }
 
+重要：URL 不要包含 .html 后缀，使用 SEO 友好的 URL 格式。
+
 Header HTML:
 ${headerHtml.substring(0, 4000)}`;
 
@@ -1631,7 +1654,7 @@ ${headerHtml.substring(0, 4000)}`;
         messages: [
           {
             role: 'system',
-            content: 'Extract navigation structure from HTML. Return valid JSON only.',
+            content: 'Extract navigation structure from HTML. Return valid JSON only. URLs should NOT have .html suffix - use clean SEO-friendly paths.',
           },
           {
             role: 'user',
@@ -1649,6 +1672,15 @@ ${headerHtml.substring(0, 4000)}`;
       }
 
       const aiResult = JSON.parse(cleanedText);
+      
+      // Clean URLs in navigation (in case AI still returns .html URLs)
+      if (aiResult.navigation && Array.isArray(aiResult.navigation)) {
+        aiResult.navigation = aiResult.navigation.map((item: any) => ({
+          ...item,
+          url: cleanNavigationUrl(item.url),
+        }));
+      }
+      
       console.log('[extractHeader] ✅ AI 分析成功');
       return aiResult;
     } catch (err) {
@@ -1666,9 +1698,11 @@ ${headerHtml.substring(0, 4000)}`;
     const href = match[1];
     const label = cleanText(match[2]);
     if (label && !href.startsWith('#') && !href.includes('javascript:')) {
+      // Clean the URL by removing .html suffix
+      const cleanedHref = cleanNavigationUrl(href);
       navItems.push({
         text: label,
-        url: href.startsWith('/') ? origin + href : href,
+        url: cleanedHref.startsWith('/') ? origin + cleanedHref : cleanedHref,
       });
     }
   }

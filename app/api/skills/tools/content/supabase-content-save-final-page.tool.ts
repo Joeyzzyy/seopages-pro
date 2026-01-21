@@ -54,6 +54,22 @@ export const save_final_page = tool({
       if (error) throw error;
       if (!item) throw new Error('Content item not found');
 
+      // Consume 1 credit for successful page generation
+      let creditConsumed = false;
+      try {
+        const { data: creditResult, error: creditError } = await supabase
+          .rpc('consume_credit', { user_id: item.user_id });
+        
+        if (creditError) {
+          console.error('[save_final_page] Failed to consume credit:', creditError);
+        } else {
+          creditConsumed = creditResult === true;
+          console.log(`[save_final_page] Credit consumed: ${creditConsumed}`);
+        }
+      } catch (creditErr) {
+        console.error('[save_final_page] Error calling consume_credit:', creditErr);
+      }
+
       // Upload HTML file to storage (Using server-side direct upload to bypass RLS)
       const timestamp = Date.now();
       const filename = `page-${item_id}-${timestamp}.html`;
@@ -97,7 +113,8 @@ export const save_final_page = tool({
           preview_url: previewUrl,
           mimeType: 'text/html',
           fileSize: contentToSave.length,
-          message: 'Page saved and HTML file generated. Online preview available.'
+          creditConsumed,
+          message: `Page saved and HTML file generated. Online preview available.${creditConsumed ? ' 1 credit consumed.' : ''}`
         };
       } catch (uploadError: any) {
         // Even if upload fails, the content is saved in DB
@@ -108,6 +125,7 @@ export const save_final_page = tool({
           item_id,
           previewUrl,
           preview_url: previewUrl,
+          creditConsumed,
           warning: 'Content saved but file upload failed',
           uploadError: uploadError.message
         };

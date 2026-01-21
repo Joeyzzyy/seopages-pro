@@ -77,7 +77,7 @@ export default function ConversationsDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-[#E5E5E5] flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+      className="absolute top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-[#E5E5E5] flex flex-col overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
       style={{ maxHeight: '500px' }}
     >
       {/* Header */}

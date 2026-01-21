@@ -10,7 +10,7 @@ const supabase = createClient(
 const contentItemSchema = z.object({
   title: z.string().describe('Content title (H1)'),
   target_keyword: z.string().describe('Primary keyword'),
-  page_type: z.enum(['blog', 'landing_page', 'comparison', 'guide', 'listicle']).describe('Type of content'),
+  page_type: z.literal('alternative').default('alternative').describe('Page type - always alternative page'),
   outline: z.object({
     h1: z.string(),
     sections: z.array(z.object({
@@ -23,11 +23,11 @@ const contentItemSchema = z.object({
   seo_title: z.string().optional().describe('SEO title'),
   seo_description: z.string().optional().describe('Meta description'),
   keyword_data: z.object({
-    volume: z.number().optional(),
-    kd: z.number().optional(),
-    cpc: z.number().optional(),
-    competition: z.number().optional(),
-  }).optional(),
+    volume: z.number().nullish(),
+    kd: z.number().nullish(),
+    cpc: z.number().nullish(),
+    competition: z.number().nullish(),
+  }).nullish(),
   serp_insights: z.any().optional(),
   reference_urls: z.array(z.string()).optional(),
   internal_links: z.array(z.object({

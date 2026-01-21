@@ -79,7 +79,7 @@ export interface ContentItem {
   project_id: string | null;
   title: string;
   slug: string;
-  page_type: 'blog' | 'landing_page' | 'comparison' | 'guide' | 'listicle';
+  page_type: 'alternative' | 'blog' | 'landing_page' | 'comparison' | 'guide' | 'listicle';
   target_keyword: string;
   seo_title: string;
   seo_description: string;
@@ -661,26 +661,70 @@ export async function getConversationFiles(conversationId: string): Promise<File
   return data as FileRecord[];
 }
 
-export async function getUserContentItems(userId: string): Promise<ContentItem[]> {
-  const { data, error } = await supabase
-    .from('content_items')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+export async function getUserContentItems(userId: string, projectId?: string): Promise<ContentItem[]> {
+  // Use API route to fetch content items (bypasses RLS issues)
+  // This ensures fresh data is always returned after tool operations
+  try {
+    const params = new URLSearchParams({ user_id: userId });
+    if (projectId) {
+      params.append('project_id', projectId);
+    }
+    
+    const response = await fetch(`/api/content/items?${params.toString()}`, {
+      method: 'GET',
+      cache: 'no-store', // Ensure fresh data
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch content items: ${response.statusText}`);
+    }
+    
+    const { items, error } = await response.json();
+    if (error) throw new Error(error);
+    
+    return items as ContentItem[];
+  } catch (fetchError) {
+    // Fallback to direct Supabase query if API fails
+    console.warn('API fetch failed, falling back to direct query:', fetchError);
+    const { data, error } = await supabase
+      .from('content_items')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data as ContentItem[];
+    if (error) throw error;
+    return data as ContentItem[];
+  }
 }
 
 export async function getUserContentProjects(userId: string): Promise<ContentProject[]> {
-  const { data, error } = await supabase
-    .from('content_projects')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  // Use API route to fetch content projects (bypasses RLS issues)
+  try {
+    const response = await fetch(`/api/content/projects?user_id=${userId}`, {
+      method: 'GET',
+      cache: 'no-store', // Ensure fresh data
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch content projects: ${response.statusText}`);
+    }
+    
+    const { projects, error } = await response.json();
+    if (error) throw new Error(error);
+    
+    return projects as ContentProject[];
+  } catch (fetchError) {
+    // Fallback to direct Supabase query if API fails
+    console.warn('API fetch failed, falling back to direct query:', fetchError);
+    const { data, error } = await supabase
+      .from('content_projects')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data as ContentProject[];
+    if (error) throw error;
+    return data as ContentProject[];
+  }
 }
 
 // SEO Projects (Domain-based)

@@ -113,7 +113,6 @@ export default function ProjectsPage() {
         <TopBar 
           user={user}
           onDomainsClick={() => setIsDomainsOpen(true)}
-          onGSCClick={() => {}}
         />
       )}
 

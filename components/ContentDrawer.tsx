@@ -225,13 +225,13 @@ export default function ContentDrawer({ item, onClose, onItemUpdated }: ContentD
           )}
 
           {/* Title and close button - expand to fill when no tabs */}
-          <div className={`flex items-center gap-4 ${hasGeneratedContent ? 'border-l border-[#F5F5F5] pl-6' : 'flex-1'}`}>
-            <div className="flex flex-col min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-[#111827] truncate mb-0.5 leading-none">{currentItem?.title}</h2>
-              <div className="flex items-center gap-2 text-[10px] text-[#9CA3AF] font-medium whitespace-nowrap">
+          <div className={`flex items-start gap-4 ${hasGeneratedContent ? 'border-l border-[#F5F5F5] pl-6' : 'flex-1'}`}>
+            <div className="flex flex-col min-w-0 max-w-md">
+              <h2 className="text-sm font-bold text-[#111827] mb-0.5 leading-tight line-clamp-2">{currentItem?.title}</h2>
+              <div className="flex items-center gap-2 text-[10px] text-[#9CA3AF] font-medium flex-wrap">
                 <span className="bg-[#F3F4F6] px-1.5 py-0.5 rounded-md uppercase tracking-wider text-[#6B7280] border border-[#E5E5E5]">{currentItem?.page_type || 'blog'}</span>
                 <span>•</span>
-                <span>Created {currentItem?.created_at ? new Date(currentItem.created_at).toLocaleString('en-US', { 
+                <span className="whitespace-nowrap">Created {currentItem?.created_at ? new Date(currentItem.created_at).toLocaleString('en-US', { 
                   month: 'short', 
                   day: 'numeric', 
                   hour: '2-digit', 
@@ -240,25 +240,52 @@ export default function ContentDrawer({ item, onClose, onItemUpdated }: ContentD
               </div>
             </div>
 
-            {/* Publish/Unpublish Button */}
+            {/* Download & Publish Buttons */}
             {currentItem?.status === 'generated' && (
-              <button
-                onClick={handlePublishClick}
-                disabled={isPublishing}
-                className="flex items-center gap-2 px-4 py-2 bg-[#111827] hover:bg-[#374151] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95"
-              >
-                {isPublishing ? (
-                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
+              <div className="flex items-center gap-2">
+                {/* Download Button */}
+                <button
+                  onClick={() => {
+                    if (!currentItem?.generated_content) return;
+                    const blob = new Blob([currentItem.generated_content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${currentItem.slug || currentItem.title?.toLowerCase().replace(/\s+/g, '-') || 'page'}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    setToast({ isOpen: true, message: 'HTML file downloaded!', type: 'success' });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#F3F4F6] hover:bg-[#E5E5E5] text-[#374151] text-xs font-bold rounded-xl transition-all active:scale-95"
+                  title="Download HTML"
+                >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M12 19V5M5 12l7-7 7 7" />
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                   </svg>
-                )}
-                {isPublishing ? 'Publishing...' : 'Publish'}
-              </button>
+                  Download
+                </button>
+                
+                {/* Publish Button */}
+                <button
+                  onClick={handlePublishClick}
+                  disabled={isPublishing}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#111827] hover:bg-[#374151] text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95"
+                >
+                  {isPublishing ? (
+                    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                  )}
+                  {isPublishing ? 'Publishing...' : 'Publish'}
+                </button>
+              </div>
             )}
             {currentItem?.status === 'published' && (
               <div className="flex items-center gap-2">
@@ -286,7 +313,7 @@ export default function ContentDrawer({ item, onClose, onItemUpdated }: ContentD
 
             <button 
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-[#F3F4F6] transition-colors text-[#6B7280]"
+              className="p-2 rounded-lg hover:bg-[#F3F4F6] transition-colors text-[#6B7280] flex-shrink-0"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -380,26 +407,26 @@ export default function ContentDrawer({ item, onClose, onItemUpdated }: ContentD
 
           {/* Code Tab Content */}
           {activeTab === 'code' && (
-            <div className="flex-1 bg-[#1E1E1E] flex flex-col overflow-hidden">
-              <div className="bg-[#2D2D2D] px-6 py-3 flex items-center justify-between border-b border-[#3D3D3D] shrink-0">
+            <div className="flex-1 bg-white flex flex-col overflow-hidden">
+              <div className="bg-[#F9FAFB] px-6 py-3 flex items-center justify-between border-b border-[#E5E5E5] shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-[#9CA3AF] font-bold uppercase tracking-[0.2em]">HTML Source Code</span>
+                  <span className="text-[10px] text-[#6B7280] font-bold uppercase tracking-[0.2em]">HTML Source Code</span>
                 </div>
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(currentItem?.generated_content || '');
                     setToast({ isOpen: true, message: 'Code copied to clipboard!', type: 'success' });
                   }}
-                  className="px-3 py-1.5 bg-[#3D3D3D] hover:bg-[#4D4D4D] text-white text-[10px] font-bold rounded-md transition-all active:scale-95 uppercase tracking-wider"
+                  className="px-3 py-1.5 bg-[#111827] hover:bg-[#374151] text-white text-[10px] font-bold rounded-md transition-all active:scale-95 uppercase tracking-wider"
                 >
                   Copy to Clipboard
                 </button>
               </div>
-              <div className="flex-1 p-6 overflow-auto thin-scrollbar font-mono">
+              <div className="flex-1 p-6 overflow-auto thin-scrollbar font-mono bg-[#FAFAFA]">
                 {!currentItem?.generated_content ? (
                   <p className="text-[#6B7280] italic text-sm">No code available</p>
                 ) : (
-                  <pre className="text-[#D4D4D4] text-xs leading-[1.8] whitespace-pre-wrap break-all">
+                  <pre className="text-[#374151] text-xs leading-[1.8] whitespace-pre-wrap break-all">
                     {currentItem.generated_content}
                   </pre>
                 )}

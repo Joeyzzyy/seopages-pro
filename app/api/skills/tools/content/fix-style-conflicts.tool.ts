@@ -171,6 +171,11 @@ function scopePageContentStyles(styleContent: string, scopeClass: string): strin
     const selectors = selector.split(',').map(s => s.trim());
     
     const scopedSelectors = selectors.map(sel => {
+      // Replace ':root' with the scope class (CSS variables should be on the scope itself)
+      if (sel === ':root') {
+        return `.${scopeClass}`;
+      }
+      
       // Replace 'body' with the scope class
       if (sel === 'body' || sel === 'body *') {
         return `.${scopeClass}`;

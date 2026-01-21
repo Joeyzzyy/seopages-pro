@@ -8,12 +8,13 @@ import ConfirmModal from '@/components/ConfirmModal';
 
 interface TopBarProps {
   onDomainsClick?: () => void;
-  onGSCClick?: () => void;
   user?: User | null;
   showBackToProjects?: boolean;
+  credits?: number;
+  subscriptionTier?: string;
 }
 
-export default function TopBar({ onDomainsClick, onGSCClick, user: propUser, showBackToProjects }: TopBarProps) {
+export default function TopBar({ onDomainsClick, user: propUser, showBackToProjects, credits = 1, subscriptionTier = 'free' }: TopBarProps) {
   const [user, setUser] = useState<User | null>(propUser || null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
@@ -44,14 +45,20 @@ export default function TopBar({ onDomainsClick, onGSCClick, user: propUser, sho
 
   return (
     <div className="flex items-center justify-between px-4 py-2">
-      {/* Left side title */}
+      {/* Left side logo */}
       <Link 
         href="/" 
         target="_blank" 
         rel="noopener noreferrer" 
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        className="flex items-center gap-2 hover:opacity-90 transition-opacity"
       >
-        <span className="text-base font-bold text-[#111827]">Alternative Page Generator</span>
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-r from-[#9A8FEA] via-[#65B4FF] to-[#9A8FEA] rounded-full blur-md opacity-50 animate-[glow_3s_ease-in-out_infinite]" />
+          <img src="/new-logo.png" alt="SEOPages" className="relative h-8 w-auto drop-shadow-[0_0_6px_rgba(154,143,234,0.4)]" />
+        </div>
+        <span className="text-lg italic text-[#111827] tracking-wide" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
+          seopages<span className="text-[#9A8FEA]">.</span>pro
+        </span>
       </Link>
 
       {/* Right side function buttons and user info */}
@@ -87,23 +94,34 @@ export default function TopBar({ onDomainsClick, onGSCClick, user: propUser, sho
               </button>
             )}
 
-            {/* GSC Button - Google icon */}
-            {onGSCClick && (
-              <button
-                onClick={onGSCClick}
-                className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all cursor-pointer"
-                title="Google Search Console"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-                </svg>
-                <span className="text-[9px] font-medium">GSC</span>
-              </button>
-            )}
-
           </div>
 
           <div className="w-px h-8 bg-[#E5E5E5]"></div>
+
+          {/* Plan & Credits Display */}
+          <a
+            href="/#pricing"
+            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full hover:from-amber-100 hover:to-orange-100 transition-all"
+            title="View Pricing"
+          >
+            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+              subscriptionTier === 'pro' 
+                ? 'bg-purple-100 text-purple-700' 
+                : subscriptionTier === 'standard'
+                ? 'bg-blue-100 text-blue-700'
+                : subscriptionTier === 'starter'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}>
+              {subscriptionTier}
+            </span>
+            <div className="flex items-center gap-1">
+              <svg className="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
+              </svg>
+              <span className="text-xs font-semibold text-amber-700">{credits}</span>
+            </div>
+          </a>
 
           {/* User Info */}
           <div className="flex items-center gap-2">
@@ -130,20 +148,6 @@ export default function TopBar({ onDomainsClick, onGSCClick, user: propUser, sho
               {user.user_metadata.full_name || user.email}
             </span>
           </div>
-
-          {/* Switch Site Button */}
-          {showBackToProjects && (
-            <Link
-              href="/projects"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all text-xs font-medium cursor-pointer"
-              title="Switch Site"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-              </svg>
-              <span>Switch Site</span>
-            </Link>
-          )}
 
           {/* Sign Out Button */}
           <button

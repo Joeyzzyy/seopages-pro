@@ -1,0 +1,112 @@
+# Alternative Page Generator - Cursor Rules
+
+This project is an AI-powered Alternative Page Generator that creates top-tier competitor comparison landing pages.
+
+## Project Overview
+
+- **Framework**: Next.js 16 with React 19
+- **Database**: Supabase
+- **AI**: Azure OpenAI (GPT-4.1)
+- **Styling**: Tailwind CSS
+- **Purpose**: Generate professional alternative/comparison landing pages
+
+## Code Style
+
+- Use TypeScript with strict typing
+- Follow React best practices (see below)
+- Use functional components with hooks
+- Prefer `async/await` over callbacks
+- Use meaningful variable and function names
+
+## Project Structure
+
+```
+app/
+├── api/skills/          # AI skills and tools
+│   ├── skill-build/     # Page generation skills
+│   ├── skill-system/    # System skills (planning)
+│   └── tools/           # Individual tools
+├── chat/                # Chat interface
+├── projects/            # Project management
+└── page.tsx             # Login page
+components/              # Reusable UI components
+lib/                     # Utilities and Supabase client
+```
+
+## Key Files
+
+- `app/api/skills/skill-build/alternative-page-generator.skill.ts` - Main page generation logic
+- `app/api/skills/tools/content/internal-assemble-html-page.tool.ts` - HTML assembly
+- `lib/supabase.ts` - Database types and helpers
+
+---
+
+# React & Next.js Best Practices (Vercel Engineering)
+
+## Critical: Eliminating Waterfalls
+
+1. **Move await into branches** - Only await when the result is actually needed
+2. **Use Promise.all()** - For independent async operations
+3. **Start promises early, await late** - In API routes
+4. **Use Suspense boundaries** - To stream content progressively
+
+## Critical: Bundle Size
+
+1. **Import directly** - Avoid barrel files (index.ts re-exports)
+2. **Use next/dynamic** - For heavy components
+3. **Defer third-party scripts** - Load analytics after hydration
+4. **Preload on hover/focus** - For perceived speed improvements
+
+## High: Server-Side Performance
+
+1. **Use React.cache()** - For per-request deduplication
+2. **Minimize client data** - Serialize only what's needed
+3. **Parallel fetching** - Restructure components to fetch in parallel
+
+## Medium: Re-render Optimization
+
+1. **Don't subscribe to unused state** - Only subscribe to what you render
+2. **Memoize expensive components** - Extract into React.memo()
+3. **Use primitive dependencies** - In useEffect dependencies
+4. **Use functional setState** - For stable callbacks
+
+## Medium: Rendering Performance
+
+1. **Use content-visibility** - For long lists
+2. **Hoist static JSX** - Outside component functions
+3. **Use ternary over &&** - For conditional rendering
+
+---
+
+# Web Interface Guidelines
+
+When reviewing UI code, check for:
+
+## Accessibility
+- aria-labels on interactive elements
+- Semantic HTML usage
+- Keyboard navigation support
+- Focus management
+
+## Forms
+- Autocomplete attributes
+- Proper validation
+- Clear error messages
+
+## Animation
+- prefers-reduced-motion support
+- GPU-friendly transforms (translate, scale, opacity)
+
+## Images
+- Width/height dimensions
+- Lazy loading
+- Meaningful alt text
+
+## Performance
+- Virtualization for long lists
+- Avoid layout thrashing
+- Use preconnect for external resources
+
+## Dark Mode
+- color-scheme meta tag
+- CSS custom properties for theming

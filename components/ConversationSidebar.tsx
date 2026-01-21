@@ -10,6 +10,9 @@ interface ConversationSidebarProps {
   onEditSiteContext: (type: 'logo' | 'header' | 'footer' | 'meta' | 'sitemap') => void;
   onSelectContentItem: (item: ContentItem) => void;
   onRefreshContent: () => void;
+  onRefreshSiteContexts?: () => void;
+  isRefreshingSiteContexts?: boolean;
+  isRefreshingContent?: boolean;
   onDeleteProject: (projectId: string, projectName: string) => void;
   onDeleteContentItem: (itemId: string, itemTitle: string) => void;
   onOpenContextModal?: (tab?: 'onsite' | 'knowledge') => void;
@@ -22,6 +25,9 @@ export default function ConversationSidebar({
   onEditSiteContext,
   onSelectContentItem,
   onRefreshContent,
+  onRefreshSiteContexts,
+  isRefreshingSiteContexts = false,
+  isRefreshingContent = false,
   onDeleteProject,
   onDeleteContentItem,
   onOpenContextModal,
@@ -332,16 +338,34 @@ export default function ConversationSidebar({
         <div className="flex flex-col min-h-0 border-b border-[#E5E5E5]" style={{ height: '40%' }}>
           <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center justify-between shrink-0 border-b border-[#E5E5E5] h-10">
             <span>Brand Assets</span>
-            <button
-              onClick={() => onOpenContextModal?.()}
-              className="p-1 rounded hover:bg-white text-[#6B7280] hover:text-[#111827] transition-all"
-              title="Edit Brand Assets"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isRefreshingSiteContexts) onRefreshSiteContexts?.();
+                }}
+                disabled={isRefreshingSiteContexts}
+                className={`p-1 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer ${isRefreshingSiteContexts ? 'opacity-50' : ''}`}
+                title="Refresh Brand Assets"
+              >
+                <svg className={`w-3.5 h-3.5 ${isRefreshingSiteContexts ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                  <path d="M3 22v-6h6" />
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                </svg>
+              </button>
+              <button
+                onClick={() => onOpenContextModal?.()}
+                className="p-1 rounded hover:bg-[#F3F4F6] text-[#6B7280] hover:text-[#111827] transition-all cursor-pointer"
+                title="Edit Brand Assets"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2 pt-2">
             <div className="space-y-0">
@@ -427,12 +451,13 @@ export default function ConversationSidebar({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRefreshContent();
+                  if (!isRefreshingContent) onRefreshContent();
                 }}
-                className="p-0.5 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer"
+                disabled={isRefreshingContent}
+                className={`p-0.5 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer ${isRefreshingContent ? 'opacity-50' : ''}`}
                 title="Refresh Content"
               >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className={`w-3 h-3 ${isRefreshingContent ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M21 2v6h-6" />
                   <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
                   <path d="M3 22v-6h6" />

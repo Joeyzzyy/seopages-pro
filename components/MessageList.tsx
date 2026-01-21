@@ -410,8 +410,34 @@ export default function MessageList({
                   .replace(/^\n+/, '')
                   .trim();
                 
+                // For auto-initiated messages, extract just the domain/URL and show a friendly short version
+                if (isAutoInitiated) {
+                  // Try to extract the URL from the message
+                  const urlMatch = cleanContent.match(/for\s+(https?:\/\/[^\s.]+\.[^\s]+|[^\s]+\.[a-z]{2,})/i);
+                  if (urlMatch) {
+                    const domain = urlMatch[1].replace(/^https?:\/\//, '').replace(/\/$/, '');
+                    cleanContent = `🚀 Start Alternative Page planning for ${domain}`;
+                  } else {
+                    cleanContent = '🚀 Start Alternative Page planning';
+                  }
+                }
+                
                 return (
-                  <div>
+                  <div className="group relative">
+                    {/* Copy button - appears on hover */}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(cleanContent);
+                        if (onShowToast) onShowToast('Copied to clipboard!');
+                      }}
+                      className="absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-[#E5E7EB] text-[#6B7280] hover:text-[#374151]"
+                      title="Copy message"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </button>
                     {/* Auto-initiated badge */}
                     {isAutoInitiated && (
                       <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full w-fit relative">
