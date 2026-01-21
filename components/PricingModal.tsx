@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { supabase } from '@/lib/supabase';
 
 interface PricingModalProps {
@@ -55,6 +55,60 @@ const PLANS = [
     ],
   },
 ];
+
+// Loading Spinner Component
+function LoadingSpinner({ text = 'Loading payment options...' }: { text?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-6">
+      <div className="relative">
+        <div className="w-10 h-10 border-2 border-white/10 rounded-full" />
+        <div className="absolute top-0 left-0 w-10 h-10 border-2 border-[#9A8FEA] border-t-transparent rounded-full animate-spin" />
+      </div>
+      <p className="mt-3 text-gray-400 text-sm">{text}</p>
+    </div>
+  );
+}
+
+// PayPal Buttons Wrapper with loading state
+function PayPalButtonsWrapper({
+  createOrder,
+  onApprove,
+  onError,
+  onCancel,
+  isProcessing,
+  height = 45,
+}: {
+  createOrder: () => Promise<string>;
+  onApprove: (data: { orderID: string }) => Promise<void>;
+  onError: (err: any) => void;
+  onCancel: () => void;
+  isProcessing: boolean;
+  height?: number;
+}) {
+  const [{ isPending, isResolved }] = usePayPalScriptReducer();
+
+  return (
+    <>
+      {isPending && <LoadingSpinner />}
+      <div className={`${isPending ? 'hidden' : ''} ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+        <PayPalButtons
+          style={{
+            layout: 'vertical',
+            color: 'blue',
+            shape: 'rect',
+            label: 'paypal',
+            height,
+          }}
+          createOrder={createOrder}
+          onApprove={onApprove}
+          onError={onError}
+          onCancel={onCancel}
+          disabled={isProcessing}
+        />
+      </div>
+    </>
+  );
+}
 
 export default function PricingModal({
   isOpen,
@@ -272,22 +326,14 @@ export default function PricingModal({
                   intent: 'capture',
                 }}
               >
-                <div className={isProcessing ? 'opacity-50 pointer-events-none' : ''}>
-                  <PayPalButtons
-                    style={{
-                      layout: 'vertical',
-                      color: 'blue',
-                      shape: 'rect',
-                      label: 'paypal',
-                      height: 45,
-                    }}
-                    createOrder={createOrder}
-                    onApprove={onApprove}
-                    onError={onError}
-                    onCancel={onCancel}
-                    disabled={isProcessing}
-                  />
-                </div>
+                <PayPalButtonsWrapper
+                  createOrder={createOrder}
+                  onApprove={onApprove}
+                  onError={onError}
+                  onCancel={onCancel}
+                  isProcessing={isProcessing}
+                  height={45}
+                />
               </PayPalScriptProvider>
               
               {isProcessing && (
@@ -358,12 +404,12 @@ export default function PricingModal({
           )}
 
           {/* Plans Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 items-stretch">
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
                 onClick={() => handlePlanSelect(plan.id)}
-                className={`relative p-6 sm:p-8 rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-300 ${
+                className={`relative p-6 sm:p-8 rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-300 flex flex-col h-full ${
                   plan.popular
                     ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border-[#9A8FEA]/30 sm:scale-105 order-first sm:order-none'
                     : 'bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10'
@@ -401,7 +447,7 @@ export default function PricingModal({
                 </div>
 
                 {/* Features */}
-                <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+                <ul className="space-y-2 sm:space-y-3 flex-grow">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-center gap-3 text-gray-300">
                       <svg className="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +470,7 @@ export default function PricingModal({
                     e.stopPropagation();
                     handlePlanSelect(plan.id);
                   }}
-                  className={`w-full py-2.5 sm:py-3 font-medium rounded-lg sm:rounded-xl transition-all text-sm ${
+                  className={`w-full py-2.5 sm:py-3 font-medium rounded-lg sm:rounded-xl transition-all text-sm mt-6 sm:mt-8 ${
                     plan.popular
                       ? 'bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold hover:opacity-90'
                       : selectedPlan === plan.id
@@ -458,22 +504,14 @@ export default function PricingModal({
                     intent: 'capture',
                   }}
                 >
-                  <div className={isProcessing ? 'opacity-50 pointer-events-none' : ''}>
-                    <PayPalButtons
-                      style={{
-                        layout: 'vertical',
-                        color: 'blue',
-                        shape: 'rect',
-                        label: 'paypal',
-                        height: 50,
-                      }}
-                      createOrder={createOrder}
-                      onApprove={onApprove}
-                      onError={onError}
-                      onCancel={onCancel}
-                      disabled={isProcessing}
-                    />
-                  </div>
+                  <PayPalButtonsWrapper
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    onError={onError}
+                    onCancel={onCancel}
+                    isProcessing={isProcessing}
+                    height={50}
+                  />
                 </PayPalScriptProvider>
                 
                 {isProcessing && (

@@ -496,9 +496,9 @@ export default function HomePage() {
             <p className="text-gray-400 text-sm sm:text-lg">Cheaper than therapy for your AI frustrations. Pay once. Done.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
             {/* Starter */}
-            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl">
+            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl flex flex-col h-full">
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">Starter</h3>
                 <div className="flex items-baseline gap-1">
@@ -506,7 +506,7 @@ export default function HomePage() {
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
-              <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+              <ul className="space-y-2 sm:space-y-3 flex-grow">
                 <li className="flex items-center gap-3 text-gray-300">
                   <svg className="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -534,14 +534,14 @@ export default function HomePage() {
               </ul>
               <button
                 onClick={() => handleBuyPlan('starter')}
-                className="w-full py-2.5 sm:py-3 border border-white/20 text-white font-medium rounded-lg sm:rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="w-full py-2.5 sm:py-3 border border-white/20 text-white font-medium rounded-lg sm:rounded-xl hover:bg-white/10 transition-all text-sm mt-6 sm:mt-8"
               >
                 {user ? 'Buy Now' : 'Sign in to Buy'}
               </button>
             </div>
 
             {/* Standard - Featured */}
-            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border border-[#9A8FEA]/30 rounded-xl sm:rounded-2xl sm:scale-105 order-first sm:order-none">
+            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border border-[#9A8FEA]/30 rounded-xl sm:rounded-2xl sm:scale-105 order-first sm:order-none flex flex-col h-full">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[10px] sm:text-xs font-semibold text-white whitespace-nowrap">
                 MOST POPULAR
               </div>
@@ -552,7 +552,7 @@ export default function HomePage() {
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
-              <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+              <ul className="space-y-2 sm:space-y-3 flex-grow">
                 <li className="flex items-center gap-3 text-gray-300">
                   <svg className="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -586,14 +586,14 @@ export default function HomePage() {
               </ul>
               <button
                 onClick={() => handleBuyPlan('standard')}
-                className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-all text-sm"
+                className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold rounded-lg sm:rounded-xl hover:opacity-90 transition-all text-sm mt-6 sm:mt-8"
               >
                 {user ? 'Buy Now' : 'Sign in to Buy'}
               </button>
             </div>
 
             {/* Pro */}
-            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl">
+            <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl flex flex-col h-full">
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">Pro</h3>
                 <div className="flex items-baseline gap-1">
@@ -601,7 +601,7 @@ export default function HomePage() {
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
-              <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+              <ul className="space-y-2 sm:space-y-3 flex-grow">
                 <li className="flex items-center gap-3 text-gray-300">
                   <svg className="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -641,7 +641,7 @@ export default function HomePage() {
               </ul>
               <button
                 onClick={() => handleBuyPlan('pro')}
-                className="w-full py-2.5 sm:py-3 border border-white/20 text-white font-medium rounded-lg sm:rounded-xl hover:bg-white/10 transition-all text-sm"
+                className="w-full py-2.5 sm:py-3 border border-white/20 text-white font-medium rounded-lg sm:rounded-xl hover:bg-white/10 transition-all text-sm mt-6 sm:mt-8"
               >
                 {user ? 'Buy Now' : 'Sign in to Buy'}
               </button>
