@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { supabase } from '@/lib/supabase';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -49,13 +50,19 @@ export default function PricingModal({
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const accessTokenRef = useRef<string | null>(null);
 
-  // Reset state when modal opens
+  // Get session token when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedPlan(null);
       setIsProcessing(false);
       setError(null);
+      
+      // Get access token
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        accessTokenRef.current = session?.access_token || null;
+      });
     }
   }, [isOpen]);
 
@@ -66,6 +73,24 @@ export default function PricingModal({
     setError(null);
   };
 
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    // Refresh token if needed
+    if (!accessTokenRef.current) {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessTokenRef.current = session?.access_token || null;
+    }
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (accessTokenRef.current) {
+      headers['Authorization'] = `Bearer ${accessTokenRef.current}`;
+    }
+    
+    return headers;
+  };
+
   const createOrder = async () => {
     if (!selectedPlan) {
       setError('Please select a plan first');
@@ -74,11 +99,11 @@ export default function PricingModal({
 
     setError(null);
     
+    const headers = await getAuthHeaders();
+    
     const response = await fetch('/api/paypal/create-order', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
       body: JSON.stringify({ plan: selectedPlan }),
     });
@@ -98,11 +123,11 @@ export default function PricingModal({
     setError(null);
 
     try {
+      const headers = await getAuthHeaders();
+      
       const response = await fetch('/api/paypal/capture-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ orderID: data.orderID }),
       });
