@@ -358,13 +358,13 @@ export default function ProjectChatPage() {
       setRunningTaskId(null);
       
       // Refresh data (page planning is triggered in onFinish)
-      if (user) {
-        loadSiteContexts(user.id);
-        loadContentItems(user.id);
+      if (userRef.current) {
+        loadSiteContexts(userRef.current.id);
+        loadContentItems(userRef.current.id);
       }
     }
     wasLoadingRef.current = isLoading;
-  }, [isLoading, isInitializing, runningTaskId, user]);
+  }, [isLoading, isInitializing, runningTaskId]);
 
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
   
@@ -638,7 +638,9 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
   const loadContentItems = async (userId: string): Promise<ContentItem[]> => {
     try {
       // CRITICAL: Filter by projectId to only show current project's content items
+      console.log('[loadContentItems] Fetching items for user:', userId, 'project:', projectId);
       const items = await getUserContentItems(userId, projectId);
+      console.log('[loadContentItems] Loaded', items.length, 'items');
       setContentItems(items);
       return items;
     } catch (error) {
@@ -668,7 +670,8 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
 
   // Handle page planning based on competitors
   const handlePlanPages = async (competitors?: Array<{ name: string; url: string; description?: string }>) => {
-    if (!user) return;
+    const currentUser = userRef.current;
+    if (!currentUser) return;
     
     setPlanningPages(true);
     try {
@@ -719,7 +722,7 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
       console.log(`[PlanPages] Result:`, result);
 
       // Refresh content items to show new pages
-      await loadContentItems(user.id);
+      await loadContentItems(currentUser.id);
 
       if (result.created > 0) {
         setToast({ isOpen: true, message: `Created ${result.created} new page plan${result.created > 1 ? 's' : ''}!` });
@@ -760,7 +763,8 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
   };
 
   const handleSaveSiteContext = async (data: any) => {
-    if (!user) return;
+    const currentUser = userRef.current;
+    if (!currentUser) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -773,7 +777,7 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
       });
 
       if (!response.ok) throw new Error('Failed to save site context');
-      await loadSiteContexts(user.id);
+      await loadSiteContexts(currentUser.id);
       setToast({ isOpen: true, message: 'Context saved successfully!' });
     } catch (error) {
       console.error('Failed to save site context:', error);
@@ -799,7 +803,8 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
 
   // Handle page generation
   const handleGeneratePage = async (item: ContentItem) => {
-    if (!user || !currentConversation || isLoading) return;
+    const currentUser = userRef.current;
+    if (!currentUser || !currentConversation || isLoading) return;
     
     // Check if this is a regeneration (page already has content)
     const isRegenerate = item.status === 'generated' || !!item.generated_content;
@@ -850,7 +855,7 @@ Execute the full page generation workflow.`;
         { role: 'user', content: generateMessage } as any,
         {
           data: {
-            userId: user.id,
+            userId: currentUser.id,
             conversationId: currentConversation.id,
             projectId: projectId,
             attachedContentItems: [{
@@ -884,9 +889,9 @@ Execute the full page generation workflow.`;
     setIsInitializing(false);
     setContextTaskStatus('completed');
     // Refresh site contexts after initialization
-    if (user) {
-      await loadSiteContexts(user.id);
-      await loadContentItems(user.id);
+    if (userRef.current) {
+      await loadSiteContexts(userRef.current.id);
+      await loadContentItems(userRef.current.id);
     }
   };
 
@@ -925,23 +930,27 @@ Execute the full page generation workflow.`;
             onSelectTask={handleSelectTask}
             onGeneratePage={handleGeneratePage}
             onRefreshContent={async () => {
+              if (!userRef.current) return;
               setRefreshingContent(true);
-              await loadContentItems(user.id);
+              await loadContentItems(userRef.current.id);
               setRefreshingContent(false);
             }}
             onRefreshSiteContexts={async () => {
+              if (!userRef.current) return;
               setRefreshingSiteContexts(true);
-              await loadSiteContexts(user.id);
+              await loadSiteContexts(userRef.current.id);
               setRefreshingSiteContexts(false);
             }}
             onRefreshBrandAssets={async () => {
+              if (!userRef.current) return;
               setRefreshingBrandAssets(true);
-              await loadSiteContexts(user.id);
+              await loadSiteContexts(userRef.current.id);
               setRefreshingBrandAssets(false);
             }}
             onRefreshCompetitors={async () => {
+              if (!userRef.current) return;
               setRefreshingCompetitors(true);
-              await loadSiteContexts(user.id);
+              await loadSiteContexts(userRef.current.id);
               setRefreshingCompetitors(false);
             }}
             onOpenBrandAssetsModal={() => setIsContextModalOpen(true)}
@@ -1013,7 +1022,7 @@ Execute the full page generation workflow.`;
           siteContexts={siteContexts}
           onSave={handleSaveSiteContext}
           onRefresh={async () => {
-            if (user) await loadSiteContexts(user.id);
+            if (userRef.current) await loadSiteContexts(userRef.current.id);
           }}
           projectId={projectId}
         />
@@ -1026,7 +1035,7 @@ Execute the full page generation workflow.`;
           siteContexts={siteContexts}
           onSave={handleSaveSiteContext}
           onRefresh={async () => {
-            if (user) await loadSiteContexts(user.id);
+            if (userRef.current) await loadSiteContexts(userRef.current.id);
           }}
           projectId={projectId}
           onPlanPages={handlePlanPages}
