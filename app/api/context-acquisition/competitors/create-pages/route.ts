@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       .from('content_items')
       .select('title, target_keyword, page_type')
       .eq('user_id', user.id)
-      .eq('project_id', projectId)
+      .eq('seo_project_id', projectId)
       .in('page_type', ['alternative', 'listicle']);
 
     if (fetchError) {
