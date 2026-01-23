@@ -19,39 +19,72 @@ async function createAuthenticatedClient(request: NextRequest) {
   );
 }
 
-// Simple competitor discovery using web search simulation
-async function discoverCompetitors(url: string): Promise<Array<{ name: string; url: string; description?: string }>> {
-  // Extract domain info
-  let domain: string;
-  try {
-    const urlObj = new URL(url);
-    domain = urlObj.hostname.replace('www.', '');
-  } catch {
-    domain = url.replace(/^https?:\/\//, '').replace('www.', '').split('/')[0];
-  }
+interface Competitor {
+  name: string;
+  url: string;
+  description?: string;
+  source?: string;
+}
 
-  // Use Azure OpenAI to discover competitors
+// Normalize URL for deduplication
+function normalizeUrl(url: string): string {
+  try {
+    const u = new URL(url.toLowerCase());
+    return u.hostname.replace('www.', '');
+  } catch {
+    return url.toLowerCase().replace(/^https?:\/\//, '').replace('www.', '').split('/')[0];
+  }
+}
+
+// Merge and deduplicate competitors from multiple sources
+function mergeCompetitors(sources: Competitor[][]): Competitor[] {
+  const seen = new Map<string, Competitor>();
+  
+  for (const source of sources) {
+    for (const comp of source) {
+      const normalizedUrl = normalizeUrl(comp.url);
+      if (!seen.has(normalizedUrl)) {
+        seen.set(normalizedUrl, comp);
+      } else {
+        // Merge descriptions if the existing one is shorter
+        const existing = seen.get(normalizedUrl)!;
+        if (comp.description && (!existing.description || comp.description.length > existing.description.length)) {
+          seen.set(normalizedUrl, { ...existing, description: comp.description });
+        }
+      }
+    }
+  }
+  
+  return Array.from(seen.values());
+}
+
+// METHOD 1: GPT-4 Knowledge Base - Fast, comprehensive for well-known competitors
+async function discoverFromKnowledgeBase(domain: string, industry: string): Promise<Competitor[]> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4.1';
 
   if (!endpoint || !apiKey) {
-    throw new Error('Azure OpenAI configuration missing');
+    console.warn('[Knowledge Base] Azure OpenAI not configured');
+    return [];
   }
 
   const apiUrl = `${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-04-01-preview`;
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey,
-    },
-    body: JSON.stringify({
-      messages: [
-        {
-          role: 'system',
-          content: `You are a competitive analysis expert. When given a website domain, identify AT LEAST 12-15 direct competitors in the same industry/niche. Be thorough and comprehensive.
+  try {
+    console.log(`[Knowledge Base] Discovering competitors for: ${domain}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: `You are a competitive analysis expert. When given a website domain, identify AT LEAST 15-20 direct competitors in the same industry/niche. Be thorough and comprehensive.
           
 Return ONLY a valid JSON array with this exact format, no other text:
 [
@@ -59,37 +92,40 @@ Return ONLY a valid JSON array with this exact format, no other text:
 ]
 
 Requirements:
-- Find AT LEAST 12 competitors, preferably 15+
+- Find AT LEAST 15 competitors, preferably 20+
 - Include direct competitors offering similar products/services
 - Include well-known industry leaders
 - Include emerging alternatives and newer players
 - Include both larger enterprises and similar-sized competitors
 - Include international alternatives if relevant
-- Make sure all URLs are accurate and working`
-        },
-        {
-          role: 'user',
-          content: `Find competitors for: ${domain}
+- Make sure all URLs are accurate`
+          },
+          {
+            role: 'user',
+            content: `Find competitors for: ${domain}
 
-This website appears to be in the ${guessIndustry(domain)} space. List at least 12-15 main competitors with accurate URLs. Be comprehensive and include both well-known players and emerging alternatives.`
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 2000,
-    }),
-  });
+This website appears to be in the ${industry} space. List at least 15-20 main competitors with accurate URLs. Be comprehensive and include:
+1. Direct competitors (same product category)
+2. Industry leaders
+3. Emerging alternatives
+4. Enterprise solutions
+5. Budget-friendly options
+6. International alternatives`
+          }
+        ],
+        temperature: 0.5,
+        max_tokens: 3000,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Azure OpenAI error:', errorText);
-    throw new Error('Failed to discover competitors');
-  }
+    if (!response.ok) {
+      console.error('[Knowledge Base] API error:', await response.text());
+      return [];
+    }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '[]';
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '[]';
 
-  try {
-    // Extract JSON from the response (handle markdown code blocks)
     let jsonStr = content;
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
@@ -98,18 +134,117 @@ This website appears to be in the ${guessIndustry(domain)} space. List at least 
     
     const competitors = JSON.parse(jsonStr);
     
-    // Validate and clean the response
     if (Array.isArray(competitors)) {
-      return competitors
+      const result = competitors
         .filter((c: any) => c.name && c.url)
         .map((c: any) => ({
           name: String(c.name).trim(),
           url: String(c.url).trim(),
           description: c.description ? String(c.description).trim() : undefined,
+          source: 'knowledge_base',
         }));
+      console.log(`[Knowledge Base] Found ${result.length} competitors`);
+      return result;
     }
-  } catch (parseError) {
-    console.error('Failed to parse competitors JSON:', content);
+  } catch (error) {
+    console.error('[Knowledge Base] Error:', error);
+  }
+
+  return [];
+}
+
+// METHOD 2: Perplexity Web Search - Real-time, discovers newer/smaller competitors
+async function discoverFromWebSearch(domain: string, industry: string): Promise<Competitor[]> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  
+  if (!apiKey) {
+    console.warn('[Web Search] Perplexity API key not configured');
+    return [];
+  }
+
+  try {
+    console.log(`[Web Search] Searching competitors for: ${domain}`);
+    
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a competitive analysis expert. Search the web to find competitors of the given company.
+
+Return ONLY a valid JSON array with this exact format, no other text:
+[
+  {"name": "Competitor Name", "url": "https://competitor.com", "description": "Brief description"}
+]
+
+Focus on:
+- Direct competitors mentioned in review sites (G2, Capterra, TrustRadius)
+- Alternatives mentioned in "vs" comparison articles
+- Companies mentioned in "best alternatives to X" listicles
+- Newer players and emerging alternatives
+- Include accurate website URLs`
+          },
+          {
+            role: 'user',
+            content: `Search for all competitors and alternatives to ${domain} in the ${industry} space.
+
+Look for:
+1. "Best ${domain.split('.')[0]} alternatives 2024/2025"
+2. "${domain.split('.')[0]} competitors"
+3. "Tools like ${domain.split('.')[0]}"
+4. Reviews and comparisons on G2, Capterra, Product Hunt
+
+Return at least 10-15 competitors with accurate URLs.`
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 3000,
+        return_citations: true,
+        search_recency_filter: 'year',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[Web Search] API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Extract JSON from response
+    let jsonStr = content;
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+    
+    try {
+      const competitors = JSON.parse(jsonStr);
+      
+      if (Array.isArray(competitors)) {
+        const result = competitors
+          .filter((c: any) => c.name && c.url)
+          .map((c: any) => ({
+            name: String(c.name).trim(),
+            url: String(c.url).trim(),
+            description: c.description ? String(c.description).trim() : undefined,
+            source: 'web_search',
+          }));
+        console.log(`[Web Search] Found ${result.length} competitors`);
+        return result;
+      }
+    } catch (parseError) {
+      console.error('[Web Search] Failed to parse JSON from response');
+    }
+  } catch (error) {
+    console.error('[Web Search] Error:', error);
   }
 
   return [];
@@ -151,15 +286,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
-    console.log(`[Competitors Discovery] Starting for URL: ${url}, User: ${user.id}`);
+    // Extract domain
+    let domain: string;
+    try {
+      const urlObj = new URL(url);
+      domain = urlObj.hostname.replace('www.', '');
+    } catch {
+      domain = url.replace(/^https?:\/\//, '').replace('www.', '').split('/')[0];
+    }
+    
+    const industry = guessIndustry(domain);
+    console.log(`[Competitors Discovery] Starting for: ${domain} (${industry}), User: ${user.id}`);
 
-    // Discover competitors using AI
-    const competitors = await discoverCompetitors(url);
+    // Run BOTH methods in parallel for speed
+    const [knowledgeBaseResults, webSearchResults] = await Promise.all([
+      discoverFromKnowledgeBase(domain, industry),
+      discoverFromWebSearch(domain, industry),
+    ]);
 
-    console.log(`[Competitors Discovery] Found ${competitors.length} competitors`);
+    console.log(`[Competitors Discovery] Knowledge Base: ${knowledgeBaseResults.length}, Web Search: ${webSearchResults.length}`);
 
-    // Optionally save to database
-    if (competitors.length > 0 && projectId) {
+    // Merge and deduplicate
+    const competitors = mergeCompetitors([knowledgeBaseResults, webSearchResults]);
+    
+    // Remove the target domain itself from competitors
+    const filteredCompetitors = competitors.filter(c => !normalizeUrl(c.url).includes(domain.split('.')[0]));
+
+    console.log(`[Competitors Discovery] Total unique: ${filteredCompetitors.length} (after merge & dedup)`);
+
+    // Save to database
+    if (filteredCompetitors.length > 0 && projectId) {
       // Get existing competitors
       const { data: existing } = await supabase
         .from('site_contexts')
@@ -169,17 +325,15 @@ export async function POST(request: NextRequest) {
         .eq('type', 'competitors')
         .maybeSingle();
 
-      let existingCompetitors: any[] = [];
+      let existingCompetitors: Competitor[] = [];
       if (existing?.content) {
         try {
           existingCompetitors = JSON.parse(existing.content);
         } catch {}
       }
 
-      // Merge (avoid duplicates by URL)
-      const existingUrls = new Set(existingCompetitors.map((c: any) => c.url?.toLowerCase()));
-      const newCompetitors = competitors.filter(c => !existingUrls.has(c.url?.toLowerCase()));
-      const merged = [...existingCompetitors, ...newCompetitors];
+      // Merge with existing (avoid duplicates)
+      const allCompetitors = mergeCompetitors([existingCompetitors, filteredCompetitors]);
 
       // Upsert to database
       await supabase
@@ -188,17 +342,24 @@ export async function POST(request: NextRequest) {
           user_id: user.id,
           project_id: projectId,
           type: 'competitors',
-          content: JSON.stringify(merged),
+          content: JSON.stringify(allCompetitors),
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id,project_id,type',
         });
+      
+      console.log(`[Competitors Discovery] Saved ${allCompetitors.length} total competitors to database`);
     }
 
     return NextResponse.json({
       success: true,
-      competitors,
-      message: `Found ${competitors.length} competitors`,
+      competitors: filteredCompetitors,
+      sources: {
+        knowledge_base: knowledgeBaseResults.length,
+        web_search: webSearchResults.length,
+        total_unique: filteredCompetitors.length,
+      },
+      message: `Found ${filteredCompetitors.length} unique competitors (${knowledgeBaseResults.length} from AI + ${webSearchResults.length} from web search)`,
     });
 
   } catch (error: any) {
