@@ -246,15 +246,9 @@ After completion, provide:
   metadata: {
     category: 'build',
     priority: '1',
+    tags: ['listicle', 'best-of', 'comparison', 'landing-page', 'multi-product'],
+    version: '1.0.0',
     solution: 'Generate premium listicle/best-of pages comparing multiple alternatives.',
     demoUrl: '',
-    triggers: [
-      'generate listicle page',
-      'create best of page',
-      'top 10 alternatives',
-      'best alternatives list',
-      'listicle',
-      'page_type: listicle',
-    ],
   },
 };
