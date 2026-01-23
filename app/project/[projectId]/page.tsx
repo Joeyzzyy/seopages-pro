@@ -164,6 +164,8 @@ export default function ProjectChatPage() {
       const conversation = currentConversationRef.current;
       const currentRunningTaskId = runningTaskIdRef.current; // Use ref to get latest value
       
+      console.log('[onFinish] Called with taskId:', currentRunningTaskId, 'conversation:', !!conversation, 'user:', !!user);
+      
       if (conversation && user) {
         processedMessageIdsRef.current.add(messageId);
         try {
