@@ -13,6 +13,7 @@ interface SiteInitializationOverlayProps {
   domain: string;
   messages: any[];
   isLoading: boolean;
+  initPhase?: 'brand' | 'competitors' | 'planning' | 'done';
   onComplete?: () => void;
 }
 
@@ -118,6 +119,7 @@ export default function SiteInitializationOverlay({
   domain, 
   messages, 
   isLoading,
+  initPhase = 'brand',
   onComplete 
 }: SiteInitializationOverlayProps) {
   const [showTip, setShowTip] = useState(false);
@@ -147,9 +149,9 @@ export default function SiteInitializationOverlay({
     }
   }, [messages, onComplete]);
   
-  // Timeout protection - exit after 3 minutes if stuck
+  // Timeout protection - exit after 5 minutes if stuck (increased from 3 due to competitor discovery)
   useEffect(() => {
-    if (elapsedTime >= 180 && !hasError) { // 3 minutes
+    if (elapsedTime >= 300 && !hasError) { // 5 minutes
       console.log('[Initialization] Timeout reached, exiting initialization mode');
       setTimeout(() => {
         if (onComplete) onComplete();
@@ -164,77 +166,54 @@ export default function SiteInitializationOverlay({
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
   
-  // Analyze messages to determine current phase
+  // Determine phase status based on initPhase prop (from parent state)
   const phases: InitializationPhase[] = useMemo(() => {
-    const toolCalls: string[] = [];
-    messages.forEach(msg => {
-      if (msg.toolInvocations) {
-        msg.toolInvocations.forEach((inv: any) => {
-          toolCalls.push(inv.toolName);
-        });
-      }
-    });
-    
-    // Check for tool calls to determine phase
-    const hasSiteContext = toolCalls.some(t => t === 'acquire_site_context');
-    const hasCompetitors = toolCalls.some(t => t === 'save_site_context');
-    const hasPagePlanning = toolCalls.some(t => t === 'save_content_items_batch' || t === 'web_search');
-    
     let phase1Status: 'pending' | 'running' | 'completed' = 'pending';
     let phase2Status: 'pending' | 'running' | 'completed' = 'pending';
     let phase3Status: 'pending' | 'running' | 'completed' = 'pending';
-    let phase4Status: 'pending' | 'running' | 'completed' = 'pending';
     
-    if (isLoading) {
-      if (!hasSiteContext && !hasCompetitors && !hasPagePlanning) {
-        phase1Status = 'running';
-      } else if (hasSiteContext && !hasCompetitors) {
+    // Use initPhase prop to determine status
+    switch (initPhase) {
+      case 'brand':
+        phase1Status = isLoading ? 'running' : 'completed';
+        break;
+      case 'competitors':
         phase1Status = 'completed';
         phase2Status = 'running';
-      } else if (hasCompetitors && !hasPagePlanning) {
+        break;
+      case 'planning':
         phase1Status = 'completed';
         phase2Status = 'completed';
         phase3Status = 'running';
-      } else if (hasPagePlanning) {
+        break;
+      case 'done':
         phase1Status = 'completed';
         phase2Status = 'completed';
         phase3Status = 'completed';
-        phase4Status = 'running';
-      }
-    } else if (hasPagePlanning) {
-      phase1Status = 'completed';
-      phase2Status = 'completed';
-      phase3Status = 'completed';
-      phase4Status = 'completed';
+        break;
     }
     
     return [
       {
-        id: 'connect',
-        name: 'Connecting',
-        description: 'Establishing secure connection to your website',
+        id: 'brand',
+        name: 'Brand Assets',
+        description: 'Extracting logo, colors, header & footer',
         status: phase1Status,
       },
       {
-        id: 'brand',
-        name: 'Brand Analysis',
-        description: 'Extracting logo, colors, and brand assets',
-        status: phase2Status,
-      },
-      {
         id: 'competitors',
-        name: 'Competitor Research',
-        description: 'Identifying and analyzing your competitors',
-        status: phase3Status,
+        name: 'Competitor Discovery',
+        description: 'Finding competitors via AI + web search',
+        status: phase2Status,
       },
       {
         id: 'planning',
         name: 'Page Planning',
-        description: 'Creating alternative page blueprints',
-        status: phase4Status,
+        description: 'Creating comparison & listicle page blueprints',
+        status: phase3Status,
       },
     ];
-  }, [messages, isLoading]);
+  }, [initPhase, isLoading]);
   
   // Check if all phases completed
   useEffect(() => {

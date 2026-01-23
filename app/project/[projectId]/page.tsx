@@ -87,6 +87,8 @@ export default function ProjectChatPage() {
   
   // Initialization mode - show full screen overlay during first-time context acquisition
   const [isInitializing, setIsInitializing] = useState(false);
+  // Track initialization phase: 'brand' → 'competitors' → 'planning' → 'done'
+  const [initPhase, setInitPhase] = useState<'brand' | 'competitors' | 'planning' | 'done'>('brand');
   
   // Delete confirmation
   const [deletingCluster, setDeletingCluster] = useState<{ id: string; name: string } | null>(null);
@@ -217,16 +219,16 @@ export default function ProjectChatPage() {
           if (currentRunningTaskId === 'context-analysis') {
             await loadSiteContexts(currentUser.id);
             await loadContentItems(currentUser.id);
-            setContextTaskStatus('completed');
+            // Don't set contextTaskStatus to 'completed' here - wait for full init to complete
             
-            // Trigger page planning after context acquisition completes
+            // Trigger competitor discovery + page planning (will close Overlay when done)
             if (!hasTriggeredPagePlanningRef.current) {
               hasTriggeredPagePlanningRef.current = true;
-              console.log('[onFinish] Context acquisition completed, triggering page planning...');
-              // Delay to ensure competitors data is fully saved
+              console.log('[onFinish] Brand assets collected, starting competitor discovery...');
+              // Small delay to ensure brand data is fully saved
               setTimeout(() => {
                 triggerPagePlanningAfterInit(currentUser.id);
-              }, 2000);
+              }, 1000);
             }
           }
         } catch (error) {
@@ -288,6 +290,8 @@ export default function ProjectChatPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         console.log('[triggerPagePlanningAfterInit] No session, aborting');
+        setInitPhase('done');
+        setIsInitializing(false);
         return;
       }
 
@@ -304,7 +308,8 @@ export default function ProjectChatPage() {
       const capitalizedBrandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
       const fullUrl = domainName.startsWith('http') ? domainName : `https://${domainName}`;
 
-      // STEP 1: Discover competitors using API
+      // PHASE 2: Discover competitors using API
+      setInitPhase('competitors');
       setDiscoveringCompetitors(true);
       console.log('[Init-Competitors] Discovering competitors for:', fullUrl);
       const competitorsResponse = await fetch('/api/context-acquisition/competitors', {
@@ -328,19 +333,21 @@ export default function ProjectChatPage() {
       if (!competitorsResult.success || !competitorsResult.competitors?.length) {
         console.log('[Init-Competitors] No competitors found');
         setToast({ isOpen: true, message: 'No competitors found. You can add them manually.' });
+        setInitPhase('done');
+        setIsInitializing(false);
         return;
       }
 
       const competitors = competitorsResult.competitors;
       console.log(`[Init-PagePlanning] Discovered ${competitors.length} competitors, creating page plans...`);
 
-      // Refresh site contexts FIRST to show competitors in UI
+      // Refresh site contexts to show competitors
       await loadSiteContexts(userId);
 
-      // NOW show "Planning pages..." indicator (competitors are already visible)
+      // PHASE 3: Create page plans
+      setInitPhase('planning');
       setPlanningPages(true);
 
-      // STEP 2: Create page plans using API
       const pagesResponse = await fetch('/api/context-acquisition/competitors/create-pages', {
         method: 'POST',
         headers: {
@@ -357,15 +364,22 @@ export default function ProjectChatPage() {
       const pagesResult = await pagesResponse.json();
       console.log(`[Init-PagePlanning] Result:`, pagesResult);
 
-      // Refresh BOTH content projects and content items (projects first!)
+      // Refresh BOTH content projects and content items
       await loadContentProjects(userId);
       await loadContentItems(userId);
+
+      // PHASE 4: Done - exit initialization mode
+      setInitPhase('done');
+      setIsInitializing(false);
+      setContextTaskStatus('completed');
 
       if (pagesResult.created > 0) {
         setToast({ isOpen: true, message: `Found ${competitors.length} competitors, created ${pagesResult.created} page plans!` });
       }
     } catch (error) {
       console.error('[Init-PagePlanning] Error:', error);
+      setInitPhase('done');
+      setIsInitializing(false);
     } finally {
       setDiscoveringCompetitors(false);
       setPlanningPages(false);
@@ -375,16 +389,15 @@ export default function ProjectChatPage() {
   useEffect(() => {
     // Check if loading just finished (transition from true to false)
     if (wasLoadingRef.current && !isLoading && isInitializing && runningTaskId === 'context-analysis') {
-      // Context acquisition completed, exit initialization mode
-      console.log('[Initialization] Context acquisition completed, exiting initialization mode');
-      setIsInitializing(false);
-      setContextTaskStatus('completed');
+      // Brand assets collection completed, but DON'T exit initialization yet
+      // The triggerPagePlanningAfterInit will handle the rest and close Overlay when done
+      console.log('[Initialization] Brand assets collected, continuing to competitor discovery...');
+      setInitPhase('competitors'); // Update phase for Overlay display
       setRunningTaskId(null);
       
-      // Refresh data (page planning is triggered in onFinish)
+      // Refresh brand data
       if (userRef.current) {
         loadSiteContexts(userRef.current.id);
-        loadContentItems(userRef.current.id);
       }
     }
     wasLoadingRef.current = isLoading;
@@ -903,6 +916,7 @@ Execute the full page generation workflow.`;
         domain={currentProject.domain}
         messages={messages}
         isLoading={isLoading}
+        initPhase={initPhase}
         onComplete={handleInitializationComplete}
       />
     );
