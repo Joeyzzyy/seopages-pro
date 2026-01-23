@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { saveSection } from '@/lib/section-storage';
 
 /**
  * Generate the final CTA section.
@@ -25,8 +26,9 @@ COLOR RULES:
 - Secondary CTA: gray border (btn-secondary style)
 - Checkmarks: brand color
 
-Returns HTML that can be assembled into the full page.`,
+Returns a confirmation that the section was saved. The HTML is stored in the database to avoid token limits.`,
   parameters: z.object({
+    content_item_id: z.string().describe('Content item ID (UUID) for storing the section'),
     brand_name: z.string(),
     headline: z.string().describe('Main CTA headline'),
     description: z.string().describe('Supporting description'),
@@ -40,7 +42,7 @@ Returns HTML that can be assembled into the full page.`,
     }).optional(),
     trust_badges: z.array(z.string()).optional().describe('e.g., "Free trial", "No credit card"'),
   }),
-  execute: async ({ brand_name, headline, description, primary_cta, secondary_cta, trust_badges }) => {
+  execute: async ({ content_item_id, brand_name, headline, description, primary_cta, secondary_cta, trust_badges }) => {
     // Trust badges with brand-colored checkmarks
     const trustBadgesHtml = trust_badges?.map(badge => `
             <div class="flex items-center gap-2">
@@ -64,14 +66,14 @@ Returns HTML that can be assembled into the full page.`,
         ${escapeHtml(description)}
       </p>
       
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-6">
-        <!-- Primary CTA - Brand color button -->
-        <a href="${escapeHtml(primary_cta.url)}" class="w-full sm:w-auto btn-primary px-6 md:px-8 py-3 md:py-4 rounded-xl text-sm md:text-base text-center">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+        <!-- Primary CTA - Brand color button (same style as Hero Section) -->
+        <a href="${escapeHtml(primary_cta.url)}" class="w-full sm:w-auto btn-primary px-10 py-4 rounded-2xl text-base font-semibold shadow-lg text-center">
           ${escapeHtml(primary_cta.text)}
         </a>
         ${secondary_cta ? `
-        <!-- Secondary CTA - Gray border, consistent with btn-secondary -->
-        <a href="${escapeHtml(secondary_cta.url)}" class="w-full sm:w-auto btn-secondary px-6 md:px-8 py-3 md:py-4 rounded-xl text-sm md:text-base text-center">
+        <!-- Secondary CTA - Gray border (same style as Hero Section) -->
+        <a href="${escapeHtml(secondary_cta.url)}" class="w-full sm:w-auto btn-secondary px-10 py-4 rounded-2xl text-base font-semibold text-center">
           ${escapeHtml(secondary_cta.text)}
         </a>
         ` : ''}
@@ -85,12 +87,34 @@ Returns HTML that can be assembled into the full page.`,
     </div>
   </section>`;
 
+    // Save to database instead of returning HTML
+    const sectionId = 'cta';
+    const saveResult = await saveSection({
+      content_item_id,
+      section_id: sectionId,
+      section_type: 'cta',
+      section_order: 60, // Last section before footer
+      section_html: html,
+      metadata: {
+        brand_name,
+        headline,
+      },
+    });
+
+    if (!saveResult.success) {
+      return {
+        success: false,
+        error: saveResult.error,
+        message: `Failed to save CTA section`,
+      };
+    }
+
+    // Return concise info - NO HTML in response to save tokens
     return {
       success: true,
-      section_id: 'cta',
-      section_name: 'CTA Section',
-      html,
-      message: `Generated CTA section for ${brand_name}`,
+      section_id: sectionId,
+      section_saved: true,
+      message: `Saved CTA section for ${brand_name}`,
     };
   },
 });

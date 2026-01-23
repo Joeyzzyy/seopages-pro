@@ -111,7 +111,7 @@ export default function TaskDetailPanel({
                   ? 'bg-purple-100 text-purple-700'
                   : 'bg-gray-100 text-gray-600'
               }`}>
-                {task.status === 'running' ? 'Running...' : 'Ready to Generate'}
+                {task.status === 'running' ? 'In Progress' : 'Ready to Generate'}
               </span>
             </div>
           </div>
@@ -168,19 +168,6 @@ export default function TaskDetailPanel({
                     />
                   );
                 });
-                
-                // If still loading and we have some content, show a mini loading indicator at top
-                if (isLoading) {
-                  return (
-                    <>
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-100">
-                        <div className="w-4 h-4 rounded-full border-2 border-purple-300 border-t-purple-600 animate-spin" />
-                        <span className="text-xs font-medium text-purple-700">AI is working...</span>
-                      </div>
-                      {renderedMessages}
-                    </>
-                  );
-                }
                 
                 return renderedMessages;
               })()}
@@ -313,10 +300,14 @@ function GeneratedPageViewer({
   const themePickerRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update currentHtml when contentItem changes
+  // Update currentHtml when contentItem.id changes (new item selected)
+  // Don't update when generated_content changes (to avoid overwriting during theme save)
   useEffect(() => {
     setCurrentHtml(contentItem.generated_content || '');
-  }, [contentItem.generated_content]);
+    // Reset theme to default when switching items
+    setSelectedTheme('blue');
+    setCustomColor('#0ea5e9');
+  }, [contentItem.id]); // Only depend on id, not generated_content
 
   // Close theme picker when clicking outside
   useEffect(() => {
@@ -330,7 +321,7 @@ function GeneratedPageViewer({
   }, []);
 
   // Save theme to database (debounced)
-  const saveThemeToDatabase = async (h: number, s: number) => {
+  const saveThemeToDatabase = async (h: number, s: number, hexColor: string) => {
     // Clear previous timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -340,14 +331,15 @@ function GeneratedPageViewer({
     saveTimeoutRef.current = setTimeout(async () => {
       if (!contentItem.id || !currentHtml) return;
       
-      // Update CSS variables in HTML
+      // Update CSS variables in HTML - support both naming conventions
       const brand500 = `hsl(${h}, ${s}%, 50%)`;
       const brand600 = `hsl(${h}, ${s}%, 45%)`;
       const brand700 = `hsl(${h}, ${s}%, 38%)`;
+      const brandLight = `hsl(${h}, ${s}%, 97%)`;
       
       let updatedHtml = currentHtml;
       
-      // Replace CSS variables in style block
+      // Replace HSL-based CSS variables (--brand-500/600/700)
       updatedHtml = updatedHtml.replace(
         /--brand-500:\s*[^;]+;/g,
         `--brand-500: ${brand500};`
@@ -359,6 +351,20 @@ function GeneratedPageViewer({
       updatedHtml = updatedHtml.replace(
         /--brand-700:\s*[^;]+;/g,
         `--brand-700: ${brand700};`
+      );
+      
+      // Replace hex-based CSS variables (--brand-color/dark/light) - used by Listicle pages
+      updatedHtml = updatedHtml.replace(
+        /--brand-color:\s*[^;]+;/g,
+        `--brand-color: ${hexColor};`
+      );
+      updatedHtml = updatedHtml.replace(
+        /--brand-color-dark:\s*[^;]+;/g,
+        `--brand-color-dark: ${brand600};`
+      );
+      updatedHtml = updatedHtml.replace(
+        /--brand-color-light:\s*[^;]+;/g,
+        `--brand-color-light: ${brandLight};`
       );
       
       setCurrentHtml(updatedHtml);
@@ -375,8 +381,9 @@ function GeneratedPageViewer({
         });
         
         if (response.ok) {
-          // Notify parent component about the update
-          onContentUpdate?.(updatedHtml);
+          // Successfully saved to database
+          // Don't call onContentUpdate to avoid triggering a re-render that would reset the iframe
+          console.log('[Theme] Saved to database successfully');
         } else {
           console.error('Failed to save theme');
         }
@@ -389,29 +396,60 @@ function GeneratedPageViewer({
   };
 
   // Apply theme to iframe
-  const applyThemeToIframe = (h: number, s: number, shouldSave: boolean = true) => {
+  const applyThemeToIframe = (h: number, s: number, hexColor: string, shouldSave: boolean = true) => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow?.document) return;
     
     const doc = iframe.contentWindow.document;
+    const brand500 = `hsl(${h}, ${s}%, 50%)`;
+    const brand600 = `hsl(${h}, ${s}%, 45%)`;
+    const brand700 = `hsl(${h}, ${s}%, 38%)`;
+    const brandLight = `hsl(${h}, ${s}%, 97%)`;
     
     // Try to find .page-content-scope element first (for merged pages)
     const pageContentScope = doc.querySelector('.page-content-scope') as HTMLElement;
     if (pageContentScope) {
-      pageContentScope.style.setProperty('--brand-500', `hsl(${h}, ${s}%, 50%)`);
-      pageContentScope.style.setProperty('--brand-600', `hsl(${h}, ${s}%, 45%)`);
-      pageContentScope.style.setProperty('--brand-700', `hsl(${h}, ${s}%, 38%)`);
+      // HSL-based variables
+      pageContentScope.style.setProperty('--brand-500', brand500);
+      pageContentScope.style.setProperty('--brand-600', brand600);
+      pageContentScope.style.setProperty('--brand-700', brand700);
+      // Hex-based variables (used by Listicle pages)
+      pageContentScope.style.setProperty('--brand-color', hexColor);
+      pageContentScope.style.setProperty('--brand-color-dark', brand600);
+      pageContentScope.style.setProperty('--brand-color-light', brandLight);
     }
     
     // Also set on :root for non-merged pages
     const root = doc.documentElement;
-    root.style.setProperty('--brand-500', `hsl(${h}, ${s}%, 50%)`);
-    root.style.setProperty('--brand-600', `hsl(${h}, ${s}%, 45%)`);
-    root.style.setProperty('--brand-700', `hsl(${h}, ${s}%, 38%)`);
+    root.style.setProperty('--brand-500', brand500);
+    root.style.setProperty('--brand-600', brand600);
+    root.style.setProperty('--brand-700', brand700);
+    root.style.setProperty('--brand-color', hexColor);
+    root.style.setProperty('--brand-color-dark', brand600);
+    root.style.setProperty('--brand-color-light', brandLight);
+    
+    // Directly apply styles to buttons (fixes broken CSS selectors in older pages)
+    const btnPrimaryElements = doc.querySelectorAll('.btn-primary');
+    btnPrimaryElements.forEach((btn: Element) => {
+      (btn as HTMLElement).style.background = `linear-gradient(135deg, ${hexColor}, ${brand600})`;
+      (btn as HTMLElement).style.color = 'white';
+    });
+    
+    // Apply to brand icon backgrounds
+    const brandIconElements = doc.querySelectorAll('.bg-brand-icon');
+    brandIconElements.forEach((el: Element) => {
+      (el as HTMLElement).style.backgroundColor = hexColor;
+    });
+    
+    // Apply to text-brand elements
+    const textBrandElements = doc.querySelectorAll('.text-brand, .text-brand-icon');
+    textBrandElements.forEach((el: Element) => {
+      (el as HTMLElement).style.color = hexColor;
+    });
     
     // Save to database if requested
     if (shouldSave) {
-      saveThemeToDatabase(h, s);
+      saveThemeToDatabase(h, s, hexColor);
     }
   };
 
@@ -419,7 +457,7 @@ function GeneratedPageViewer({
   const handleThemeSelect = (theme: typeof THEME_PRESETS[0]) => {
     setSelectedTheme(theme.name);
     setCustomColor(theme.color);
-    applyThemeToIframe(theme.h, theme.s, true);
+    applyThemeToIframe(theme.h, theme.s, theme.color, true);
   };
 
   // Handle custom color change
@@ -430,7 +468,7 @@ function GeneratedPageViewer({
     
     // Convert hex to HSL and apply
     const hsl = hexToHslLocal(hex);
-    applyThemeToIframe(hsl.h, hsl.s, true);
+    applyThemeToIframe(hsl.h, hsl.s, hex, true);
   };
 
   const handleRegenerateClick = () => {
@@ -541,7 +579,7 @@ function GeneratedPageViewer({
                           if (e.target.value.length === 7) {
                             setSelectedTheme('custom');
                             const hsl = hexToHslLocal(e.target.value);
-                            applyThemeToIframe(hsl.h, hsl.s);
+                            applyThemeToIframe(hsl.h, hsl.s, e.target.value);
                           }
                         }
                       }}
@@ -663,7 +701,7 @@ function GeneratedPageViewer({
       <div className="flex-1 overflow-hidden relative">
         {viewMode === 'preview' ? (
           <iframe
-            key={contentItem.updated_at || contentItem.id}
+            key={contentItem.id}
             ref={iframeRef}
             srcDoc={currentHtml || undefined}
             className="w-full h-full border-0"

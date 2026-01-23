@@ -21,18 +21,40 @@ export const save_final_page = tool({
       let contentToSave = full_content;
 
       // If full_content is not provided, fetch it from the database using item_id
+      // IMPORTANT: Retry mechanism to handle race condition with merge_html_with_site_contexts
       if (!contentToSave && item_id) {
         console.log(`[save_final_page] Fetching final HTML from DB for item: ${item_id}`);
-        const { data: item, error: fetchError } = await supabase
-          .from('content_items')
-          .select('generated_content')
-          .eq('id', item_id)
-          .single();
         
-        if (fetchError || !item?.generated_content) {
-          throw new Error(`Failed to fetch content item or it has no generated content: ${fetchError?.message || 'Empty content'}`);
+        const maxRetries = 3;
+        const retryDelay = 800; // ms
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          const { data: item, error: fetchError } = await supabase
+            .from('content_items')
+            .select('generated_content')
+            .eq('id', item_id)
+            .single();
+          
+          if (fetchError || !item?.generated_content) {
+            throw new Error(`Failed to fetch content item or it has no generated content: ${fetchError?.message || 'Empty content'}`);
+          }
+          
+          contentToSave = item.generated_content as string;
+          
+          // Check if header/footer are present (merge may still be running)
+          const hasHeader = /<header[\s\S]*?<\/header>/i.test(contentToSave);
+          const hasFooter = /<footer[\s\S]*?<\/footer>/i.test(contentToSave);
+          
+          if (hasHeader && hasFooter) {
+            console.log(`[save_final_page] ✅ Found header/footer on attempt ${attempt}`);
+            break;
+          } else if (attempt < maxRetries) {
+            console.log(`[save_final_page] ⚠️ Attempt ${attempt}/${maxRetries}: Missing header (${hasHeader}) or footer (${hasFooter}), waiting ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          } else {
+            console.log(`[save_final_page] ⚠️ Max retries reached, proceeding with current content (header: ${hasHeader}, footer: ${hasFooter})`);
+          }
         }
-        contentToSave = item.generated_content;
       }
 
       if (!contentToSave) {

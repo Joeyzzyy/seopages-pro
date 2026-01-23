@@ -73,24 +73,33 @@ export default function TaskList({
     all: contentItems.length,
     alternative: contentItems.filter(item => item.page_type === 'alternative').length,
     listicle: contentItems.filter(item => item.page_type === 'listicle').length,
-    planned: contentItems.filter(item => item.status === 'planned').length,
+    planned: contentItems.filter(item => item.status === 'ready').length,
     generated: contentItems.filter(item => item.status === 'generated').length,
   };
 
-  // Apply filters to content items
-  const filteredItems = contentItems.filter(item => {
-    const matchesType = typeFilter === 'all' || item.page_type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    return matchesType && matchesStatus;
-  });
+  // Apply filters and sort: generated first, then by updated_at descending (newest first)
+  const filteredItems = contentItems
+    .filter(item => {
+      const matchesType = typeFilter === 'all' || item.page_type === typeFilter;
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      return matchesType && matchesStatus;
+    })
+    .sort((a, b) => {
+      // First: generated items on top, planned items below
+      if (a.status === 'generated' && b.status !== 'generated') return -1;
+      if (a.status !== 'generated' && b.status === 'generated') return 1;
+      // Then: within same status, sort by updated_at descending (newest first)
+      // Use updated_at because created_at is batch creation time, updated_at reflects generation time
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
 
-  // Group filtered items by project (keep original order)
+  // Group filtered items by project (items within each group are sorted by created_at desc)
   const groupedContent = contentProjects.map(project => ({
     ...project,
     items: filteredItems.filter(item => item.project_id === project.id)
   }));
 
-  // Filtered items without a project (Uncategorized)
+  // Filtered items without a project (Uncategorized) - already sorted
   const uncategorizedItems = filteredItems.filter(item => !item.project_id);
 
   // Auto-expand first project when content loads
@@ -462,72 +471,76 @@ export default function TaskList({
           
           {/* Filter Tabs */}
           {contentItems.length > 0 && (
-            <div className="px-2 mb-3 flex items-center gap-1 flex-wrap">
+            <div className="px-2 mb-3 space-y-1.5">
               {/* Type Filter */}
-              <button
-                onClick={() => setTypeFilter('all')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  typeFilter === 'all' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                All {counts.all}
-              </button>
-              <button
-                onClick={() => setTypeFilter('alternative')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  typeFilter === 'alternative' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                1v1 {counts.alternative}
-              </button>
-              <button
-                onClick={() => setTypeFilter('listicle')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  typeFilter === 'listicle' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                Listicle {counts.listicle}
-              </button>
-              
-              <span className="text-[#E5E7EB]">|</span>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-[#9CA3AF] w-10">Type</span>
+                <button
+                  onClick={() => setTypeFilter('all')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    typeFilter === 'all' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  All {counts.all}
+                </button>
+                <button
+                  onClick={() => setTypeFilter('alternative')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    typeFilter === 'alternative' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  1v1 {counts.alternative}
+                </button>
+                <button
+                  onClick={() => setTypeFilter('listicle')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    typeFilter === 'listicle' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  Listicle {counts.listicle}
+                </button>
+              </div>
               
               {/* Status Filter */}
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  statusFilter === 'all' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setStatusFilter('planned')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  statusFilter === 'planned' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                Todo {counts.planned}
-              </button>
-              <button
-                onClick={() => setStatusFilter('generated')}
-                className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                  statusFilter === 'generated' 
-                    ? 'bg-[#111827] text-white' 
-                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
-                }`}
-              >
-                Done {counts.generated}
-              </button>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-[#9CA3AF] w-10">Status</span>
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    statusFilter === 'all' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setStatusFilter('planned')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    statusFilter === 'planned' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  Todo {counts.planned}
+                </button>
+                <button
+                  onClick={() => setStatusFilter('generated')}
+                  className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                    statusFilter === 'generated' 
+                      ? 'bg-[#111827] text-white' 
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  Done {counts.generated}
+                </button>
+              </div>
             </div>
           )}
           
@@ -609,60 +622,15 @@ export default function TaskList({
             </div>
           ) : (
             <div className="space-y-1 relative">
-              {/* If only one project group and no uncategorized, show items directly without group header */}
-              {groupedContent.length === 1 && uncategorizedItems.length === 0 ? (
-                <div className="space-y-0.5">
-                  {groupedContent[0].items.map((item) => {
-                    const currentIndex = globalItemIndex;
-                    globalItemIndex++;
-                    const isLocked = currentIndex >= maxVisibleItems;
-                    return renderPageItem(item, isLocked);
-                  })}
-                </div>
-              ) : (
-                /* Multiple projects - show with group headers */
-                groupedContent.map((project) => (
-                  <div key={project.id}>
-                    <button
-                      onClick={() => toggleProject(project.id)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#F3F4F6] transition-all"
-                    >
-                      <svg 
-                        className={`w-3 h-3 text-[#9CA3AF] transition-transform ${expandedProjects[project.id] ? 'rotate-90' : ''}`} 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2.5"
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                      <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-tight flex-1 text-left truncate">
-                        {project.name}
-                      </span>
-                      <span className="text-[10px] text-[#9CA3AF]">{project.items.length}</span>
-                    </button>
-
-                    {expandedProjects[project.id] && (
-                      <div className="ml-2 space-y-0.5">
-                        {project.items.map((item) => {
-                          const currentIndex = globalItemIndex;
-                          globalItemIndex++;
-                          const isLocked = currentIndex >= maxVisibleItems;
-                          return renderPageItem(item, isLocked);
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-
-              {/* Uncategorized items */}
-              {uncategorizedItems.map((item) => {
-                const currentIndex = globalItemIndex;
-                globalItemIndex++;
-                const isLocked = currentIndex >= maxVisibleItems;
-                return renderPageItem(item, isLocked);
-              })}
+              {/* Render all filtered items in sorted order (generated first, then by time desc) */}
+              <div className="space-y-0.5">
+                {filteredItems.map((item) => {
+                  const currentIndex = globalItemIndex;
+                  globalItemIndex++;
+                  const isLocked = currentIndex >= maxVisibleItems;
+                  return renderPageItem(item, isLocked);
+                })}
+              </div>
 
             </div>
           )}

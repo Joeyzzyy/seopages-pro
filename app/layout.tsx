@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import GlobalProviders from "@/components/GlobalProviders";
 import "./globals.css";
 
 // Using system fonts to bypass Google Fonts download issues during build
@@ -118,7 +119,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
         suppressHydrationWarning
       >
-        {children}
+        <GlobalProviders>
+          {children}
+        </GlobalProviders>
         <Analytics />
       </body>
     </html>

@@ -166,11 +166,11 @@ Current sections provided: ${Object.entries(sections).filter(([_, v]) => v && (A
       tocSection,
       sections.intro,
       sections.comparison_table,
-      // Wrap product cards in a container
-      `<section id="products-list" class="py-16 md:py-20 px-4 md:px-6 bg-white">
-        <div class="max-w-4xl mx-auto">
+      // Wrap product cards in a container - centered with max-width for each card
+      `<section id="products-list" class="py-16 md:py-20 px-4 md:px-6 bg-gray-50">
+        <div class="max-w-6xl mx-auto">
           <h2 class="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">Detailed Reviews</h2>
-          <div class="space-y-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
             ${sections.product_cards.join('\n')}
           </div>
         </div>
@@ -241,13 +241,14 @@ Current sections provided: ${Object.entries(sections).filter(([_, v]) => v && (A
       font-family: 'Playfair Display', Georgia, serif;
     }
     
-    /* Primary Button */
+    /* Primary Button - with border for better definition */
     .btn-primary {
       background: var(--brand-500);
       color: white;
       font-weight: 600;
       padding: 12px 24px;
       border-radius: 8px;
+      border: 2px solid var(--brand-600);
       transition: all 0.2s ease;
       box-shadow: var(--shadow-md);
       display: inline-flex;
@@ -256,6 +257,7 @@ Current sections provided: ${Object.entries(sections).filter(([_, v]) => v && (A
     }
     .btn-primary:hover {
       background: var(--brand-600);
+      border-color: var(--brand-700);
       box-shadow: var(--shadow-lg);
       transform: translateY(-1px);
     }
@@ -304,10 +306,12 @@ Current sections provided: ${Object.entries(sections).filter(([_, v]) => v && (A
       transform: translateY(-2px);
     }
     
-    /* Winner badge */
+    /* Winner badge - Gold/amber for visibility on any brand color */
     .badge-winner {
-      background: var(--brand-500);
-      color: white;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      color: #92400e;
+      border: 1px solid #f59e0b;
+      font-weight: 700;
     }
     
     /* FAQ Accordion */

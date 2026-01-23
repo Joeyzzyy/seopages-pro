@@ -108,15 +108,15 @@ export default function CompetitorsModal({
         throw new Error(result.error || 'Failed to fetch competitors');
       }
 
-      const fetchedCompetitors = result.competitors || [];
+      // API now returns the complete list with logo_url and validation status
+      const allCompetitors = result.competitors || [];
       
-      // Merge with existing competitors - keep old ones, add new ones incrementally
+      // Count how many are truly new (for display purposes)
       let existing: any[] = [];
       try {
         existing = competitorsContent ? JSON.parse(competitorsContent) : [];
       } catch {}
       
-      // Normalize URLs for comparison (lowercase, remove trailing slashes, remove www)
       const normalizeUrl = (url: string) => {
         try {
           const u = new URL(url.toLowerCase());
@@ -126,16 +126,13 @@ export default function CompetitorsModal({
         }
       };
       
-      // Create a set of existing URLs for quick lookup
       const existingUrls = new Set(existing.map((c: any) => normalizeUrl(c.url || '')));
-      
-      // Filter out duplicates - only add truly new competitors
-      const newCompetitors = fetchedCompetitors.filter(
+      const newCompetitors = allCompetitors.filter(
         (c: any) => !existingUrls.has(normalizeUrl(c.url || ''))
       );
       
-      // Keep all existing competitors, append only new ones
-      const merged = [...existing, ...newCompetitors];
+      // Use the complete list from API (includes updated logo_url for all competitors)
+      const merged = allCompetitors;
       
       setCrawlStatus({
         isRunning: false,
@@ -148,7 +145,7 @@ export default function CompetitorsModal({
       setCompetitorsContent(JSON.stringify(merged));
       
       // Show helpful message if no new competitors
-      if (newCompetitors.length === 0 && fetchedCompetitors.length > 0) {
+      if (newCompetitors.length === 0 && allCompetitors.length > 0) {
         setCrawlStatus(prev => ({
           ...prev,
           currentStep: 'No new competitors found (all already exist)',
@@ -265,21 +262,11 @@ export default function CompetitorsModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#EF4444] flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-[#111827]">Competitors</h2>
-              <p className="text-xs text-[#6B7280]">
-                {getCompetitorCount()} competitor{getCompetitorCount() !== 1 ? 's' : ''} configured
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg font-bold text-[#111827]">Competitors</h2>
+            <p className="text-xs text-[#6B7280]">
+              {getCompetitorCount()} competitor{getCompetitorCount() !== 1 ? 's' : ''} configured
+            </p>
           </div>
           
           <div className="flex items-center gap-2">

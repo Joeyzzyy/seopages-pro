@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { saveSection } from '@/lib/section-storage';
 
 /**
  * Generate the FAQ section with accordion.
@@ -12,8 +13,9 @@ This section includes:
 - Schema.org FAQPage markup
 - Common questions about the comparison
 
-Returns HTML that can be assembled into the full page.`,
+Returns a confirmation that the section was saved. The HTML is stored in the database to avoid token limits.`,
   parameters: z.object({
+    content_item_id: z.string().describe('Content item ID (UUID) for storing the section'),
     brand_name: z.string(),
     competitor_name: z.string(),
     faqs: z.array(z.object({
@@ -21,7 +23,7 @@ Returns HTML that can be assembled into the full page.`,
       answer: z.string(),
     })).min(4).max(10).describe('4-10 FAQ items'),
   }),
-  execute: async ({ brand_name, competitor_name, faqs }) => {
+  execute: async ({ content_item_id, brand_name, competitor_name, faqs }) => {
     // Generate FAQ items HTML
     const faqItemsHtml = faqs.map((faq, index) => `
           <div class="faq-item border border-gray-200 rounded-xl overflow-hidden">
@@ -77,13 +79,36 @@ Returns HTML that can be assembled into the full page.`,
   ${JSON.stringify(faqSchema, null, 2)}
   </script>`;
 
+    // Save to database instead of returning HTML
+    const sectionId = 'faq';
+    const saveResult = await saveSection({
+      content_item_id,
+      section_id: sectionId,
+      section_type: 'faq',
+      section_order: 50, // Near the end, before CTA
+      section_html: html,
+      metadata: {
+        brand_name,
+        competitor_name,
+        faq_count: faqs.length,
+      },
+    });
+
+    if (!saveResult.success) {
+      return {
+        success: false,
+        error: saveResult.error,
+        message: `Failed to save FAQ section`,
+      };
+    }
+
+    // Return concise info - NO HTML in response to save tokens
     return {
       success: true,
-      section_id: 'faq',
-      section_name: 'FAQ Section',
-      html,
+      section_id: sectionId,
+      section_saved: true,
       faq_count: faqs.length,
-      message: `Generated FAQ section with ${faqs.length} questions`,
+      message: `Saved FAQ section with ${faqs.length} questions`,
     };
   },
 });

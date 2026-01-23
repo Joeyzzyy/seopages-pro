@@ -1011,17 +1011,20 @@ Execute the full page generation workflow.`;
             }}
             onRegenerate={(item) => handleGeneratePage(item)}
             onContentUpdate={(itemId, newContent) => {
+              // Use same timestamp to prevent useEffect infinite loop
+              const newUpdatedAt = new Date().toISOString();
+              
               // Update contentItems state with the new content
               setContentItems(prev => prev.map(item => 
                 item.id === itemId 
-                  ? { ...item, generated_content: newContent, updated_at: new Date().toISOString() }
+                  ? { ...item, generated_content: newContent, updated_at: newUpdatedAt }
                   : item
               ));
-              // Also update selectedTask if it's the same item
+              // Also update selectedTask if it's the same item (using same timestamp!)
               if (selectedTask && selectedTask.id === itemId) {
                 setSelectedTask(prev => prev ? {
                   ...prev,
-                  data: { ...(prev.data as ContentItem), generated_content: newContent, updated_at: new Date().toISOString() }
+                  data: { ...(prev.data as ContentItem), generated_content: newContent, updated_at: newUpdatedAt }
                 } : null);
               }
             }}

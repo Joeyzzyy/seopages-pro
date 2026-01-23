@@ -198,30 +198,118 @@ ${wrappedBodyContent}
  * Scope page content styles to only apply within the scoped container
  */
 function scopePageContentStyles(styleContent: string, scopeClass: string): string {
+  // Global utility classes that should NOT be scoped
+  const globalUtilityClasses = [
+    '.btn-primary',
+    '.btn-secondary',
+    '.badge-winner',
+    '.bg-brand-icon',
+    '.bg-brand-bg',
+    '.text-brand',
+    '.text-brand-icon',
+    '.ring-brand-icon',
+    '.border-brand',
+    '.faq-item',
+    '.faq-content',
+    '.faq-icon',
+    '.faq-trigger',
+  ];
+  
+  // Step 1: Extract and preserve @keyframes blocks (don't scope them at all)
+  const keyframesBlocks: string[] = [];
+  let contentWithoutKeyframes = styleContent.replace(/@keyframes\s+[\w-]+\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, (match) => {
+    keyframesBlocks.push(match);
+    return `__KEYFRAMES_${keyframesBlocks.length - 1}__`;
+  });
+  
+  // Step 2: Extract and preserve @media blocks (process their content separately)
+  const mediaBlocks: { query: string; content: string }[] = [];
+  contentWithoutKeyframes = contentWithoutKeyframes.replace(/@media\s*([^{]+)\{([\s\S]*?)\}(?=\s*(?:@|\.|#|[a-z]|\*|\/\*|$))/gi, (match, query, content) => {
+    mediaBlocks.push({ query: query.trim(), content });
+    return `__MEDIA_${mediaBlocks.length - 1}__`;
+  });
+  
+  // Step 3: Extract and preserve comments
+  const comments: string[] = [];
+  let cleanedContent = contentWithoutKeyframes.replace(/\/\*[\s\S]*?\*\//g, (match) => {
+    comments.push(match);
+    return `__COMMENT_${comments.length - 1}__`;
+  });
+  
+  // Step 4: Process regular CSS rules
+  const scopedContent = scopeRegularRules(cleanedContent, scopeClass, globalUtilityClasses, comments);
+  
+  // Step 5: Process @media blocks (scope their inner content)
+  const scopedMediaBlocks = mediaBlocks.map((block, idx) => {
+    const innerScoped = scopeRegularRules(block.content, scopeClass, globalUtilityClasses, comments);
+    return `@media ${block.query} {\n${innerScoped}\n}`;
+  });
+  
+  // Step 6: Restore everything
+  let result = scopedContent;
+  
+  // Restore media blocks
+  result = result.replace(/__MEDIA_(\d+)__/g, (_, idx) => scopedMediaBlocks[parseInt(idx)]);
+  
+  // Restore keyframes blocks (unchanged)
+  result = result.replace(/__KEYFRAMES_(\d+)__/g, (_, idx) => keyframesBlocks[parseInt(idx)]);
+  
+  // Restore comments
+  result = result.replace(/__COMMENT_(\d+)__/g, (_, idx) => comments[parseInt(idx)]);
+  
+  return result;
+}
+
+/**
+ * Scope regular CSS rules (not @keyframes or @media)
+ */
+function scopeRegularRules(
+  content: string, 
+  scopeClass: string, 
+  globalUtilityClasses: string[],
+  comments: string[]
+): string {
   // Split by closing brace to get individual rules
-  const rules = styleContent.split('}').filter(r => r.trim());
+  const rules = content.split('}').filter(r => r.trim());
   
   const scopedRules = rules.map(rule => {
-    const trimmedRule = rule.trim();
+    let trimmedRule = rule.trim();
     if (!trimmedRule) return '';
     
+    // Skip placeholder tokens
+    if (trimmedRule.match(/^__(?:KEYFRAMES|MEDIA|COMMENT)_\d+__$/)) {
+      return trimmedRule;
+    }
+    
+    // Extract any comment/placeholder at the beginning
+    let leading = '';
+    const leadingMatch = trimmedRule.match(/^((?:__(?:COMMENT|KEYFRAMES|MEDIA)_\d+__\s*)+)/);
+    if (leadingMatch) {
+      leading = leadingMatch[1];
+      trimmedRule = trimmedRule.replace(leadingMatch[0], '').trim();
+    }
+    
+    if (!trimmedRule) {
+      return leading;
+    }
+    
     // Split selector and properties
-    const parts = trimmedRule.split('{');
-    if (parts.length !== 2) return trimmedRule + '}';
+    const braceIdx = trimmedRule.indexOf('{');
+    if (braceIdx === -1) return leading + trimmedRule;
     
-    let selector = parts[0].trim();
-    const properties = parts[1].trim();
+    const selector = trimmedRule.substring(0, braceIdx).trim();
+    const properties = trimmedRule.substring(braceIdx + 1).trim();
     
-    // Skip @rules (media queries, keyframes, etc.)
+    // Skip @rules that weren't extracted
     if (selector.startsWith('@')) {
-      return trimmedRule + '}';
+      return leading + trimmedRule + '}';
     }
     
     // Handle multiple selectors (comma-separated)
     const selectors = selector.split(',').map(s => s.trim());
     
     const scopedSelectors = selectors.map(sel => {
-      // Replace ':root' with the scope class (CSS variables should be on the scope itself)
+      // Replace ':root' with the scope class
       if (sel === ':root') {
         return `.${scopeClass}`;
       }
@@ -231,11 +319,20 @@ function scopePageContentStyles(styleContent: string, scopeClass: string): strin
         return `.${scopeClass}`;
       }
       
+      // Check if this selector starts with a global utility class - DON'T scope these
+      const isGlobalUtility = globalUtilityClasses.some(utilClass => 
+        sel === utilClass || sel.startsWith(utilClass + ':') || sel.startsWith(utilClass + ' ')
+      );
+      
+      if (isGlobalUtility) {
+        return sel;
+      }
+      
       // Prepend scope class to all other selectors
       return `.${scopeClass} ${sel}`;
     });
     
-    return `${scopedSelectors.join(',\n')} {\n  ${properties}\n}`;
+    return `${leading}${scopedSelectors.join(',\n')} {\n  ${properties}\n}`;
   });
   
   return scopedRules.join('\n\n');

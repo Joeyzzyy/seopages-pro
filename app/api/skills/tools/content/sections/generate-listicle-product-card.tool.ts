@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { saveSection } from '@/lib/section-storage';
 
 /**
  * Generate a single product card for a listicle/best-of page.
@@ -25,15 +26,17 @@ COLOR RULES:
 - Everything else: black/white/gray palette
 - Use shadows for depth and hierarchy
 
-Returns HTML for a single product card.`,
+Returns a confirmation that the section was saved. The HTML is stored in the database to avoid token limits.`,
   parameters: z.object({
+    content_item_id: z.string().describe('Content item ID (UUID) for storing the section'),
     rank: z.number().describe('Ranking position (1 = best/your brand)'),
     is_brand: z.boolean().describe('Whether this is your brand (the product you are promoting)'),
     product: z.object({
       name: z.string().describe('Product name'),
-      logo_url: z.string().optional().describe('Product logo URL'),
-      tagline: z.string().optional().describe('Short tagline or description'),
-      website_url: z.string().optional().describe('Product website URL'),
+      logo_url: z.string().nullish().describe('Product logo URL'),
+      screenshot_url: z.string().nullish().describe('Homepage screenshot URL (from research_product_deep)'),
+      tagline: z.string().nullish().describe('Short tagline or description'),
+      website_url: z.string().nullish().describe('Product website URL'),
       description: z.string().describe('Detailed description (2-3 sentences)'),
       features: z.array(z.string()).describe('Key features (4-6 items)'),
       pricing: z.object({
@@ -48,7 +51,7 @@ Returns HTML for a single product card.`,
     }),
     brand_primary_color: z.string().optional().default('#0ea5e9').describe('Brand primary color for CTA buttons'),
   }),
-  execute: async ({ rank, is_brand, product, brand_primary_color }) => {
+  execute: async ({ content_item_id, rank, is_brand, product, brand_primary_color }) => {
     const initial = product.name.charAt(0).toUpperCase();
     
     // Logo HTML with fallback
@@ -126,18 +129,28 @@ Returns HTML for a single product card.`,
       </div>
     ` : '';
 
-    // Card border/styling based on rank
+    // Card border/styling based on rank - Premium styling
     const cardBorderClass = rank === 1 
-      ? 'ring-2 ring-brand-icon ring-offset-2' 
-      : 'border border-gray-200';
+      ? 'ring-2 ring-brand-icon ring-offset-4 shadow-2xl' 
+      : 'border border-gray-100 shadow-lg hover:shadow-xl';
+    
+    // Special background for winner
+    const cardBgClass = rank === 1 
+      ? 'bg-gradient-to-br from-white to-gray-50/50' 
+      : 'bg-white';
 
     const html = `
   <!-- Product Card #${rank}: ${product.name} -->
-  <article id="product-${rank}" class="bg-white rounded-2xl ${cardBorderClass} shadow-lg hover:shadow-xl transition-shadow p-6 md:p-8">
+  <article id="product-${rank}" class="${cardBgClass} rounded-3xl ${cardBorderClass} transition-all duration-300 p-6 md:p-8 relative overflow-hidden">
+    ${rank === 1 ? `
+    <!-- Winner accent decoration -->
+    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-100/50 to-transparent rounded-bl-full pointer-events-none"></div>
+    ` : ''}
+    
     <!-- Header -->
-    <div class="flex items-start gap-4 mb-6">
-      <!-- Rank Badge -->
-      <div class="flex-shrink-0 w-10 h-10 ${rankBadgeClass} rounded-full flex items-center justify-center font-bold text-lg shadow-sm">
+    <div class="flex items-start gap-4 mb-6 relative">
+      <!-- Rank Badge - Premium styling -->
+      <div class="flex-shrink-0 w-12 h-12 ${rankBadgeClass} rounded-2xl flex items-center justify-center font-bold text-lg shadow-md ${rank === 1 ? 'shadow-brand-icon/20' : ''}">
         ${rank}
       </div>
       
@@ -147,68 +160,132 @@ Returns HTML for a single product card.`,
           ${logoHtml}
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 class="text-xl font-bold text-gray-900">${escapeHtml(product.name)}</h3>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900">${escapeHtml(product.name)}</h3>
               ${winnerBadge}
             </div>
-            ${product.tagline ? `<p class="text-sm text-gray-500">${escapeHtml(product.tagline)}</p>` : ''}
+            ${product.tagline ? `<p class="text-sm text-gray-500 mt-0.5">${escapeHtml(product.tagline)}</p>` : ''}
           </div>
         </div>
         
-        <!-- Rating -->
-        <div class="flex items-center gap-2">
-          <div class="flex items-center">${starsHtml}</div>
-          <span class="text-sm text-gray-600 font-medium">${rating.toFixed(1)}</span>
+        <!-- Rating - Enhanced -->
+        <div class="flex items-center gap-2 mt-2">
+          <div class="flex items-center gap-0.5">${starsHtml}</div>
+          <span class="text-sm font-semibold text-gray-700">${rating.toFixed(1)}</span>
+          <span class="text-xs text-gray-400">/ 5.0</span>
         </div>
       </div>
     </div>
     
-    <!-- Description -->
-    <p class="text-gray-600 mb-6 leading-relaxed">
+    <!-- Description - Better typography -->
+    <p class="text-gray-600 mb-6 leading-relaxed text-base">
       ${escapeHtml(product.description)}
     </p>
     
-    <!-- Key Features -->
-    <div class="mb-6">
-      <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Key Features</h4>
-      <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+    ${product.screenshot_url ? `
+    <!-- Homepage Screenshot -->
+    <div class="mb-8 rounded-xl overflow-hidden border border-gray-200 shadow-md hover:shadow-lg transition-shadow">
+      <div class="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+        <div class="flex gap-1.5">
+          <div class="w-3 h-3 rounded-full bg-red-400"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+          <div class="w-3 h-3 rounded-full bg-green-400"></div>
+        </div>
+        <span class="text-xs text-gray-500 truncate ml-2">${product.website_url || product.name}</span>
+      </div>
+      <img 
+        src="${product.screenshot_url}" 
+        alt="${escapeHtml(product.name)} homepage screenshot" 
+        class="w-full h-auto"
+        loading="lazy"
+        onerror="this.parentElement.style.display='none'"
+      >
+    </div>
+    ` : ''}
+    
+    <!-- Key Features - Grid with icons -->
+    <div class="mb-8">
+      <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Key Features
+      </h4>
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
         ${featuresHtml}
       </ul>
     </div>
     
-    <!-- Pricing -->
-    <div class="mb-6 p-4 bg-gray-50 rounded-xl">
-      <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Pricing</h4>
+    <!-- Pricing - Card style -->
+    <div class="mb-8 p-5 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl border border-gray-100">
+      <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Pricing
+      </h4>
       ${pricingHtml}
     </div>
     
-    <!-- Pros & Cons -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <div>
-        <h4 class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-3">Pros</h4>
+    <!-- Pros & Cons - Side by side cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div class="p-4 bg-green-50/50 rounded-2xl border border-green-100">
+        <h4 class="text-xs font-bold text-green-700 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+          Pros
+        </h4>
         <ul class="space-y-2">${prosHtml}</ul>
       </div>
-      <div>
-        <h4 class="text-sm font-semibold text-red-600 uppercase tracking-wide mb-3">Cons</h4>
+      <div class="p-4 bg-red-50/30 rounded-2xl border border-red-100/50">
+        <h4 class="text-xs font-bold text-red-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>
+          Cons
+        </h4>
         <ul class="space-y-2">${consHtml}</ul>
       </div>
     </div>
     
-    <!-- Best For -->
-    <div class="p-4 bg-gray-50 rounded-xl mb-4">
-      <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Best For</h4>
-      <p class="text-sm text-gray-600">${escapeHtml(product.best_for)}</p>
+    <!-- Best For - Highlighted -->
+    <div class="p-5 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 rounded-2xl border border-blue-100/50 mb-6">
+      <h4 class="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        Best For
+      </h4>
+      <p class="text-sm text-gray-700 font-medium">${escapeHtml(product.best_for)}</p>
     </div>
     
     <!-- CTA -->
     ${ctaHtml}
   </article>`;
 
+    // Save to database instead of returning HTML
+    const sectionId = `product-card-${rank}`;
+    const saveResult = await saveSection({
+      content_item_id,
+      section_id: sectionId,
+      section_type: 'product_card',
+      section_order: 10 + rank, // Hero=0, ComparisonTable=5, ProductCards=11-18, FAQ=50, CTA=60
+      section_html: html,
+      metadata: {
+        rank,
+        is_brand,
+        product_name: product.name,
+        rating: product.rating,
+      },
+    });
+
+    if (!saveResult.success) {
+      return {
+        success: false,
+        error: saveResult.error,
+        message: `Failed to save product card for ${product.name}`,
+      };
+    }
+
+    // Return concise info - NO HTML in response to save tokens
     return {
       success: true,
-      section_id: `product-card-${rank}`,
-      section_name: `Product Card #${rank}: ${product.name}`,
-      html,
-      message: `Generated product card for ${product.name} (rank #${rank})`,
+      section_id: sectionId,
+      section_saved: true,
+      product_name: product.name,
+      rank,
+      is_brand,
+      message: `Saved product card for ${product.name} (rank #${rank})`,
     };
   },
 });

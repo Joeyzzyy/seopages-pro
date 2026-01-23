@@ -455,30 +455,39 @@ async function extractAndSaveHeader(
   }
 
   try {
-    // Use AI to analyze header structure
-    const aiPrompt = `Analyze this website header HTML and extract the navigation structure.
+    // Use AI to analyze header structure with nested dropdown support
+    const aiPrompt = `Analyze this website header HTML and extract the COMPLETE navigation structure, including dropdowns.
 
 Return ONLY valid JSON:
 {
   "siteName": "Site name (from logo alt or text)",
   "logo": "Logo image URL (if found)",
-  "navigation": [{"label": "Link text", "url": "Link URL"}],
+  "navigation": [
+    {"label": "Simple Link", "url": "/path"},
+    {"label": "Dropdown Menu", "url": "#", "children": [
+      {"label": "Sub Item 1", "url": "/sub-1"},
+      {"label": "Sub Item 2", "url": "/sub-2"}
+    ]}
+  ],
   "ctaButton": {"label": "CTA text", "url": "CTA URL", "color": "#hex or null"}
 }
 
-Rules:
+CRITICAL RULES:
+- Preserve the EXACT menu structure from the original site
+- If a nav item has a dropdown/submenu, include "children" array with sub-items
+- If a nav item is a simple link (no dropdown), don't include "children"
 - URLs should NOT have .html suffix - use clean paths
 - Relative URLs should start with /
-- Skip anchor links (#) and javascript: links
-- Maximum 10 navigation items
+- Skip anchor links (#) and javascript: links for leaf items
+- Maximum 8 top-level navigation items, max 10 children per dropdown
 
 Header HTML:
-${headerHtml.substring(0, 4000)}`;
+${headerHtml.substring(0, 5000)}`;
 
     const { text } = await generateText({
       model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
       messages: [
-        { role: 'system', content: 'Extract navigation structure from HTML. Return valid JSON only.' },
+        { role: 'system', content: 'Extract complete navigation structure from HTML, preserving dropdown menus. Return valid JSON only.' },
         { role: 'user', content: aiPrompt },
       ],
       temperature: 0,
@@ -490,12 +499,20 @@ ${headerHtml.substring(0, 4000)}`;
         .replace(/```\n?$/g, '')
     );
 
-    // Clean URLs
-    if (parsed.navigation) {
-      parsed.navigation = parsed.navigation.map((item: any) => ({
+    // Clean URLs recursively (supports nested children)
+    const cleanNavItem = (item: any): any => {
+      const cleaned: any = {
         label: item.label || item.text,
         url: cleanUrl(item.url),
-      })).slice(0, 10);
+      };
+      if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+        cleaned.children = item.children.map(cleanNavItem).slice(0, 10);
+      }
+      return cleaned;
+    };
+    
+    if (parsed.navigation) {
+      parsed.navigation = parsed.navigation.map(cleanNavItem).slice(0, 8);
     }
 
     // Build header config
@@ -554,7 +571,7 @@ async function extractAndSaveFooter(
   }
 
   try {
-    // Use AI to analyze footer structure
+    // Use AI to analyze footer structure including background color
     const aiPrompt = `Analyze this website footer HTML and extract the structure.
 
 Return ONLY valid JSON:
@@ -571,7 +588,9 @@ Return ONLY valid JSON:
   "socialMedia": [
     {"platform": "twitter|facebook|linkedin|github|instagram", "url": "URL"}
   ],
-  "copyright": "Copyright text"
+  "copyright": "Copyright text",
+  "backgroundColor": "CSS background color from footer styles (e.g., #1a1a1a, rgb(26,26,26), or white)",
+  "textColor": "CSS text color from footer styles (e.g., #ffffff, #e5e7eb)"
 }
 
 Rules:
@@ -579,6 +598,10 @@ Rules:
 - URLs should NOT have .html suffix
 - platform must be one of: twitter, facebook, linkedin, github, instagram
 - Keep copyright exactly as shown
+- Look for background-color in inline styles, class names like bg-*, or style blocks
+- If footer has dark background, use appropriate dark color (#111827, #1f2937, etc.)
+- If footer has light background, use white or appropriate light color
+- Extract text color to ensure contrast
 
 Footer HTML:
 ${footerHtml.substring(0, 8000)}`;
@@ -609,7 +632,7 @@ ${footerHtml.substring(0, 8000)}`;
       }));
     }
 
-    // Build footer config
+    // Build footer config with background color
     const footerConfig: FooterConfig = {
       companyName: parsed.companyName || '',
       tagline: parsed.tagline || '',
@@ -619,6 +642,8 @@ ${footerHtml.substring(0, 8000)}`;
         ['twitter', 'facebook', 'linkedin', 'github', 'instagram'].includes(s.platform)
       ),
       copyright: parsed.copyright || '',
+      backgroundColor: parsed.backgroundColor || undefined, // Let template use default if not found
+      textColor: parsed.textColor || undefined,
     };
 
     // Generate HTML

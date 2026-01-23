@@ -1,5 +1,15 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { fetch as undiciFetch, ProxyAgent } from 'undici';
+
+// Create proxy agent if configured
+function getProxyAgent(): ProxyAgent | undefined {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  if (proxyUrl) {
+    return new ProxyAgent(proxyUrl);
+  }
+  return undefined;
+}
 
 /**
  * Perplexity Deep Search Tool
@@ -157,7 +167,13 @@ Use different search_type for different purposes:
     try {
       console.log(`[perplexity_search] Deep search: "${query}" type: ${search_type}`);
       
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      // Use undici fetch with proxy support
+      const proxyAgent = getProxyAgent();
+      if (proxyAgent) {
+        console.log(`[perplexity_search] Using proxy`);
+      }
+      
+      const fetchOptions: any = {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -180,7 +196,20 @@ Use different search_type for different purposes:
           return_citations: true,
           search_recency_filter: 'year', // Focus on recent content
         }),
-      });
+      };
+      
+      // Add proxy dispatcher if available
+      if (proxyAgent) {
+        fetchOptions.dispatcher = proxyAgent;
+      }
+      
+      // Set timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      fetchOptions.signal = controller.signal;
+      
+      const response = await undiciFetch('https://api.perplexity.ai/chat/completions', fetchOptions);
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -188,7 +217,7 @@ Use different search_type for different purposes:
         throw new Error(`Perplexity API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { choices?: { message?: { content?: string } }[]; citations?: string[]; model?: string; usage?: unknown };
       
       const answer = data.choices?.[0]?.message?.content || '';
       const citations = data.citations || [];

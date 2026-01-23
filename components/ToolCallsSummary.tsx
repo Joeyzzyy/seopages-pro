@@ -55,22 +55,6 @@ function getToolDisplayName(toolName: string): string {
   return nameMap[toolName] || toolName?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Tool';
 }
 
-// Format time for display
-function formatToolTime(timestamp: string | number | undefined): string {
-  if (!timestamp) return '';
-  try {
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit',
-      hour12: false 
-    });
-  } catch {
-    return '';
-  }
-}
 
 // Get brief action description
 function getToolAction(inv: any): string {
@@ -198,8 +182,8 @@ export default function ToolCallsSummary({
               )}
               <span className="text-sm font-medium text-[#374151]">
                 {isRunningAny 
-                  ? `Executing ${runningTools.length} tool${runningTools.length > 1 ? 's' : ''}...` 
-                  : `${completedCount} tool${completedCount !== 1 ? 's' : ''} executed`
+                  ? `Running: ${runningTools.map(t => getToolDisplayName(t.toolName)).join(', ')}` 
+                  : `${completedCount} tool${completedCount !== 1 ? 's' : ''} completed`
                 }
               </span>
             </div>
@@ -217,20 +201,15 @@ export default function ToolCallsSummary({
           {/* Tool List */}
           {isExpanded && (
             <div className="border-t border-[#F0F0F0] divide-y divide-[#F0F0F0]">
-              {/* Task Started - First item (at top since list is reversed) */}
-              {taskStartTime && (
-                <div className="bg-white">
+              {/* Waiting for next step indicator - show when all tools done but still streaming */}
+              {isStreaming && !isRunningAny && completedCount > 0 && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50">
                   <div className="flex items-center gap-3 px-3 py-2">
                     <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-[#6366F1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
+                      <div className="w-3 h-3 rounded-full border-2 border-purple-300 border-t-purple-600 animate-spin" />
                     </div>
-                    <span className="text-xs font-semibold min-w-[120px] text-[#6366F1]">Task Started</span>
-                    <span className="text-xs truncate flex-1 text-[#6B7280]">{taskTitle || ''}</span>
-                    <span className="text-[10px] font-bold text-[#6366F1] font-mono bg-[#EEF2FF] px-1.5 py-0.5 rounded flex-shrink-0">
-                      {formatToolTime(taskStartTime)}
-                    </span>
+                    <span className="text-xs font-semibold text-purple-700">Thinking...</span>
+                    <span className="text-xs text-purple-600">Preparing next step</span>
                   </div>
                 </div>
               )}
@@ -252,7 +231,6 @@ export default function ToolCallsSummary({
                 const toolName = getToolDisplayName(inv.toolName);
                 const action = getToolAction(inv);
                 const isToolExpanded = expandedTools.has(inv.toolCallId);
-                const toolTime = formatToolTime(inv.createdAt || inv.created_at || inv.timestamp);
                 
                 return (
                   <div key={inv.toolCallId} className="bg-white">
@@ -290,13 +268,6 @@ export default function ToolCallsSummary({
                       {action && (
                         <span className={`text-xs truncate flex-1 ${isRunning ? 'text-[#B4A8F8] italic' : 'text-[#6B7280]'}`}>
                           {action}
-                        </span>
-                      )}
-                      
-                      {/* Time */}
-                      {toolTime && (
-                        <span className="text-[10px] font-medium text-[#9CA3AF] font-mono flex-shrink-0">
-                          {toolTime}
                         </span>
                       )}
                       

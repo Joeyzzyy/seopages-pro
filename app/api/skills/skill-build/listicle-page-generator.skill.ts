@@ -6,6 +6,7 @@ import { save_site_context } from '../tools/seo/supabase-site-context-save.tool'
 import { save_content_items_batch } from '../tools/content/supabase-content-save-items-batch.tool';
 import { web_search } from '../tools/research/tavily-web-search.tool';
 import { perplexity_search } from '../tools/research/perplexity-search.tool';
+import { research_product_deep } from '../tools/research/research-product-deep.tool';
 import { merge_html_with_site_contexts } from '../tools/content/merge-html-with-site-contexts.tool';
 import { fix_style_conflicts } from '../tools/content/fix-style-conflicts.tool';
 import { save_final_page } from '../tools/content/supabase-content-save-final-page.tool';
@@ -24,8 +25,9 @@ import { generate_listicle_hero_section } from '../tools/content/sections/genera
 import { generate_listicle_product_card } from '../tools/content/sections/generate-listicle-product-card.tool';
 import { generate_listicle_comparison_table } from '../tools/content/sections/generate-listicle-comparison-table.tool';
 
-// Assembly tool
+// Assembly tools
 import { assemble_listicle_page } from '../tools/content/assemble-listicle-page.tool';
+import { assemble_page_from_sections } from '../tools/content/assemble-page-from-sections.tool';
 
 export const listiclePageGeneratorSkill: Skill = {
   id: 'listicle-page-generator',
@@ -49,13 +51,16 @@ Key differences from alternative pages:
 5. Fair, balanced assessment highlighting YOUR strengths
 
 ====================
-ARCHITECTURE
+ARCHITECTURE (SECTION STORAGE)
 ====================
-This skill uses a MODULAR approach:
+This skill uses a MODULAR, TOKEN-EFFICIENT approach:
 1. Generate each section INDEPENDENTLY using specialized tools
-2. Each section tool returns optimized HTML
-3. Assemble all sections into a complete page
+2. Each section is SAVED TO DATABASE automatically (not returned in response)
+3. Assemble all sections from database into a complete page
 4. Integrate with site header/footer
+
+⚠️ IMPORTANT: Section tools now SAVE TO DATABASE instead of returning HTML.
+This avoids token limit issues on large pages. Each tool returns only a confirmation.
 
 ====================
 QUALITY STANDARDS (NON-NEGOTIABLE)
@@ -100,50 +105,113 @@ Execute steps in ONE continuous turn:
 1. Call 'get_content_item_detail' for page info
 2. Call 'get_site_contexts' with types: ["logo", "competitors"]
 3. Call 'resolve_page_logos' for brand logo
-4. Use 'web_search' or 'perplexity_search' to research:
-   - Each competitor's features, pricing
-   - Your product's unique advantages
-   - Common user needs in this category
 
-**STEP 2: GENERATE ALL SECTIONS**
+**STEP 1.5: DEEP PRODUCT RESEARCH** ⭐ CRITICAL FOR DATA QUALITY ⭐
+For EACH product (including your brand), call 'research_product_deep':
+- content_item_id: THE CONTENT ITEM UUID (REQUIRED! - enables auto-loading later)
+- product_name: Name of the product
+- product_url: Product's website URL
+- feature_names: List of features to check (same for all products)
 
-⚠️ CRITICAL WARNING ⚠️
-You MUST call ALL section generators before calling assemble_listicle_page.
+This tool will:
+1. Crawl 5-10 pages from each product's website (homepage, pricing, features, integrations, etc.)
+2. Use AI to extract structured data: features, pricing, pros/cons, best_for
+3. Return feature availability as: 'yes', 'partial', 'no', or 'not_mentioned'
+4. ⭐ NEW: AUTOMATICALLY SAVE research data to database!
 
-REQUIRED SECTIONS:
+✨ NEW AUTO-LOADING FEATURE:
+The generate_listicle_comparison_table tool now AUTOMATICALLY loads saved research data!
+- You don't need to manually pass features data anymore
+- Just call research_product_deep FIRST, then generate_listicle_comparison_table
+- The table tool will auto-fetch features from saved research
+
+For generate_listicle_product_card, use data from research:
+- product.features: Use key_features array from research
+- product.pricing: Use pricing object from research
+- product.pros: Use pros array from research
+- product.cons: Use cons array from research
+- product.best_for: Use target_audience from research
+- product.screenshot_url: Use screenshot_url from research (NEW! Shows homepage screenshot)
+
+If a feature is 'not_mentioned', show "—" in the table (not "✗")
+
+**STEP 2: GENERATE ALL SECTIONS (Database Storage)**
+
+⚠️ CRITICAL: PASS content_item_id TO EVERY SECTION TOOL ⚠️
+Each section tool SAVES to database automatically. You don't need to collect HTML.
+
+REQUIRED SECTIONS - Call in this order:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 1. generate_listicle_hero_section ⭐ REQUIRED
+   - content_item_id: THE CONTENT ITEM UUID (REQUIRED!)
    - brand: {name, logo_url, primary_color}
    - title: "Top 10 Best X Alternatives in 2025"
    - description: What readers will learn
    - total_alternatives: number of products
+   → Saves to DB, returns confirmation
 
-2. generate_listicle_comparison_table (recommended)
+2. generate_listicle_comparison_table ⭐ REQUIRED
+   - content_item_id: THE CONTENT ITEM UUID (REQUIRED!)
+   - auto_load_from_research: true (default) - automatically loads features from saved research!
    - Quick-reference table for all products
-   - Products array with features map
-   - Feature names for column headers
+   
+   ✨ NEW: AUTO-LOADING FROM RESEARCH ✨
+   If you called research_product_deep with content_item_id FIRST, the table tool will
+   AUTOMATICALLY load features from the saved research data!
+   
+   You can now pass simpler product data:
+   products: [
+     { rank: 1, name: "ProductName", rating: 4.8 },
+     { rank: 2, name: "Competitor1", rating: 4.5 },
+     // ... features will be auto-loaded from saved research!
+   ]
+   
+   ⚠️ Make sure to call research_product_deep for ALL products BEFORE this tool!
+   
+   → Saves to DB, returns confirmation
 
 3. generate_listicle_product_card ⭐ REQUIRED (call for EACH product)
-   - Call this ONCE for EACH product in your list
-   - rank: 1 for your brand, 2-N for others
-   - is_brand: true for your product
-   - product: {name, logo_url, description, features, pricing, pros, cons, best_for}
+   - content_item_id: THE CONTENT ITEM UUID (REQUIRED!)
+   - ⚠️ MUST call for ALL products including YOUR BRAND (#1)
+   - rank: 1 for your brand (FIRST), 2-N for competitors
+   - is_brand: true for your product (rank 1)
+   - Use data from research_product_deep for features, pricing, pros, cons
+   - 📸 NEW: Include screenshot_url from research to show homepage screenshot!
+   → Each call saves to DB, returns confirmation
+
+   Example product object:
+   {
+     name: "ProductName",
+     website_url: "https://example.com",
+     screenshot_url: "https://api.screenshotmachine.com?...",  // From research data
+     description: "...",
+     features: [...],
+     pricing: {...},
+     pros: [...],
+     cons: [...],
+     best_for: "...",
+     rating: 4.5
+   }
+
+   ⚠️ COMMON MISTAKE: Don't skip rank #1! Your brand MUST have a product card!
 
 4. generate_faq_section ⭐ REQUIRED
+   - content_item_id: THE CONTENT ITEM UUID (REQUIRED!)
    - 5-8 common questions
-   - Include "Which is best for [use case]?" questions
+   → Saves to DB, returns confirmation
 
 5. generate_cta_section ⭐ REQUIRED
+   - content_item_id: THE CONTENT ITEM UUID (REQUIRED!)
    - Strong final call to action
-   - Why choose your brand
+   → Saves to DB, returns confirmation
 
-**STEP 3: ASSEMBLE PAGE**
-Call 'assemble_listicle_page' with:
-- item_id
+**STEP 3: ASSEMBLE PAGE FROM DATABASE**
+Call 'assemble_page_from_sections' with:
+- content_item_id: THE CONTENT ITEM UUID
 - page_title
 - SEO metadata
-- All section HTML including array of product cards
+This reads all saved sections from database and assembles them.
 
 **STEP 4: SITE INTEGRATION** ⚠️ MANDATORY ⚠️
 - Call 'merge_html_with_site_contexts' to add header/footer
@@ -198,11 +266,27 @@ Competitor cards should have:
 SECTION ORDER
 ====================
 1. Hero (title, badge, CTA)
-2. Quick Navigation
-3. Comparison Table
-4. Product Cards (one per product, in rank order)
-5. FAQ
-6. Final CTA
+2. Comparison Table  
+3. Product Cards (one per product, in rank order from #1 to #N)
+   ⚠️ MUST include #1 (your brand) - DON'T skip it!
+4. FAQ
+5. Final CTA
+
+====================
+⚠️ COMMON MISTAKES TO AVOID ⚠️
+====================
+1. Skipping product card for #1 (your brand) - MUST generate for ALL products
+
+2. ⛔ NOT PASSING 'features' TO COMPARISON TABLE ⛔ (MOST COMMON BUG!)
+   - When calling generate_listicle_comparison_table, each product MUST have a 'features' object
+   - The features come from research_product_deep result's 'data.features' field
+   - If you don't pass features, ALL feature columns will show "—" (empty dashes)
+   - WRONG: products: [{ rank: 1, name: "X", features: {} }]  // Empty features!
+   - RIGHT: products: [{ rank: 1, name: "X", features: {"AI Content": "yes", "SERP": "partial"} }]
+
+3. Not using research_product_deep data - causes generic/missing information
+
+4. Feature name mismatch - feature_names array and features object keys must match exactly
 
 ====================
 OUTPUT SUMMARY
@@ -223,6 +307,7 @@ After completion, provide:
     // Research tools
     web_search,
     perplexity_search,
+    research_product_deep,  // Deep crawl each product's website for features, pricing, etc.
     fetch_competitor_logo,
     capture_website_screenshot,
     resolve_page_logos,
@@ -237,7 +322,8 @@ After completion, provide:
     generate_listicle_comparison_table,
     
     // Assembly tools
-    assemble_listicle_page,
+    assemble_listicle_page,           // Legacy: accepts section HTML as parameters
+    assemble_page_from_sections,      // New: reads sections from database (preferred)
     merge_html_with_site_contexts,
     fix_style_conflicts,
     save_final_page,
