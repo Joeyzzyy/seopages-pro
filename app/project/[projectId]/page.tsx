@@ -359,6 +359,11 @@ export default function ProjectChatPage() {
   // Auth & Project state
   useEffect(() => {
     if (!projectId) return;
+    
+    // Reset page planning trigger when project changes
+    if (projectInitializedRef.current !== projectId) {
+      hasTriggeredPagePlanningRef.current = false;
+    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
