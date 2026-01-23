@@ -30,6 +30,7 @@ import TaskDetailPanel from '@/components/TaskDetailPanel';
 import ContentDrawer from '@/components/ContentDrawer';
 import DomainsModal from '@/components/DomainsModal';
 import ContextModalNew from '@/components/ContextModalNew';
+import CompetitorsModal from '@/components/CompetitorsModal';
 import Toast from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import SiteInitializationOverlay from '@/components/SiteInitializationOverlay';
@@ -61,12 +62,15 @@ export default function ProjectChatPage() {
   const [siteContexts, setSiteContexts] = useState<SiteContext[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshingSiteContexts, setRefreshingSiteContexts] = useState(false);
+  const [refreshingBrandAssets, setRefreshingBrandAssets] = useState(false);
+  const [refreshingCompetitors, setRefreshingCompetitors] = useState(false);
   const [refreshingContent, setRefreshingContent] = useState(false);
+  const [planningPages, setPlanningPages] = useState(false);
   const [selectedContentItem, setSelectedContentItem] = useState<ContentItem | null>(null);
   const [toast, setToast] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
   const [isDomainsOpen, setIsDomainsOpen] = useState(false);
   const [isContextModalOpen, setIsContextModalOpen] = useState(false);
-  const [contextModalInitialTab, setContextModalInitialTab] = useState<'brand' | 'competitors'>('brand');
+  const [isCompetitorsModalOpen, setIsCompetitorsModalOpen] = useState(false);
   
   // Task state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -570,6 +574,74 @@ Start executing Phase 1 now with acquire_site_context(url="${fullUrl}", field="a
     }
   };
 
+  // Handle page planning based on competitors
+  const handlePlanPages = async (competitors?: Array<{ name: string; url: string; description?: string }>) => {
+    if (!user) return;
+    
+    setPlanningPages(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+      // Get competitors from context if not provided
+      let competitorsToUse = competitors;
+      if (!competitorsToUse) {
+        const competitorsContext = siteContexts.find(c => c.type === 'competitors');
+        try {
+          competitorsToUse = competitorsContext?.content ? JSON.parse(competitorsContext.content) : [];
+        } catch {
+          competitorsToUse = [];
+        }
+      }
+
+      if (!competitorsToUse || competitorsToUse.length === 0) {
+        setToast({ isOpen: true, message: 'No competitors found. Please add competitors first.' });
+        return;
+      }
+
+      // Get brand name from domain
+      const logoContext = siteContexts.find(c => c.type === 'logo');
+      const domainName = (logoContext as any)?.domain_name || currentProject?.domain || '';
+      const brandName = domainName.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].split('.')[0];
+      const capitalizedBrandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
+
+      console.log(`[PlanPages] Planning pages for ${competitorsToUse.length} competitors, brand: ${capitalizedBrandName}`);
+
+      const response = await fetch('/api/context-acquisition/competitors/create-pages', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          projectId,
+          brandName: capitalizedBrandName,
+          competitors: competitorsToUse,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create pages');
+      }
+
+      console.log(`[PlanPages] Result:`, result);
+
+      // Refresh content items to show new pages
+      await loadContentItems(user.id);
+
+      if (result.created > 0) {
+        setToast({ isOpen: true, message: `Created ${result.created} new page plan${result.created > 1 ? 's' : ''}!` });
+      } else if (result.skipped > 0) {
+        setToast({ isOpen: true, message: 'All competitors already have page plans.' });
+      }
+    } catch (error: any) {
+      console.error('Failed to plan pages:', error);
+      setToast({ isOpen: true, message: error.message || 'Failed to plan pages' });
+    } finally {
+      setPlanningPages(false);
+    }
+  };
+
   const handleDeleteCluster = async () => {
     if (!deletingCluster || !user) return;
     try {
@@ -744,7 +816,6 @@ Execute the full page generation workflow.`;
         <TopBar 
           user={user}
           onDomainsClick={() => setIsDomainsOpen(true)}
-          showBackToProjects={true}
           credits={userCredits}
           subscriptionTier={subscriptionTier}
         />
@@ -771,12 +842,23 @@ Execute the full page generation workflow.`;
               await loadSiteContexts(user.id);
               setRefreshingSiteContexts(false);
             }}
-            onOpenContextModal={(tab) => {
-              setContextModalInitialTab(tab || 'brand');
-              setIsContextModalOpen(true);
+            onRefreshBrandAssets={async () => {
+              setRefreshingBrandAssets(true);
+              await loadSiteContexts(user.id);
+              setRefreshingBrandAssets(false);
             }}
+            onRefreshCompetitors={async () => {
+              setRefreshingCompetitors(true);
+              await loadSiteContexts(user.id);
+              setRefreshingCompetitors(false);
+            }}
+            onOpenBrandAssetsModal={() => setIsContextModalOpen(true)}
+            onOpenCompetitorsModal={() => setIsCompetitorsModalOpen(true)}
             isRefreshingSiteContexts={refreshingSiteContexts}
+            isRefreshingBrandAssets={refreshingBrandAssets}
+            isRefreshingCompetitors={refreshingCompetitors}
             isRefreshingContent={refreshingContent}
+            isPlanningPages={planningPages}
             contextTaskStatus={contextTaskStatus}
             credits={userCredits}
             projectDomain={currentProject?.domain}
@@ -842,7 +924,20 @@ Execute the full page generation workflow.`;
             if (user) await loadSiteContexts(user.id);
           }}
           projectId={projectId}
-          initialTab={contextModalInitialTab}
+        />
+      )}
+
+      {isCompetitorsModalOpen && (
+        <CompetitorsModal
+          isOpen={isCompetitorsModalOpen}
+          onClose={() => setIsCompetitorsModalOpen(false)}
+          siteContexts={siteContexts}
+          onSave={handleSaveSiteContext}
+          onRefresh={async () => {
+            if (user) await loadSiteContexts(user.id);
+          }}
+          projectId={projectId}
+          onPlanPages={handlePlanPages}
         />
       )}
 

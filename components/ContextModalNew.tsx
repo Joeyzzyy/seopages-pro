@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import { generateHeaderHTML } from '@/lib/templates/default-header';
 import { generateFooterHTML } from '@/lib/templates/default-footer';
 import { BrandSiteSection } from './context-modal';
-import CompetitorsEditor from './context-editors/CompetitorsEditor';
 
 /**
  * Ensure logo URL is absolute by prepending domain if it's a relative path
@@ -76,8 +75,6 @@ interface CrawlStatus {
   error?: string;
 }
 
-type NavItem = 'competitors' | 'brand-site';
-
 export default function ContextModalNew({
   isOpen,
   onClose,
@@ -87,7 +84,6 @@ export default function ContextModalNew({
   projectId,
   initialTab = 'brand',
 }: ContextModalNewProps) {
-  const [activeNav, setActiveNav] = useState<NavItem>(initialTab === 'competitors' ? 'competitors' : 'brand-site');
   const [isSaving, setIsSaving] = useState(false);
   
   // Auto-crawl states
@@ -122,9 +118,6 @@ export default function ContextModalNew({
   const [headerConfig, setHeaderConfig] = useState<any>(null);
   const [footerConfig, setFooterConfig] = useState<any>(null);
   
-  // Competitors state
-  const [competitorsContent, setCompetitorsContent] = useState('');
-
   // Refs for scrolling
   const brandAssetsRef = useRef<HTMLDivElement>(null);
   const colorsRef = useRef<HTMLDivElement>(null);
@@ -132,7 +125,6 @@ export default function ContextModalNew({
   const languagesRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-  const competitorsRef = useRef<HTMLDivElement>(null);
 
   // Get contexts
   const logoContext = siteContexts.find(c => c.type === 'logo');
@@ -160,9 +152,6 @@ export default function ContextModalNew({
         setLogoPreview(null);
         setFaviconPreview(null);
       }
-      
-      const competitorsContext = siteContexts.find(c => c.type === 'competitors');
-      setCompetitorsContent(competitorsContext?.content || '');
     }
   }, [isOpen, siteContexts, logoContext]);
 
@@ -358,11 +347,6 @@ export default function ContextModalNew({
         });
       }
 
-      // Save competitors
-      if (competitorsContent && competitorsContent.trim()) {
-        await onSave({ type: 'competitors', content: competitorsContent });
-      }
-
       onClose();
     } catch (error) {
       console.error('Error saving context:', error);
@@ -379,6 +363,8 @@ export default function ContextModalNew({
     };
 
     switch (field) {
+      case 'domain':
+        return hasStringValue(logoContext?.domain_name);
       case 'logo':
         return hasStringValue(logoContext?.logo_url) || hasStringValue(logoContext?.logo_light_url) || hasStringValue(logoContext?.file_url);
       case 'colors':
@@ -393,9 +379,6 @@ export default function ContextModalNew({
       case 'footer':
         const footerContext = siteContexts.find(c => c.type === 'footer');
         return hasStringValue(footerContext?.content) || hasStringValue(footerContext?.html);
-      case 'competitors':
-        const competitorsContext = siteContexts.find(c => c.type === 'competitors');
-        return hasStringValue(competitorsContext?.content);
       default:
         return false;
     }
@@ -408,40 +391,31 @@ export default function ContextModalNew({
 
   if (!isOpen) return null;
 
-  const navItems: { key: NavItem; label: string; icon: React.ReactNode; children?: { key: string; label: string }[] }[] = [
-    {
-      key: 'competitors',
-      label: 'Competitors',
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-        </svg>
-      ),
-    },
-    {
-      key: 'brand-site',
-      label: 'Brand & Site',
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      ),
-      children: [
-        { key: 'logo', label: 'Logo & Favicon' },
-        { key: 'colors', label: 'Colors' },
-        { key: 'typography', label: 'Typography' },
-        { key: 'languages', label: 'Languages' },
-        { key: 'header', label: 'Header' },
-        { key: 'footer', label: 'Footer' },
-      ],
-    },
+  // Sidebar items matching the right-side content sections
+  const sidebarItems = [
+    { key: 'domain', label: 'Domain', ref: brandAssetsRef },
+    { key: 'logo', label: 'Logo, Favicon & OG', ref: brandAssetsRef },
+    { key: 'colors', label: 'Colors', ref: colorsRef },
+    { key: 'typography', label: 'Typography', ref: typographyRef },
+    { key: 'languages', label: 'Languages', ref: languagesRef },
+    { key: 'header', label: 'Header', ref: headerRef },
+    { key: 'footer', label: 'Footer', ref: footerRef },
   ];
 
+  // Scroll to section handler
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-[90vw] max-w-5xl h-[85vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5]">
           <div className="flex items-center gap-3">
@@ -452,8 +426,8 @@ export default function ContextModalNew({
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[#111827]">Brand & Context</h2>
-              <p className="text-xs text-[#6B7280]">Configure your site settings</p>
+              <h2 className="text-lg font-bold text-[#111827]">Brand Assets</h2>
+              <p className="text-xs text-[#6B7280]">Configure your brand and site settings</p>
             </div>
           </div>
           
@@ -513,44 +487,22 @@ export default function ContextModalNew({
 
         <form id="context-form" onSubmit={handleSaveAll} className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-56 border-r border-[#E5E5E5] bg-[#FAFAFA] flex flex-col shrink-0">
+          <div className="w-48 border-r border-[#E5E5E5] bg-[#FAFAFA] flex flex-col shrink-0">
             <div className="flex-1 overflow-y-auto p-3">
-              <nav className="space-y-1">
-                {navItems.map((item) => (
-                  <div key={item.key}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveNav(item.key)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        activeNav === item.key
-                          ? 'bg-[#111827] text-white'
-                          : 'text-[#374151] hover:bg-[#F3F4F6]'
-                      }`}
-                    >
-                      {item.icon}
-                      <span className="flex-1 text-left">{item.label}</span>
-                      {item.key === 'competitors' && <StatusDot filled={hasContextValue('competitors')} />}
-                    </button>
-                    
-                    {/* Children */}
-                    {item.children && activeNav === item.key && (
-                      <div className="mt-1 ml-6 space-y-0.5">
-                        {item.children.map((child) => (
-                          <div
-                            key={child.key}
-                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#6B7280]"
-                          >
-                            <span>{child.label}</span>
-                            <StatusDot filled={hasContextValue(child.key)} />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+              <nav className="space-y-0.5">
+                {sidebarItems.map((item) => (
+                  <button
+                    type="button"
+                    key={item.key}
+                    onClick={() => scrollToSection(item.ref)}
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#374151] rounded-lg hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+                  >
+                    <span>{item.label}</span>
+                    <StatusDot filled={hasContextValue(item.key)} />
+                  </button>
                 ))}
               </nav>
             </div>
-
           </div>
 
           {/* Main Content */}
@@ -701,28 +653,7 @@ export default function ContextModalNew({
               </div>
             )}
 
-            {activeNav === 'competitors' && (
-              <div ref={competitorsRef}>
-                <div className="flex items-center gap-2 mb-4">
-                  <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                  </svg>
-                  <h3 className="text-base font-bold text-[#111827]">Competitors</h3>
-                </div>
-                <p className="text-sm text-[#6B7280] mb-4">
-                  Add your competitors to generate comparison pages.
-                </p>
-                <CompetitorsEditor
-                  initialContent={competitorsContent}
-                  onContentChange={setCompetitorsContent}
-                />
-              </div>
-            )}
-
-            {activeNav === 'brand-site' && (
-              <BrandSiteSection
+            <BrandSiteSection
                 siteContexts={siteContexts}
                 domainName={domainName}
                 setDomainName={setDomainName}
@@ -758,7 +689,6 @@ export default function ContextModalNew({
                 headerRef={headerRef}
                 footerRef={footerRef}
               />
-            )}
           </div>
         </form>
       </div>

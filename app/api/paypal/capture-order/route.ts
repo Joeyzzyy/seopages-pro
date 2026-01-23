@@ -12,7 +12,7 @@ const PAYPAL_API_BASE = PAYPAL_MODE === 'live'
 
 // Pricing configuration
 const PRICING_PLANS = {
-  starter: { price: '9.90', credits: 10, tier: 'starter' },
+  starter: { price: '1.00', credits: 10, tier: 'starter' },
   standard: { price: '19.90', credits: 20, tier: 'standard' },
   pro: { price: '39.90', credits: 50, tier: 'pro' },
 } as const;

@@ -12,7 +12,7 @@ const PAYPAL_API_BASE = PAYPAL_MODE === 'live'
 
 // Pricing configuration (USD)
 const PRICING_PLANS = {
-  starter: { price: '9.90', credits: 10, name: 'Starter Plan' },
+  starter: { price: '1.00', credits: 10, name: 'Starter Plan (Limited Time Offer)' },
   standard: { price: '19.90', credits: 20, name: 'Standard Plan' },
   pro: { price: '39.90', credits: 50, name: 'Pro Plan' },
 } as const;

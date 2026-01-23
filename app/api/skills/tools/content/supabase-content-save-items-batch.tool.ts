@@ -17,9 +17,9 @@ const contentItemSchema = z.object({
       h2: z.string(),
       h3s: z.array(z.string()).optional(),
       key_points: z.array(z.string()).optional(),
-      word_count: z.number().optional(),
+      word_count: z.number().describe('REQUIRED: Word count for this section (e.g., 300-500 words)'),
     })),
-  }).describe('Complete content outline structure'),
+  }).describe('Complete content outline structure. Each section MUST have a word_count.'),
   seo_title: z.string().optional().describe('SEO title'),
   seo_description: z.string().optional().describe('Meta description'),
   keyword_data: z.object({
@@ -35,8 +35,7 @@ const contentItemSchema = z.object({
     anchor_text: z.string().describe('The clickable text for the link'),
     reason: z.string().optional().describe('Why this link is important'),
   })).optional().describe('Internal linking plan for this page'),
-  estimated_word_count: z.number().optional(),
-  priority: z.number().min(1).max(5).optional().default(3),
+  estimated_word_count: z.number().describe('REQUIRED: Estimated total word count for the page. Must be provided based on section word counts.'),
   notes: z.string().optional(),
 });
 
@@ -134,7 +133,6 @@ export const save_content_items_batch = tool({
           reference_urls: item.reference_urls,
           internal_links: item.internal_links,
           estimated_word_count: item.estimated_word_count,
-          priority: item.priority,
           notes: item.notes,
           status: 'ready'
         };

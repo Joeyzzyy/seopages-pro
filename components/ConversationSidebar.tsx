@@ -11,7 +11,11 @@ interface ConversationSidebarProps {
   onSelectContentItem: (item: ContentItem) => void;
   onRefreshContent: () => void;
   onRefreshSiteContexts?: () => void;
+  onRefreshBrandAssets?: () => void;
+  onRefreshCompetitors?: () => void;
   isRefreshingSiteContexts?: boolean;
+  isRefreshingBrandAssets?: boolean;
+  isRefreshingCompetitors?: boolean;
   isRefreshingContent?: boolean;
   onDeleteProject: (projectId: string, projectName: string) => void;
   onDeleteContentItem: (itemId: string, itemTitle: string) => void;
@@ -26,7 +30,11 @@ export default function ConversationSidebar({
   onSelectContentItem,
   onRefreshContent,
   onRefreshSiteContexts,
+  onRefreshBrandAssets,
+  onRefreshCompetitors,
   isRefreshingSiteContexts = false,
+  isRefreshingBrandAssets = false,
+  isRefreshingCompetitors = false,
   isRefreshingContent = false,
   onDeleteProject,
   onDeleteContentItem,
@@ -204,93 +212,138 @@ export default function ConversationSidebar({
         {/* Context Section (Top 40%) */}
         <div className="flex flex-col min-h-0 border-b border-[#E5E5E5]" style={{ height: '40%' }}>
           <div className="px-4 py-1.5 text-xs font-bold text-[#111827] uppercase tracking-wider flex items-center justify-between shrink-0 border-b border-[#E5E5E5] h-10">
-            <span>Brand Assets</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isRefreshingSiteContexts) onRefreshSiteContexts?.();
-                }}
-                disabled={isRefreshingSiteContexts}
-                className={`p-1 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer ${isRefreshingSiteContexts ? 'opacity-50' : ''}`}
-                title="Refresh Brand Assets"
-              >
-                <svg className={`w-3.5 h-3.5 ${isRefreshingSiteContexts ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 2v6h-6" />
-                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                  <path d="M3 22v-6h6" />
-                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-                </svg>
-              </button>
-              <button
-                onClick={() => onOpenContextModal?.()}
-                className="p-1 rounded hover:bg-[#F3F4F6] text-[#6B7280] hover:text-[#111827] transition-all cursor-pointer"
-                title="Edit Brand Assets"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-            </div>
+            <span>Site Context</span>
+            <button
+              onClick={() => onOpenContextModal?.()}
+              className="p-1 rounded hover:bg-[#F3F4F6] text-[#6B7280] hover:text-[#111827] transition-all cursor-pointer"
+              title="Edit All Context"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto thin-scrollbar px-2 pb-2 pt-2">
-            <div className="space-y-0">
-              {/* On Site - Expandable */}
-              <div>
-                <button
-                  onClick={() => setExpandedOnSite(!expandedOnSite)}
-                  className="w-full flex items-center justify-between px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left group"
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <svg 
-                      className={`w-3 h-3 text-[#9CA3AF] transition-transform ${expandedOnSite ? 'rotate-90' : ''}`} 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2.5"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
+            <div className="space-y-2">
+              {/* Brand Assets Section */}
+              <div className="bg-[#FAFAFA] rounded-lg p-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                       <polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
-                    <span className="text-xs font-medium text-[#374151]">On Site</span>
+                    <span className="text-xs font-semibold text-[#374151]">Brand Assets</span>
                   </div>
-                </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isRefreshingBrandAssets) onRefreshBrandAssets?.();
+                      }}
+                      disabled={isRefreshingBrandAssets}
+                      className={`p-1 rounded hover:bg-white text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer ${isRefreshingBrandAssets ? 'opacity-50' : ''}`}
+                      title="Re-fetch Brand Assets"
+                    >
+                      <svg className={`w-3 h-3 ${isRefreshingBrandAssets ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 2v6h-6" />
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                        <path d="M3 22v-6h6" />
+                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => onOpenContextModal?.('brand')}
+                      className="p-1 rounded hover:bg-white text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer"
+                      title="Edit Brand Assets"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  {[
+                    { label: 'Logo & Colors', key: 'logo' },
+                    { label: 'Header', key: 'header' },
+                    { label: 'Footer', key: 'footer' },
+                  ].map(({ label, key }) => {
+                    const filled = hasContextValue(key);
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center gap-2 px-2 py-1 text-[11px] text-[#6B7280]"
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${filled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <span className="flex-1">{label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-                {/* On Site Sub-items - Simplified: Click to open modal */}
-                {expandedOnSite && (
-                  <div className="ml-5 mt-0.5 space-y-0.5">
-                    {[
-                      { label: 'Competitors', key: 'competitors' },
-                      { label: 'Brand & Site', key: 'brand-site' },
-                      { label: 'Business Context', key: 'business-context' },
-                      { label: 'Trust & Company', key: 'trust-company' },
-                    ].map(({ label, key }) => {
-                      const { acquired, total } = getFieldCount(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => onOpenContextModal?.()}
-                          className="w-full flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[#F3F4F6] transition-all text-left"
-                        >
-                          <span className="text-[11px] text-[#6B7280] flex-1">{label}</span>
-                          <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded ${
-                            acquired === total 
-                              ? 'bg-green-100 text-green-700' 
-                              : acquired > 0 
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {acquired}/{total}
-                          </span>
-                        </button>
-                      );
-                    })}
+              {/* Competitors Section - Separate */}
+              <div className="bg-[#FAFAFA] rounded-lg p-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    <span className="text-xs font-semibold text-[#374151]">Competitors</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isRefreshingCompetitors) onRefreshCompetitors?.();
+                      }}
+                      disabled={isRefreshingCompetitors}
+                      className={`p-1 rounded hover:bg-white text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer ${isRefreshingCompetitors ? 'opacity-50' : ''}`}
+                      title="Re-fetch Competitors"
+                    >
+                      <svg className={`w-3 h-3 ${isRefreshingCompetitors ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 2v6h-6" />
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                        <path d="M3 22v-6h6" />
+                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => onOpenContextModal?.('competitors')}
+                      className="p-1 rounded hover:bg-white text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer"
+                      title="Edit Competitors"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {(() => {
+                  const competitorsContext = siteContexts.find(ctx => ctx.type === 'competitors');
+                  let competitorCount = 0;
+                  if (competitorsContext?.content) {
+                    try {
+                      const parsed = JSON.parse(competitorsContext.content);
+                      if (Array.isArray(parsed)) competitorCount = parsed.length;
+                    } catch {}
+                  }
+                  return (
+                    <div className="flex items-center gap-2 px-2 py-1 text-[11px] text-[#6B7280]">
+                      <span className={`w-1.5 h-1.5 rounded-full ${competitorCount > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                      <span className="flex-1">
+                        {competitorCount > 0 ? `${competitorCount} competitor${competitorCount > 1 ? 's' : ''} configured` : 'No competitors yet'}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Knowledge (Brand Info) */}

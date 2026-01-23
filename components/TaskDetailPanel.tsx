@@ -758,7 +758,6 @@ function PageBlueprintDetails({ contentItem }: { contentItem: ContentItem }) {
           <DetailField label="Page Type" value={contentItem.page_type} badge />
           <DetailField label="Target Keyword" value={contentItem.target_keyword} highlight />
           <DetailField label="Slug" value={contentItem.slug} code />
-          <DetailField label="Priority" value={contentItem.priority?.toString()} />
           <DetailField label="Est. Word Count" value={contentItem.estimated_word_count?.toString()} />
         </div>
       </section>

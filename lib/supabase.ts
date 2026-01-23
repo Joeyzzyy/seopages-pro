@@ -89,7 +89,7 @@ export interface ContentItem {
   reference_urls: string[];
   internal_links: any[] | null;
   status: 'ready' | 'in_production' | 'generated' | 'published' | 'archived';
-  priority: number;
+  priority?: number;
   estimated_word_count: number;
   tags: string[];
   notes: string;

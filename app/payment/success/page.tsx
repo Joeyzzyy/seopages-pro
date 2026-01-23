@@ -47,15 +47,15 @@ export default function PaymentSuccessPage() {
 
         {/* Content */}
         <h1 className="text-3xl font-bold text-white mb-4">
-          🎉 支付成功！
+          🎉 Payment Successful!
         </h1>
         <p className="text-gray-400 mb-8">
-          感谢您的购买！您的积分已经充值到账，现在可以开始生成更多页面了。
+          Thank you for your purchase! Your credits have been added to your account. You can now start generating more pages.
         </p>
 
         {/* Countdown */}
         <p className="text-gray-500 mb-6">
-          {countdown} 秒后自动跳转到项目页面...
+          Redirecting to projects in {countdown} seconds...
         </p>
 
         {/* Buttons */}
@@ -67,20 +67,20 @@ export default function PaymentSuccessPage() {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
-            前往项目
+            Go to Projects
           </Link>
           <Link
             href="/"
             className="inline-flex items-center justify-center px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-colors"
           >
-            返回首页
+            Back to Home
           </Link>
         </div>
 
         {/* Support Info */}
         <div className="mt-12 p-4 bg-[#1a1a2e] rounded-lg border border-[#2d2d44]">
           <p className="text-gray-400 text-sm">
-            如有任何问题，请联系我们的支持团队
+            If you have any questions, please contact our support team
           </p>
         </div>
       </div>

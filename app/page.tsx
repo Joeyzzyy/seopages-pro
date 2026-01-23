@@ -258,24 +258,43 @@ export default function HomePage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full mb-6 sm:mb-8">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-xs sm:text-sm text-gray-300">Skip the AI drama. Get the damn pages.</span>
+            <span className="text-xs sm:text-sm text-gray-300">1v1 Comparisons + Best-Of Listicles = AI Search Magnets</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.1]">
-            Stop Arguing with AI.
+            Get Cited by ChatGPT
             <br />
             <span className="bg-gradient-to-r from-[#FFAF40] via-[#D194EC] via-[#9A8FEA] to-[#65B4FF] bg-clip-text text-transparent">
-              Just Get Your Pages.
+              Not Just Ranked by Google
             </span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-base sm:text-xl text-gray-400 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
-            SEO &amp; GEO-optimized alternative pages at dirt-cheap prices.
-            <br className="hidden sm:block" />
-            <span className="text-gray-300"> We give you the actual code. Deploy-ready HTML.</span>
+            AI search engines love structured comparison content. We generate 
+            <span className="text-white font-medium"> 1v1 Alternative Pages </span> 
+            and <span className="text-white font-medium">Best-Of Listicles</span> — 
+            the two formats that ChatGPT, Perplexity &amp; Claude actively cite.
           </p>
+
+          {/* Limited Time Offer - $1 for 10 pages */}
+          <div className="flex flex-col items-center justify-center gap-2 mb-6 sm:mb-8">
+            <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-[#FFAF40]/20 via-[#9A8FEA]/20 to-[#65B4FF]/20 border border-[#9A8FEA]/30 rounded-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 line-through text-lg">$9.9</span>
+                <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#FFAF40] via-[#D194EC] to-[#65B4FF] bg-clip-text text-transparent">$1</span>
+              </div>
+              <div className="text-left">
+                <div className="text-white text-sm font-semibold">10 Pages</div>
+                <div className="text-[10px] text-gray-400">Limited Time Offer</div>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs text-[#FFAF40] font-medium animate-pulse">
+              <span className="w-1.5 h-1.5 bg-[#FFAF40] rounded-full"></span>
+              90% OFF — Grab it before it&apos;s gone!
+            </span>
+          </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -291,7 +310,7 @@ export default function HomePage() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               <span className="sm:hidden">{signingIn ? 'Connecting...' : 'Get My Free Page'}</span>
-              <span className="hidden sm:inline">{signingIn ? 'Connecting...' : 'Shut Up and Take My Pages'}</span>
+              <span className="hidden sm:inline">{signingIn ? 'Connecting...' : 'Start Generating Pages'}</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -301,27 +320,37 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Free Trial Banner - Glowing & Highlighted */}
-          <div className="relative max-w-xl mx-auto mb-12 sm:mb-16">
+          {/* Why AI Search Loves These Pages */}
+          <div className="relative max-w-2xl mx-auto mb-12 sm:mb-16">
             {/* Animated glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-[#9A8FEA] via-[#65B4FF] to-[#9A8FEA] rounded-2xl blur-lg opacity-40 animate-pulse" />
             <div className="absolute -inset-0.5 bg-gradient-to-r from-[#9A8FEA] via-[#65B4FF] to-[#9A8FEA] rounded-xl opacity-60" />
             
-            <div className="relative border border-white/20 rounded-xl p-4 sm:p-5 bg-[#0D0D0D] backdrop-blur-sm">
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#9A8FEA] to-[#65B4FF] flex items-center justify-center shrink-0 shadow-lg shadow-[#9A8FEA]/30">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                  </svg>
+            <div className="relative border border-white/20 rounded-xl p-4 sm:p-6 bg-[#0D0D0D] backdrop-blur-sm">
+              <div className="text-center mb-4">
+                <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Why AI Search Engines Cite These Page Types</h3>
+                <p className="text-xs sm:text-sm text-gray-400">When users ask &quot;What&apos;s the best X?&quot; or &quot;X vs Y&quot;, AI pulls from structured comparison content</p>
+              </div>
+              
+              <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded">1v1</span>
+                    <span className="text-sm font-medium text-white">Alternative Pages</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">Direct comparison format. Perfect for &quot;[Product] vs [Competitor]&quot; queries. AI loves the clear structure.</p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm sm:text-base text-white leading-snug font-medium">
-                    <span className="bg-gradient-to-r from-[#FFD166] via-[#B8A9F0] to-[#8ECAFF] bg-clip-text text-transparent font-bold">1 free page</span> for every Google user — full code, no watermarks, yours forever.
-                  </p>
+                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded">BEST OF</span>
+                    <span className="text-sm font-medium text-white">Listicle Pages</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-relaxed">Ranked list format. Perfect for &quot;Best [Category] tools&quot; queries. AI can extract and cite rankings directly.</p>
                 </div>
               </div>
+
               <div className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 gap-y-2 mt-4 pt-4 border-t border-white/10">
-                {['No credit card', 'No watermarks', 'Production-ready', 'Download instantly'].map((item) => (
+                {['Schema.org structured data', 'Clear comparison tables', 'AI-parseable format', 'GEO-optimized'].map((item) => (
                   <span key={item} className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-300 font-medium">
                     <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -333,49 +362,76 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero Visual */}
-          <div className="relative max-w-4xl mx-auto hidden sm:block">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent z-10" />
-            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#111] rounded-2xl border border-white/10 p-1 shadow-2xl">
-              <div className="bg-[#0D0D0D] rounded-xl p-4 sm:p-6">
-                {/* Mock UI */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-red-500/80" />
-                  <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-green-500/80" />
-                  <span className="text-xs text-gray-500 ml-2 sm:ml-4">AltPage Generator</span>
-                </div>
-                <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                  <div className="col-span-1 space-y-2 sm:space-y-3">
-                    <div className="h-3 sm:h-4 w-16 sm:w-20 bg-white/10 rounded" />
-                    <div className="space-y-1.5 sm:space-y-2">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="h-6 sm:h-8 bg-white/5 rounded-lg flex items-center px-2 sm:px-3 gap-2">
-                          <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-[#FFAF40] to-[#65B4FF]" />
-                          <div className="h-1.5 sm:h-2 w-12 sm:w-16 bg-white/10 rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="col-span-2 bg-white/5 rounded-xl p-3 sm:p-4">
-                    <div className="h-3 sm:h-4 w-32 sm:w-48 bg-white/10 rounded mb-3 sm:mb-4" />
-                    <div className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
-                      <div className="h-2 sm:h-3 w-full bg-white/5 rounded" />
-                      <div className="h-2 sm:h-3 w-4/5 bg-white/5 rounded" />
-                      <div className="h-2 sm:h-3 w-3/4 bg-white/5 rounded" />
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-lg">
-                        <div className="h-1.5 sm:h-2 w-12 sm:w-16 bg-white/30 rounded" />
-                      </div>
-                      <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 rounded-lg">
-                        <div className="h-1.5 sm:h-2 w-8 sm:w-12 bg-white/20 rounded" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        </div>
+      </section>
+
+      {/* Live Examples - Pages We Built */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#9A8FEA]/20 border border-[#9A8FEA]/30 rounded-full mb-4">
+              <span className="text-xs sm:text-sm text-[#9A8FEA] font-medium">✨ Real Examples</span>
             </div>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">See What We Generate</h2>
+            <p className="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">
+              Don&apos;t take our word for it. Browse real comparison pages we built.
+            </p>
+          </div>
+
+          {/* Example Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            {[
+              { name: 'Jasper AI', slug: 'jasper-ai', category: 'AI Writing', color: 'from-orange-500/20 to-red-500/20' },
+              { name: 'Surfer SEO', slug: 'surfer-seo', category: 'SEO Content', color: 'from-blue-500/20 to-cyan-500/20' },
+              { name: 'Ahrefs', slug: 'ahrefs', category: 'SEO Suite', color: 'from-indigo-500/20 to-purple-500/20' },
+              { name: 'SEMrush', slug: 'semrush', category: 'SEO Suite', color: 'from-green-500/20 to-emerald-500/20' },
+            ].map((item) => (
+              <a
+                key={item.slug}
+                href={`/seopages-pro-alternatives/${item.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative p-4 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl hover:border-white/20 transition-all overflow-hidden"
+              >
+                {/* Background gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <img 
+                      src={`https://www.google.com/s2/favicons?domain=${item.slug.replace(/-/g, '')}.com&sz=64`}
+                      alt={item.name}
+                      className="w-6 h-6 rounded bg-white/10 p-0.5"
+                    />
+                    <div className="text-white font-medium text-sm truncate">{item.name}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">{item.category}</span>
+                    <span className="flex items-center gap-1 text-[#9A8FEA] text-[10px] font-medium">
+                      View
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+
+          {/* View All Link */}
+          <div className="text-center">
+            <a
+              href="/seopages-pro-alternatives"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              View all 38 comparison pages
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
           </div>
         </div>
       </section>
@@ -384,9 +440,9 @@ export default function HomePage() {
       <section id="features" className="py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 px-2">Why Wrestle with ChatGPT When You Can Just... Not?</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 px-2">Built for the AI Search Era</h2>
             <p className="text-gray-400 text-sm sm:text-lg max-w-2xl mx-auto px-2">
-              We did the prompt engineering. You get the pages. Life is simple again.
+              Google is just the beginning. Get discovered by ChatGPT, Perplexity, Claude, and every AI assistant.
             </p>
           </div>
 
@@ -395,20 +451,20 @@ export default function HomePage() {
               {
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 ),
-                title: 'You Own the Code',
-                description: 'Raw HTML files. No lock-in. No "premium export" BS. Download and it\'s yours forever.',
+                title: 'AI-Parseable Structure',
+                description: 'Schema.org markup, clear headings, comparison tables. AI can extract and cite your content directly.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 ),
-                title: 'SEO + GEO Ready',
-                description: 'Optimized for both Google and AI search (ChatGPT, Perplexity). Because the future is now.',
+                title: 'Dual Page Types',
+                description: '1v1 Alternative Pages for direct comparisons. Best-Of Listicles for category rankings. Both AI-optimized.',
               },
               {
                 icon: (
@@ -417,34 +473,34 @@ export default function HomePage() {
                   </svg>
                 ),
                 title: 'Deploy in 30 Seconds',
-                description: 'Literally just upload the HTML file. No frameworks. No dependencies. It just works™.',
+                description: 'Self-contained HTML files. No frameworks. Upload anywhere and go live instantly.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 ),
-                title: 'Stupidly Cheap',
-                description: 'Cheaper than your ChatGPT subscription. Cheaper than hiring a writer. Just... cheap.',
+                title: '90% OFF Right Now',
+                description: '$1 for 10 pages (normally $9.9). Limited time launch offer. Cheaper than a single coffee.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
                 ),
-                title: 'No AI Babysitting',
-                description: 'Zero "please regenerate" moments. Zero "that\'s not what I meant". It just gets it right.',
+                title: 'You Own the Code',
+                description: 'Raw HTML files. No subscription. No lock-in. Download and it\'s yours forever.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 ),
-                title: 'We\'re Not Going Anywhere',
-                description: 'Worried about rug pulls? We give you the code upfront. Even if we vanish, your pages live on.',
+                title: 'SEO + GEO Optimized',
+                description: 'Rank on Google today. Get cited by AI tomorrow. Future-proof your competitive positioning.',
               },
             ].map((feature, idx) => (
               <div 
@@ -492,17 +548,33 @@ export default function HomePage() {
       <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Pricing That Won&apos;t Make You Cry</h2>
-            <p className="text-gray-400 text-sm sm:text-lg">Cheaper than therapy for your AI frustrations. Pay once. Done.</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#FFAF40]/20 border border-[#FFAF40]/40 rounded-full mb-4">
+              <span className="w-2 h-2 bg-[#FFAF40] rounded-full animate-pulse"></span>
+              <span className="text-xs sm:text-sm text-[#FFAF40] font-semibold">🔥 LIMITED TIME: 90% OFF LAUNCH SALE</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">10 Pages for Just $1</h2>
+            <p className="text-gray-400 text-sm sm:text-lg mb-4">
+              <span className="line-through text-gray-600">$9.9</span> → <span className="text-white font-bold">$1</span> · One-time payment. No subscription.
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full">
+              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+              </svg>
+              <span className="text-sm text-green-400 font-medium">1 FREE page for every new user — no credit card required</span>
+            </div>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
             {/* Starter */}
             <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl flex flex-col h-full">
+              <div className="absolute -top-3 left-4 px-2 py-0.5 bg-[#FFAF40] rounded text-[10px] font-bold text-black">
+                90% OFF
+              </div>
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">Starter</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl sm:text-5xl font-bold">$9.9</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg text-gray-600 line-through">$9.9</span>
+                  <span className="text-4xl sm:text-5xl font-bold text-[#FFAF40]">$1</span>
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
@@ -543,12 +615,13 @@ export default function HomePage() {
             {/* Standard - Featured */}
             <div className="relative p-6 sm:p-8 bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border border-[#9A8FEA]/30 rounded-xl sm:rounded-2xl sm:scale-105 order-first sm:order-none flex flex-col h-full">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[10px] sm:text-xs font-semibold text-white whitespace-nowrap">
-                MOST POPULAR
+                🔥 50% OFF · BEST VALUE
               </div>
               <div className="mb-4 sm:mb-6 mt-2 sm:mt-0">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">Standard</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl sm:text-5xl font-bold">$19.9</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg text-gray-600 line-through">$19.9</span>
+                  <span className="text-4xl sm:text-5xl font-bold">$9.9</span>
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
@@ -594,10 +667,14 @@ export default function HomePage() {
 
             {/* Pro */}
             <div className="relative p-6 sm:p-8 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl sm:rounded-2xl flex flex-col h-full">
+              <div className="absolute -top-3 left-4 px-2 py-0.5 bg-[#FFAF40] rounded text-[10px] font-bold text-black">
+                38% OFF
+              </div>
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">Pro</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl sm:text-5xl font-bold">$39.9</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg text-gray-600 line-through">$39.9</span>
+                  <span className="text-4xl sm:text-5xl font-bold text-[#FFAF40]">$24.9</span>
                   <span className="text-gray-500 text-sm">one-time</span>
                 </div>
               </div>
@@ -664,20 +741,25 @@ export default function HomePage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 px-2">
-            Look, We Both Know You&apos;re Tired of AI Nonsense
+            AI Search is Here. Are You Visible?
           </h2>
-          <p className="text-gray-400 text-sm sm:text-lg mb-8 sm:mb-10 px-2">
-            Get deploy-ready alternative pages without the &quot;please try again&quot; dance.
+          <p className="text-gray-400 text-sm sm:text-lg mb-6 sm:mb-8 px-2">
+            When users ask ChatGPT &quot;What&apos;s the best alternative to [Competitor]?&quot;
             <br className="hidden sm:block" />
-            <span className="text-gray-500 text-xs sm:text-base"> Your competitors are already ranking. Just saying.</span>
+            <span className="text-white font-medium">will your brand be in the answer?</span>
           </p>
-          <button
-            onClick={handleGoogleLogin}
-            disabled={signingIn}
-            className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 text-sm sm:text-lg"
-          >
-            {signingIn ? 'Connecting...' : 'Fine, Show Me What You Got'}
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+            <button
+              onClick={handleGoogleLogin}
+              disabled={signingIn}
+              className="w-full sm:w-auto px-8 sm:px-10 py-3.5 sm:py-4 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 text-sm sm:text-lg"
+            >
+              {signingIn ? 'Connecting...' : 'Start with a Free Page'}
+            </button>
+          </div>
+          <p className="text-gray-500 text-xs sm:text-sm">
+            Get 1 free page instantly · No credit card · <span className="text-[#FFAF40] font-medium">$1 for 10 pages (90% OFF)</span>
+          </p>
         </div>
       </section>
 

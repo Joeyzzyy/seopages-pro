@@ -17,8 +17,10 @@ const PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 9.9,
+    price: 1,
+    originalPrice: 9.9,
     credits: 10,
+    limitedTime: true,
     features: [
       { text: '10', highlight: true, suffix: ' Alternative Pages' },
       { text: 'AI-Powered Content' },
@@ -244,10 +246,28 @@ function ModalContent({
                 <div>
                   <h3 className="text-lg font-semibold text-white">{currentPlan.name} Plan</h3>
                   <p className="text-gray-400 text-sm">{currentPlan.credits} page credits</p>
+                  {'limitedTime' in currentPlan && currentPlan.limitedTime && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full text-[10px] font-semibold text-red-400 mt-1 animate-pulse">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      LIMITED TIME
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-white">${currentPlan.price}</div>
+                  <div className="flex items-baseline gap-2 justify-end">
+                    <div className="text-3xl font-bold text-white">${currentPlan.price}</div>
+                    {'originalPrice' in currentPlan && currentPlan.originalPrice && (
+                      <div className="text-lg text-gray-500 line-through">${currentPlan.originalPrice}</div>
+                    )}
+                  </div>
                   <div className="text-gray-500 text-xs">one-time</div>
+                  {'originalPrice' in currentPlan && currentPlan.originalPrice && (
+                    <div className="text-xs font-semibold text-green-400">
+                      Save {Math.round((1 - currentPlan.price / currentPlan.originalPrice) * 100)}%
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -318,7 +338,7 @@ function ModalContent({
         onClick={onClose}
       />
       
-      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto mx-4">
+      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto mx-4 dark-scrollbar">
         <div className="sticky top-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center z-10">
           <div>
             <h2 className="text-2xl font-bold text-white">Upgrade Your Plan</h2>
@@ -379,10 +399,26 @@ function ModalContent({
 
                 <div className={`mb-4 sm:mb-6 ${plan.popular ? 'mt-2 sm:mt-0' : ''}`}>
                   <h3 className="text-base sm:text-lg font-semibold text-gray-300 mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1">
+                  {'limitedTime' in plan && plan.limitedTime && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full text-xs font-semibold text-red-400 mb-2 animate-pulse">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      LIMITED TIME OFFER
+                    </div>
+                  )}
+                  <div className="flex items-baseline gap-2">
                     <span className="text-4xl sm:text-5xl font-bold text-white">${plan.price}</span>
+                    {'originalPrice' in plan && plan.originalPrice && (
+                      <span className="text-xl text-gray-500 line-through">${plan.originalPrice}</span>
+                    )}
                     <span className="text-gray-500 text-sm">one-time</span>
                   </div>
+                  {'originalPrice' in plan && plan.originalPrice && (
+                    <div className="mt-1 text-sm font-semibold text-green-400">
+                      Save {Math.round((1 - plan.price / plan.originalPrice) * 100)}% today!
+                    </div>
+                  )}
                 </div>
 
                 <ul className="space-y-2 sm:space-y-3 flex-grow">

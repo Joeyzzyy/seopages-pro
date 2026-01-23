@@ -25,8 +25,6 @@ export default function ProjectsPage() {
   const [showPricingModal, setShowPricingModal] = useState(false);
   const hasShownPricingModal = useRef(false);
   const router = useRouter();
-  
-  const brandGradient = 'linear-gradient(80deg, #FFAF40, #D194EC, #9A8FEA, #65B4FF)';
 
   // Fetch user credits from API
   const fetchUserCredits = async () => {
@@ -235,51 +233,38 @@ export default function ProjectsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {projects.map((project) => (
               <Link 
                 key={project.id}
                 href={`/project/${project.id}`}
-                className="group p-6 bg-white border border-[#F3F4F6] rounded-[28px] shadow-sm hover:shadow-xl hover:border-transparent transition-all duration-500 relative overflow-hidden flex flex-col justify-between min-h-[180px] cursor-pointer"
+                className="group px-6 py-5 bg-white border border-gray-100 rounded-2xl hover:border-gray-200 hover:shadow-md transition-all duration-300 flex items-center justify-between cursor-pointer"
               >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500" style={{ background: brandGradient }} />
-                
-                <div className="relative z-10 flex items-start justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-[#FAFAFA] flex items-center justify-center text-[#9CA3AF] group-hover:text-black group-hover:bg-white transition-all duration-500 border border-transparent group-hover:border-gray-100 shadow-sm">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 truncate">
+                    {project.domain}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setDeletingProject(project);
                     }}
-                    className="p-2 text-[#9CA3AF] hover:text-[#EF4444] hover:bg-red-50 rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100 cursor-pointer"
-                    title="Delete Project"
+                    className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                    title="Delete"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h14" />
                     </svg>
                   </button>
-                </div>
-
-                <div className="relative z-10 mt-4">
-                  <h3 className="text-xl font-black text-[#111827] tracking-tight group-hover:translate-x-1 transition-transform duration-500 truncate">
-                    {project.domain}
-                  </h3>
-                  <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest mt-1">
-                    Create Alternative Pages
-                  </p>
-                </div>
-
-                <div className="relative z-10 flex items-center justify-end mt-4">
-                  <div className="w-10 h-10 rounded-full border border-[#F3F4F6] flex items-center justify-center text-[#D1D5DB] group-hover:text-black group-hover:border-black group-hover:rotate-[-45deg] transition-all duration-500 bg-white">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M5 12h14M12 5l7 7-7 7" />
+                  <span className="text-gray-300 group-hover:text-gray-400 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
-                  </div>
+                  </span>
                 </div>
               </Link>
             ))}

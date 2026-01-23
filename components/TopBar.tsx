@@ -10,13 +10,12 @@ import PricingModal from '@/components/PricingModal';
 interface TopBarProps {
   onDomainsClick?: () => void;
   user?: User | null;
-  showBackToProjects?: boolean;
   credits?: number;
   subscriptionTier?: string;
   onCreditsUpdate?: (newCredits: number, newTier: string) => void;
 }
 
-export default function TopBar({ onDomainsClick, user: propUser, showBackToProjects, credits = 1, subscriptionTier = 'free', onCreditsUpdate }: TopBarProps) {
+export default function TopBar({ onDomainsClick, user: propUser, credits = 1, subscriptionTier = 'free', onCreditsUpdate }: TopBarProps) {
   const [user, setUser] = useState<User | null>(propUser || null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -67,25 +66,6 @@ export default function TopBar({ onDomainsClick, user: propUser, showBackToProje
       {/* Right side function buttons and user info */}
       {user && (
         <div className="flex items-center gap-3">
-          {/* Navigation Links */}
-          {showBackToProjects && (
-            <nav className="flex items-center gap-1 text-xs">
-              <a
-                href="/projects"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded transition-all"
-              >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                Back to Projects
-              </a>
-            </nav>
-          )}
-
-          {showBackToProjects && <div className="w-px h-5 bg-[#E5E5E5]"></div>}
-
           {/* Plan & Credits Display */}
           <button
             onClick={() => setShowPricingModal(true)}

@@ -6,38 +6,35 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
- * Assemble a complete alternative page from individual section HTML snippets.
- * This is the V2 approach that uses pre-generated sections instead of
- * generating the entire page in one go.
+ * Assemble a complete listicle/best-of page from individual section HTML snippets.
+ * Uses pre-generated sections for better quality control and consistency.
  * 
  * COLOR PHILOSOPHY:
  * - Brand colors ONLY for buttons and icons
  * - Everything else: pure black/white/gray
  * - Depth created through shadows, not colors
  */
-export const assemble_alternative_page_v2 = tool({
-  description: `Assemble a complete alternative page from individual HTML section snippets.
+export const assemble_listicle_page = tool({
+  description: `Assemble a complete listicle/best-of page from individual HTML section snippets.
 
 This tool combines pre-generated section HTML into a complete, polished page with:
 - Proper HTML document structure
 - SEO meta tags and Open Graph
-- Schema.org structured data
-- MINIMALIST COLOR SYSTEM: Brand colors ONLY for buttons & icons, everything else black/white/gray
+- Schema.org structured data (ItemList for rankings)
+- MINIMALIST COLOR SYSTEM: Brand colors ONLY for buttons & icons
 - Shadow-based depth and visual hierarchy
 - Mobile-responsive styles
 - Interactive features (scroll-to-top, FAQ accordion)
 
-IMPORTANT: Call the individual section generators first (generate_hero_section, 
-generate_verdict_section, etc.) and pass their HTML outputs to this tool.
+IMPORTANT: Call the individual section generators first and pass their HTML outputs to this tool.
 
 Workflow:
-1. Call capture_website_screenshot for brand and competitor homepages
-2. Generate sections: hero, toc, verdict, comparison, pricing, screenshots, pros_cons, use_cases, faq, cta
-3. Call this tool with all section HTML
-4. Optionally call merge_html_with_site_contexts to add header/footer`,
+1. Generate sections: listicle-hero, comparison-table, product-cards (multiple), faq, cta
+2. Call this tool with all section HTML
+3. Optionally call merge_html_with_site_contexts to add header/footer`,
   parameters: z.object({
     item_id: z.string().describe('Content item ID to save the page to'),
-    page_title: z.string().describe('Full page title for SEO'),
+    page_title: z.string().describe('Full page title for SEO, e.g., "Top 10 Best Writesonic Alternatives in 2025"'),
     seo: z.object({
       meta_description: z.string().max(160),
       keywords: z.array(z.string()).optional(),
@@ -50,58 +47,51 @@ Workflow:
       primary_color: z.string().optional().default('#0ea5e9').describe('Brand primary color - ONLY for buttons & icons'),
       secondary_color: z.string().optional().default('#8b5cf6').describe('Brand secondary color - ONLY for accent icons'),
     }),
-    competitor_name: z.string(),
+    total_alternatives: z.number().describe('Total number of alternatives in the list'),
     sections: z.object({
-      hero: z.string().describe('HTML from generate_hero_section'),
-      toc: z.string().optional().describe('HTML from generate_toc_section'),
-      verdict: z.string().optional().describe('HTML from generate_verdict_section'),
-      comparison: z.string().optional().describe('HTML from generate_comparison_table'),
-      pricing: z.string().optional().describe('HTML from generate_pricing_section'),
-      screenshots: z.string().optional().describe('HTML from generate_screenshots_section'),
-      pros_cons: z.string().optional().describe('HTML from generate_pros_cons_section'),
-      use_cases: z.string().optional().describe('HTML from generate_use_cases_section'),
+      hero: z.string().describe('HTML from generate_listicle_hero_section'),
+      intro: z.string().optional().describe('Introduction section explaining selection criteria'),
+      comparison_table: z.string().optional().describe('HTML from generate_listicle_comparison_table'),
+      product_cards: z.array(z.string()).describe('Array of HTML from generate_listicle_product_card for each product'),
       faq: z.string().optional().describe('HTML from generate_faq_section'),
       cta: z.string().optional().describe('HTML from generate_cta_section'),
       custom: z.array(z.string()).optional().describe('Additional custom section HTML'),
     }),
   }),
-  execute: async ({ item_id, page_title, seo, brand, competitor_name, sections }) => {
+  execute: async ({ item_id, page_title, seo, brand, total_alternatives, sections }) => {
     // ========================================
     // CRITICAL: Validate required sections
     // ========================================
-    const requiredSections = ['hero', 'verdict', 'comparison', 'faq', 'cta'] as const;
-    const recommendedSections = ['toc', 'pricing', 'pros_cons', 'use_cases'] as const;
-    
     const missingSections: string[] = [];
-    const missingRecommended: string[] = [];
     const invalidSections: string[] = [];
     
-    // Helper to check if content is valid (not just ellipsis or placeholder)
+    // Helper to check if content is valid
     const isValidSectionContent = (content: string | undefined): boolean => {
       if (!content) return false;
       const trimmed = content.trim();
-      // Reject pure ellipsis, placeholder text, or very short content
-      if (/^\.{2,}$/.test(trimmed)) return false; // "...", "....", etc.
-      if (/^\[.*\]$/.test(trimmed)) return false; // "[placeholder]", "[content]", etc.
-      if (trimmed.length < 50) return false; // Too short to be valid HTML section
-      if (!trimmed.includes('<')) return false; // Must contain HTML tags
+      if (/^\.{2,}$/.test(trimmed)) return false;
+      if (/^\[.*\]$/.test(trimmed)) return false;
+      if (trimmed.length < 50) return false;
+      if (!trimmed.includes('<')) return false;
       return true;
     };
     
-    for (const section of requiredSections) {
-      if (!sections[section]) {
-        missingSections.push(section);
-      } else if (!isValidSectionContent(sections[section])) {
-        invalidSections.push(section);
-      }
+    // Check hero section
+    if (!sections.hero) {
+      missingSections.push('hero');
+    } else if (!isValidSectionContent(sections.hero)) {
+      invalidSections.push('hero');
     }
     
-    for (const section of recommendedSections) {
-      if (!sections[section]) {
-        missingRecommended.push(section);
-      } else if (!isValidSectionContent(sections[section])) {
-        invalidSections.push(section);
-      }
+    // Check product cards
+    if (!sections.product_cards || sections.product_cards.length === 0) {
+      missingSections.push('product_cards');
+    } else {
+      sections.product_cards.forEach((card, index) => {
+        if (!isValidSectionContent(card)) {
+          invalidSections.push(`product_card_${index + 1}`);
+        }
+      });
     }
     
     // BLOCK execution if sections contain invalid placeholder content
@@ -111,22 +101,14 @@ Workflow:
 These sections contain placeholder text ("...", "[content]", etc.) instead of actual HTML content.
 This is NOT acceptable - you MUST provide the FULL HTML content for each section.
 
-CRITICAL: DO NOT use "..." or any placeholder text. Generate the COMPLETE HTML for each section.
-
-Go back and call the section generator tools again to get the FULL HTML content:
-${invalidSections.map(s => `- generate_${s === 'cta' ? 'cta_section' : s === 'comparison' ? 'comparison_table' : s + '_section'}`).join('\n')}
-
-Then call this tool again with the complete HTML content for each section.`;
+Go back and generate the COMPLETE HTML for each section, then call this tool again.`;
       
-      console.error(`[assemble_alternative_page_v2] ERROR: ${errorMsg}`);
-      console.error(`[assemble_alternative_page_v2] Invalid sections content preview:`, 
-        invalidSections.map(s => `${s}: "${(sections as any)[s]?.substring(0, 100)}..."`).join('\n'));
+      console.error(`[assemble_listicle_page] ERROR: ${errorMsg}`);
       
       return {
         success: false,
         error: errorMsg,
         invalid_sections: invalidSections,
-        sections_provided: Object.entries(sections).filter(([_, v]) => v).map(([k]) => k),
       };
     }
     
@@ -134,31 +116,19 @@ Then call this tool again with the complete HTML content for each section.`;
     if (missingSections.length > 0) {
       const errorMsg = `MISSING REQUIRED SECTIONS: ${missingSections.join(', ')}
 
-You MUST generate these sections before calling assemble_alternative_page_v2:
-${missingSections.map(s => `- generate_${s === 'cta' ? 'cta_section' : s === 'comparison' ? 'comparison_table' : s + '_section'}`).join('\n')}
-
-Current sections provided: ${Object.entries(sections).filter(([_, v]) => v).map(([k]) => k).join(', ') || 'none'}
-
-DO NOT skip sections. Go back and generate the missing sections, then call this tool again.`;
+You MUST generate these sections before calling assemble_listicle_page.
+Current sections provided: ${Object.entries(sections).filter(([_, v]) => v && (Array.isArray(v) ? v.length > 0 : true)).map(([k]) => k).join(', ') || 'none'}`;
       
-      console.error(`[assemble_alternative_page_v2] ERROR: ${errorMsg}`);
+      console.error(`[assemble_listicle_page] ERROR: ${errorMsg}`);
       
       return {
         success: false,
         error: errorMsg,
         missing_required: missingSections,
-        missing_recommended: missingRecommended,
-        sections_provided: Object.entries(sections).filter(([_, v]) => v).map(([k]) => k),
       };
     }
     
-    // Warn about missing recommended sections but continue
-    if (missingRecommended.length > 0) {
-      console.warn(`[assemble_alternative_page_v2] WARNING: Missing recommended sections: ${missingRecommended.join(', ')}`);
-    }
-    
     // Generate CSS color variables from brand colors
-    // Ensure we have valid hex colors (not empty strings)
     const primaryColor = brand.primary_color && brand.primary_color.trim() && brand.primary_color.startsWith('#') 
       ? brand.primary_color 
       : '#0ea5e9';
@@ -169,29 +139,51 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
     const primaryHsl = hexToHsl(primaryColor);
     const secondaryHsl = hexToHsl(secondaryColor);
     
+    // Build table of contents items
+    const tocItems = sections.product_cards.map((_, index) => 
+      `<a href="#product-${index + 1}" class="toc-link block py-2 px-3 rounded-lg text-sm">${index + 1}. Product ${index + 1}</a>`
+    ).join('\n');
+    
+    // Generate TOC section
+    const tocSection = `
+  <!-- Quick Navigation -->
+  <section class="py-8 px-4 md:px-6 bg-white border-b border-gray-100">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Jump to:</h2>
+      <div class="flex flex-wrap gap-2">
+        <a href="#comparison-table" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-700 transition-colors">Quick Comparison</a>
+        ${sections.product_cards.map((_, index) => 
+          `<a href="#product-${index + 1}" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-700 transition-colors">#${index + 1}</a>`
+        ).join('\n        ')}
+        ${sections.faq ? '<a href="#faq" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-700 transition-colors">FAQ</a>' : ''}
+      </div>
+    </div>
+  </section>`;
+
     // Assemble all section HTML in order
-    // Screenshots moved up after verdict for better visual impact
     const sectionOrder = [
       sections.hero,
-      sections.toc,
-      sections.verdict,
-      sections.screenshots,  // Moved up - visual comparison early
-      sections.comparison,
-      sections.pricing,
-      sections.pros_cons,
-      sections.use_cases,
+      tocSection,
+      sections.intro,
+      sections.comparison_table,
+      // Wrap product cards in a container
+      `<section id="products-list" class="py-16 md:py-20 px-4 md:px-6 bg-white">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">Detailed Reviews</h2>
+          <div class="space-y-8">
+            ${sections.product_cards.join('\n')}
+          </div>
+        </div>
+      </section>`,
       sections.faq,
       sections.cta,
       ...(sections.custom || []),
     ].filter(Boolean).join('\n');
 
-    // NOTE: Footer is added by merge_html_with_site_contexts tool from site_contexts database
-    // DO NOT add footer here to avoid duplicate footers
-
     // Generate Schema.org structured data
-    const schemaMarkup = generateSchemaMarkup(page_title, seo.meta_description, brand.name, competitor_name, seo.canonical_url);
+    const schemaMarkup = generateListicleSchemaMarkup(page_title, seo.meta_description, brand.name, total_alternatives, seo.canonical_url);
 
-    // Build the complete HTML document with MINIMALIST color system
+    // Build the complete HTML document
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,14 +215,6 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
   
   <style>
     :root {
-      /*
-       * MINIMALIST COLOR SYSTEM
-       * ========================
-       * Brand colors ONLY for: buttons, icons, interactive highlights
-       * Everything else: pure black/white/gray
-       * Depth created through shadows, not colors
-       */
-      
       /* Primary Brand Color - ONLY for buttons & icons */
       --brand-500: hsl(${primaryHsl.h}, ${primaryHsl.s}%, 50%);
       --brand-600: hsl(${primaryHsl.h}, ${primaryHsl.s}%, 45%);
@@ -240,16 +224,14 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       --secondary-500: hsl(${secondaryHsl.h}, ${secondaryHsl.s}%, 50%);
       --secondary-600: hsl(${secondaryHsl.h}, ${secondaryHsl.s}%, 45%);
       
-      /* Shadow System - For depth & visual hierarchy */
+      /* Shadow System */
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
       --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
     
-    /* Font Families */
     body {
       font-family: 'Inter', system-ui, sans-serif;
       color: #171717;
@@ -259,13 +241,7 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       font-family: 'Playfair Display', Georgia, serif;
     }
     
-    /*
-     * ===========================================
-     * BRAND COLORS - ONLY FOR BUTTONS & ICONS
-     * ===========================================
-     */
-    
-    /* Primary Button - Main CTA with brand color */
+    /* Primary Button */
     .btn-primary {
       background: var(--brand-500);
       color: white;
@@ -284,7 +260,7 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       transform: translateY(-1px);
     }
     
-    /* Secondary Button - White with gray border */
+    /* Secondary Button */
     .btn-secondary {
       background: white;
       color: #404040;
@@ -303,27 +279,19 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       box-shadow: var(--shadow-md);
     }
     
-    /* Icon colors - Brand for checkmarks/positive, gray for others */
+    /* Icon colors */
     .icon-brand { color: var(--brand-500); }
     .icon-secondary { color: var(--secondary-500); }
     .icon-gray { color: #737373; }
     
-    /* Brand text - ONLY for small accents like checkmarks */
+    /* Brand text */
     .text-brand { color: var(--brand-500); }
     
-    /* Brand background - ONLY for icon containers */
-    .bg-brand-icon {
-      background: var(--brand-500);
-      color: white;
-    }
+    /* Brand background - for icons */
+    .bg-brand-icon { background: var(--brand-500); color: white; }
+    .bg-brand-bg { background: hsl(${primaryHsl.h}, ${primaryHsl.s}%, 97%); }
     
-    /*
-     * ===========================================
-     * GRAYSCALE DESIGN SYSTEM
-     * ===========================================
-     */
-    
-    /* Card with shadow depth */
+    /* Card */
     .card {
       background: white;
       border: 1px solid #e5e5e5;
@@ -336,51 +304,17 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       transform: translateY(-2px);
     }
     
-    /* Card elevated - More prominent shadow */
-    .card-elevated {
-      background: white;
-      border-radius: 16px;
-      box-shadow: var(--shadow-xl);
-    }
-    
-    /* Legacy card-hover support */
-    .card-hover {
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .card-hover:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg);
-    }
-    
-    /* Badge - Gray by default */
-    .badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: #f5f5f5;
-      color: #525252;
-    }
-    
-    /* Winner badge - Exception with brand color */
+    /* Winner badge */
     .badge-winner {
       background: var(--brand-500);
       color: white;
-    }
-    
-    /* Table */
-    .table-row-alt:nth-child(even) {
-      background-color: #fafafa;
     }
     
     /* FAQ Accordion */
     .faq-item.active .faq-content { display: block; }
     .faq-item.active .faq-icon { transform: rotate(180deg); }
     
-    /* TOC Link - Gray, no brand colors */
+    /* TOC Link */
     .toc-link {
       color: #525252;
       transition: all 0.2s;
@@ -394,16 +328,12 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       font-weight: 600;
     }
     
-    /* Status indicators - Brand for positive only */
+    /* Status indicators */
     .status-yes { color: var(--brand-500); }
     .status-no { color: #a3a3a3; }
     .status-partial { color: #737373; }
     
-    /* Hide Scrollbar */
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    
-    /* Scroll to Top Button - White with shadow */
+    /* Scroll to Top Button */
     .scroll-top-btn {
       opacity: 0;
       pointer-events: none;
@@ -420,9 +350,10 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       transform: scale(1.05);
     }
     
-    /* Section backgrounds - Only white and subtle gray */
-    .section-white { background: white; }
-    .section-gray { background: #fafafa; }
+    /* Ring for #1 product */
+    .ring-brand-icon {
+      --tw-ring-color: var(--brand-500);
+    }
   </style>
   
   <!-- Schema.org Structured Data -->
@@ -461,7 +392,6 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
         if (link.getAttribute('href') === '#' + current) link.classList.add('active');
       });
     });
-    
   </script>
 </body>
 </html>`;
@@ -492,8 +422,8 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
         item_id,
         html_length: html.length,
         line_count: html.split('\n').length,
-        sections_included: Object.entries(sections).filter(([_, v]) => v).map(([k]) => k),
-        message: `Successfully assembled alternative page (${html.length} chars, ${html.split('\n').length} lines)`,
+        product_cards_count: sections.product_cards.length,
+        message: `Successfully assembled listicle page with ${sections.product_cards.length} products (${html.length} chars, ${html.split('\n').length} lines)`,
       };
     } catch (error: any) {
       return {
@@ -536,8 +466,8 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// Helper: Generate Schema.org markup with EEAT compliance
-function generateSchemaMarkup(title: string, description: string, brand: string, competitor: string, url?: string): string {
+// Helper: Generate Schema.org markup for listicle
+function generateListicleSchemaMarkup(title: string, description: string, brand: string, totalItems: number, url?: string): string {
   const currentDate = new Date().toISOString().split('T')[0];
   
   const schemas = [
@@ -546,33 +476,34 @@ function generateSchemaMarkup(title: string, description: string, brand: string,
       "@type": "Article",
       "headline": title,
       "description": description,
-      "articleSection": "Product Comparison",
+      "articleSection": "Product Reviews",
       "datePublished": currentDate,
       "dateModified": currentDate,
-      // EEAT E01: Author identity for expertise signals
       "author": {
         "@type": "Organization",
         "name": brand,
         "url": url || "/",
       },
-      // EEAT A02: Publisher entity for authority signals
       "publisher": {
         "@type": "Organization",
         "name": brand,
         "url": url || "/",
       },
-      // EEAT T06: Editorial transparency
       "isAccessibleForFree": true,
       "inLanguage": "en-US",
     },
     {
       "@context": "https://schema.org",
       "@type": "ItemList",
-      "name": `${brand} vs ${competitor} Comparison`,
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": brand },
-        { "@type": "ListItem", "position": 2, "name": competitor }
-      ]
+      "name": title,
+      "description": description,
+      "numberOfItems": totalItems,
+      "itemListOrder": "https://schema.org/ItemListOrderDescending",
+      "itemListElement": Array.from({ length: totalItems }, (_, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "url": `#product-${i + 1}`
+      }))
     },
     {
       "@context": "https://schema.org",
@@ -580,7 +511,7 @@ function generateSchemaMarkup(title: string, description: string, brand: string,
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": "/" },
         { "@type": "ListItem", "position": 2, "name": "Alternatives", "item": "/alternatives" },
-        { "@type": "ListItem", "position": 3, "name": `vs ${competitor}` }
+        { "@type": "ListItem", "position": 3, "name": "Best Of" }
       ]
     }
   ];

@@ -25,9 +25,15 @@ interface TaskListProps {
   onGeneratePage: (item: ContentItem) => void;
   onRefreshContent: () => void;
   onRefreshSiteContexts: () => void;
-  onOpenContextModal: (tab?: 'brand' | 'competitors') => void;
+  onRefreshBrandAssets?: () => void;
+  onRefreshCompetitors?: () => void;
+  onOpenBrandAssetsModal: () => void;
+  onOpenCompetitorsModal: () => void;
   isRefreshingSiteContexts?: boolean;
+  isRefreshingBrandAssets?: boolean;
+  isRefreshingCompetitors?: boolean;
   isRefreshingContent?: boolean;
+  isPlanningPages?: boolean;
   contextTaskStatus: TaskStatus;
   credits?: number;
   projectDomain?: string;
@@ -43,9 +49,15 @@ export default function TaskList({
   onGeneratePage,
   onRefreshContent,
   onRefreshSiteContexts,
-  onOpenContextModal,
+  onRefreshBrandAssets,
+  onRefreshCompetitors,
+  onOpenBrandAssetsModal,
+  onOpenCompetitorsModal,
   isRefreshingSiteContexts = false,
+  isRefreshingBrandAssets = false,
+  isRefreshingCompetitors = false,
   isRefreshingContent = false,
+  isPlanningPages = false,
   contextTaskStatus,
   credits = 1,
   projectDomain,
@@ -164,12 +176,39 @@ export default function TaskList({
     );
   };
 
+  // Get page type badge
+  const getPageTypeBadge = (pageType: string) => {
+    switch (pageType) {
+      case 'alternative':
+        return (
+          <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-50 text-blue-600 shrink-0" title="1v1 Comparison Page">
+            1v1
+          </span>
+        );
+      case 'listicle':
+        return (
+          <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-purple-50 text-purple-600 shrink-0" title="Best Of / Listicle Page">
+            Best Of
+          </span>
+        );
+      case 'comparison':
+        return (
+          <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-green-50 text-green-600 shrink-0" title="Comparison Page">
+            Compare
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   // Helper to render a single page item
   const renderPageItem = (item: ContentItem, isLocked: boolean) => {
     const task = getPageTask(item);
     const isSelected = selectedTaskId === task.id;
     const isRunning = task.status === 'running';
     const isCompleted = task.status === 'completed';
+    const pageTypeBadge = getPageTypeBadge(item.page_type);
 
     return (
       <div key={item.id} className={isLocked ? 'locked-item' : ''}>
@@ -187,7 +226,10 @@ export default function TaskList({
           >
             {getStatusIcon(task.status, 'page')}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-[#374151] truncate">{task.title}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-[#374151] truncate">{task.title}</span>
+                {pageTypeBadge}
+              </div>
               <div className="flex items-center gap-1.5 text-[10px] text-[#9CA3AF]">
                 {task.subtitle && <span className="truncate">{task.subtitle}</span>}
                 {isCompleted && item.updated_at && (
@@ -261,43 +303,118 @@ export default function TaskList({
             <span className="text-[10px] text-[#9CA3AF]">Current Project:</span>
             <h2 className="text-sm font-bold text-[#111827] truncate max-w-[140px]">{projectDomain || 'Unknown'}</h2>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                onRefreshSiteContexts();
-                onRefreshContent();
-              }}
-              disabled={isRefreshingSiteContexts || isRefreshingContent}
-              className="p-1.5 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
-              title="Refresh"
-            >
-              <svg className={`w-4 h-4 ${(isRefreshingSiteContexts || isRefreshingContent) ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 2v6h-6" />
-                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                <path d="M3 22v-6h6" />
-                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-              </svg>
-            </button>
-          </div>
+          <a
+            href="/projects"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded transition-all"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Projects
+          </a>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto thin-scrollbar">
-        {/* Context Task - Click to open modal directly */}
+        {/* Brand Assets Section - Clickable */}
         <div className="p-2 border-b border-[#E5E5E5]">
           <button
-            onClick={() => onOpenContextModal()}
-            className="w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left hover:bg-[#FAFAFA]"
+            onClick={() => onOpenBrandAssetsModal()}
+            className="w-full bg-[#FAFAFA] rounded-lg p-2.5 hover:bg-[#F3F4F6] transition-colors cursor-pointer text-left"
           >
-            {getStatusIcon(contextTask.status, 'context')}
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-[#111827]">{contextTask.title}</div>
-              <div className="text-xs text-[#6B7280] truncate">{contextTask.subtitle}</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span className="text-xs font-semibold text-[#374151]">Brand Assets</span>
+              </div>
+              <svg className="w-4 h-4 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
             </div>
-            <svg className="w-4 h-4 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
+            {(() => {
+              const logoContext = siteContexts.find(ctx => ctx.type === 'logo');
+              const headerContext = siteContexts.find(ctx => ctx.type === 'header');
+              const footerContext = siteContexts.find(ctx => ctx.type === 'footer');
+              const hasLogo = !!(logoContext?.logo_light_url || logoContext?.file_url);
+              const hasHeader = !!(headerContext?.content || headerContext?.html);
+              const hasFooter = !!(footerContext?.content || footerContext?.html);
+              return (
+                <div className="space-y-0.5">
+                  {[
+                    { label: 'Logo & Colors', filled: hasLogo },
+                    { label: 'Header', filled: hasHeader },
+                    { label: 'Footer', filled: hasFooter },
+                  ].map(({ label, filled }) => (
+                    <div key={label} className="flex items-center gap-2 px-2 py-1 text-[11px] text-[#6B7280]">
+                      <span className={`w-1.5 h-1.5 rounded-full ${filled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </button>
+        </div>
+
+        {/* Competitors Section - Clickable */}
+        <div className="p-2 border-b border-[#E5E5E5]">
+          <button
+            onClick={() => onOpenCompetitorsModal()}
+            className="w-full bg-[#FAFAFA] rounded-lg p-2.5 hover:bg-[#F3F4F6] transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span className="text-xs font-semibold text-[#374151]">Competitors</span>
+              </div>
+              <svg className="w-4 h-4 text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
+            {(() => {
+              const competitorsContext = siteContexts.find(ctx => ctx.type === 'competitors');
+              let competitorCount = 0;
+              let competitorNames: string[] = [];
+              if (competitorsContext?.content) {
+                try {
+                  const parsed = JSON.parse(competitorsContext.content);
+                  if (Array.isArray(parsed)) {
+                    competitorCount = parsed.length;
+                    competitorNames = parsed.slice(0, 3).map((c: any) => c.name || c.url || 'Unknown');
+                  }
+                } catch {}
+              }
+              return (
+                <div className="px-2 py-1 text-[11px] text-[#6B7280]">
+                  {competitorCount > 0 ? (
+                    <div className="space-y-0.5">
+                      {competitorNames.map((name, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                          <span className="truncate">{name}</span>
+                        </div>
+                      ))}
+                      {competitorCount > 3 && (
+                        <div className="text-[10px] text-[#9CA3AF] ml-3.5">+{competitorCount - 3} more</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      <span>No competitors yet</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </button>
         </div>
 
@@ -305,10 +422,67 @@ export default function TaskList({
         <div className="p-2">
           <div className="flex items-center justify-between px-2 py-1 mb-2">
             <span className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">Your Page Blueprint</span>
-            <span className="px-1.5 py-0.5 bg-[#F3F4F6] text-[#6B7280] text-[10px] font-medium rounded">
-              {contentItems.length}
-            </span>
+            <div className="flex items-center gap-1.5">
+              {/* Refresh Button */}
+              <button
+                onClick={() => onRefreshContent()}
+                disabled={isRefreshingContent || isPlanningPages}
+                className={`p-1 rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors ${isRefreshingContent ? 'opacity-50' : ''}`}
+                title="Refresh Pages"
+              >
+                <svg className={`w-3.5 h-3.5 ${isRefreshingContent ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                  <path d="M3 22v-6h6" />
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                </svg>
+              </button>
+              <span className="px-1.5 py-0.5 bg-[#F3F4F6] text-[#6B7280] text-[10px] font-medium rounded">
+                {contentItems.length}
+              </span>
+            </div>
           </div>
+          
+          {/* Planning Pages Loading State */}
+          {isPlanningPages && (
+            <div className="mb-3 px-3 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                <span className="text-xs font-medium text-blue-700">Planning pages based on competitors...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Upgrade banner - show at top when there are locked items */}
+          {contentItems.length > maxVisibleItems && (
+            <div className="mb-3 px-3 py-2.5 bg-gradient-to-r from-amber-50 to-purple-50 rounded-lg border border-amber-100">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#6B7280]">
+                    <span className="font-bold">{contentItems.length}</span> pages planned
+                  </span>
+                  <a
+                    href="/#pricing"
+                    className="inline-flex items-center gap-1 px-3 py-1 text-[10px] font-semibold text-white rounded-full transition-all hover:opacity-90 shadow-sm"
+                    style={{
+                      background: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
+                    }}
+                  >
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    Upgrade
+                  </a>
+                </div>
+                <div className="text-[10px] text-[#9CA3AF]">
+                  Your plan allows <span className="font-semibold text-[#6B7280]">{maxVisibleItems}</span> page{maxVisibleItems > 1 ? 's' : ''}. 
+                  Upgrade to generate all <span className="font-semibold text-[#6B7280]">{contentItems.length}</span> pages.
+                </div>
+              </div>
+            </div>
+          )}
 
           {contentItems.length === 0 ? (
             <div className="px-3 py-8 text-center">
@@ -376,42 +550,6 @@ export default function TaskList({
                 return renderPageItem(item, isLocked);
               })}
 
-              {/* Upgrade banner for locked items */}
-              {contentItems.length > maxVisibleItems && (
-                <div className="relative mt-2">
-                  {/* Glassmorphism overlay - covers only this area */}
-                  <div 
-                    className="absolute inset-0 z-10 flex items-center justify-center rounded-lg"
-                    style={{ 
-                      background: 'linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.95) 100%)',
-                      backdropFilter: 'blur(2px)',
-                    }}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-xs text-[#6B7280]">
-                        <span className="font-bold">{contentItems.length - maxVisibleItems}</span> more page{contentItems.length - maxVisibleItems > 1 ? 's' : ''} · 
-                        <span className="font-bold"> {maxVisibleItems}</span> credit{maxVisibleItems > 1 ? 's' : ''} left
-                      </span>
-                      <a
-                        href="/#pricing"
-                        className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white rounded-full transition-all hover:opacity-90 shadow-lg"
-                        style={{
-                          background: 'linear-gradient(80deg, rgb(255, 175, 64) -21.49%, rgb(209, 148, 236) 18.44%, rgb(154, 143, 234) 61.08%, rgb(101, 180, 255) 107.78%)',
-                        }}
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                        Upgrade
-                      </a>
-                    </div>
-                  </div>
-                  {/* Placeholder content to give height */}
-                  <div className="py-8 opacity-0 pointer-events-none">
-                    <div className="h-4"></div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
