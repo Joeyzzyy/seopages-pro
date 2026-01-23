@@ -32,27 +32,139 @@ function generateAlternativePageOutline(brandName: string, competitorName: strin
   };
 }
 
-// Generate a default outline for listicle page (multiple products)
-function generateListiclePageOutline(brandName: string, competitorCount: number) {
+// Generate outline for listicle page with specific products
+function generateListiclePageOutline(
+  title: string,
+  brandName: string, 
+  productNames: string[],
+  includesBrand: boolean = true
+) {
   const sections = [
     { h2: 'Quick Summary', word_count: 300 },
-    { h2: 'How We Tested', word_count: 200 },
+    { h2: 'How We Evaluated', word_count: 200 },
     { h2: 'Quick Comparison Table', word_count: 400 },
   ];
   
-  // Add section for each product (brand + competitors)
-  sections.push({ h2: `#1: ${brandName} (Our Pick)`, word_count: 500 });
-  for (let i = 2; i <= competitorCount + 1; i++) {
-    sections.push({ h2: `#${i}: Competitor`, word_count: 400 });
-  }
+  // Add section for each product with actual names
+  productNames.forEach((name, index) => {
+    const rank = index + 1;
+    const isBrand = name.toLowerCase() === brandName.toLowerCase();
+    const suffix = isBrand ? ' (Our Pick)' : '';
+    sections.push({ 
+      h2: `#${rank}: ${name}${suffix}`, 
+      word_count: isBrand ? 500 : 400 
+    });
+  });
   
   sections.push({ h2: 'Frequently Asked Questions', word_count: 500 });
   sections.push({ h2: 'Final Recommendation', word_count: 300 });
   
-  return {
-    h1: `Top ${competitorCount + 1} Best ${brandName} Alternatives in ${new Date().getFullYear()}`,
-    sections,
-  };
+  return { h1: title, sections };
+}
+
+// Listicle page templates for different angles
+interface ListicleTemplate {
+  titleTemplate: string;
+  slugTemplate: string;
+  keywordTemplate: string;
+  descTemplate: string;
+  minCompetitors: number;
+  maxProducts: number;
+  includeBrand: boolean;
+  selectProducts: (brandName: string, competitors: Competitor[]) => string[];
+}
+
+function getListicleTemplates(brandName: string, currentYear: number): ListicleTemplate[] {
+  return [
+    // 1. General "Best Alternatives" - Top 10
+    {
+      titleTemplate: `Top {count} Best {brand} Alternatives in ${currentYear}`,
+      slugTemplate: `best-{brand}-alternatives`,
+      keywordTemplate: `best {brand} alternatives`,
+      descTemplate: `Looking for {brand} alternatives? We tested and ranked the {count} best options with honest reviews.`,
+      minCompetitors: 3,
+      maxProducts: 10,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 9).map(c => c.name)],
+    },
+    // 2. Top 5 compact list
+    {
+      titleTemplate: `Top 5 {brand} Alternatives You Should Consider`,
+      slugTemplate: `top-5-{brand}-alternatives`,
+      keywordTemplate: `top 5 {brand} alternatives`,
+      descTemplate: `Short on time? Here are the 5 best {brand} alternatives, carefully selected and compared.`,
+      minCompetitors: 4,
+      maxProducts: 5,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 4).map(c => c.name)],
+    },
+    // 3. Free alternatives
+    {
+      titleTemplate: `Best Free {brand} Alternatives in ${currentYear}`,
+      slugTemplate: `free-{brand}-alternatives`,
+      keywordTemplate: `free {brand} alternatives`,
+      descTemplate: `Looking for free {brand} alternatives? Discover the best no-cost options that actually work.`,
+      minCompetitors: 2,
+      maxProducts: 8,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 7).map(c => c.name)],
+    },
+    // 4. For small business / startups
+    {
+      titleTemplate: `Best {brand} Alternatives for Small Business (${currentYear})`,
+      slugTemplate: `{brand}-alternatives-small-business`,
+      keywordTemplate: `{brand} alternatives for small business`,
+      descTemplate: `Running a small business? Find the best {brand} alternatives that fit your budget and needs.`,
+      minCompetitors: 3,
+      maxProducts: 7,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 6).map(c => c.name)],
+    },
+    // 5. Cheaper alternatives
+    {
+      titleTemplate: `Cheaper {brand} Alternatives That Actually Work`,
+      slugTemplate: `cheaper-{brand}-alternatives`,
+      keywordTemplate: `cheaper {brand} alternatives`,
+      descTemplate: `{brand} too expensive? Here are budget-friendly alternatives that deliver similar results.`,
+      minCompetitors: 3,
+      maxProducts: 8,
+      includeBrand: false, // Don't include brand as it's positioned as expensive
+      selectProducts: (brand, comps) => comps.slice(0, 8).map(c => c.name),
+    },
+    // 6. For enterprises / teams
+    {
+      titleTemplate: `Best {brand} Alternatives for Enterprise Teams`,
+      slugTemplate: `{brand}-alternatives-enterprise`,
+      keywordTemplate: `{brand} alternatives for enterprise`,
+      descTemplate: `Need enterprise-grade features? Compare the best {brand} alternatives for large teams.`,
+      minCompetitors: 4,
+      maxProducts: 6,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 5).map(c => c.name)],
+    },
+    // 7. "Tools like X"
+    {
+      titleTemplate: `{count} Tools Like {brand}: Best Similar Options`,
+      slugTemplate: `tools-like-{brand}`,
+      keywordTemplate: `tools like {brand}`,
+      descTemplate: `Looking for tools similar to {brand}? Here are {count} alternatives that offer comparable features.`,
+      minCompetitors: 5,
+      maxProducts: 10,
+      includeBrand: false,
+      selectProducts: (brand, comps) => comps.slice(0, 10).map(c => c.name),
+    },
+    // 8. "X Competitors"
+    {
+      titleTemplate: `Top {brand} Competitors: Complete Market Analysis`,
+      slugTemplate: `{brand}-competitors`,
+      keywordTemplate: `{brand} competitors`,
+      descTemplate: `Who are {brand}'s main competitors? A comprehensive analysis of the competitive landscape.`,
+      minCompetitors: 4,
+      maxProducts: 10,
+      includeBrand: true,
+      selectProducts: (brand, comps) => [brand, ...comps.slice(0, 9).map(c => c.name)],
+    },
+  ];
 }
 
 // Generate slug from title
@@ -112,14 +224,10 @@ export async function POST(request: NextRequest) {
     
     // Build a set of existing competitor names from titles/keywords (for alternative pages)
     const existingCompetitorNames = new Set<string>();
-    let hasListiclePage = false;
     
     (existingItems || []).forEach((item: any) => {
-      // Check if listicle page exists
-      if (item.page_type === 'listicle') {
-        hasListiclePage = true;
-        return;
-      }
+      // Skip listicle pages for competitor name extraction
+      if (item.page_type === 'listicle') return;
       
       const title = (item.title || '').toLowerCase();
       const keyword = (item.target_keyword || '').toLowerCase();
@@ -143,7 +251,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log(`[Create Pages] Found ${existingCompetitorNames.size} existing competitor pages, hasListiclePage: ${hasListiclePage}`);
+    console.log(`[Create Pages] Found ${existingCompetitorNames.size} existing competitor pages`);
 
     // Filter out competitors that already have alternative pages
     const newCompetitors = competitors.filter(
@@ -214,35 +322,81 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    // 2. Create LISTICLE page (if doesn't exist and we have enough competitors)
+    // 2. Create LISTICLE pages from templates (multiple angles)
     const totalCompetitors = competitors.length;
-    let listicleCreated = false;
+    let listiclesCreated = 0;
     
-    if (!hasListiclePage && totalCompetitors >= 3) {
-      const listCount = Math.min(totalCompetitors + 1, 15); // Brand + competitors, max 15
-      const listicleTitle = `Top ${listCount} Best ${brandName} Alternatives in ${currentYear}`;
-      const listicleOutline = generateListiclePageOutline(brandName, totalCompetitors);
-      const estimatedWordCount = listicleOutline.sections.reduce((sum, s) => sum + s.word_count, 0);
+    // Get existing listicle slugs to avoid duplicates
+    const existingListicleSlugs = new Set<string>();
+    (existingItems || []).forEach((item: any) => {
+      if (item.page_type === 'listicle') {
+        // Extract slug pattern from title
+        const titleLower = (item.title || '').toLowerCase();
+        if (titleLower.includes('top 5')) existingListicleSlugs.add('top-5');
+        if (titleLower.includes('free')) existingListicleSlugs.add('free');
+        if (titleLower.includes('small business')) existingListicleSlugs.add('small-business');
+        if (titleLower.includes('cheaper')) existingListicleSlugs.add('cheaper');
+        if (titleLower.includes('enterprise')) existingListicleSlugs.add('enterprise');
+        if (titleLower.includes('tools like')) existingListicleSlugs.add('tools-like');
+        if (titleLower.includes('competitors')) existingListicleSlugs.add('competitors');
+        if (titleLower.includes('best') && titleLower.includes('alternative')) existingListicleSlugs.add('best-alternatives');
+      }
+    });
+
+    // Get all listicle templates
+    const templates = getListicleTemplates(brandName, currentYear);
+    const brandNameLower = brandName.toLowerCase();
+    
+    for (const template of templates) {
+      // Check if we have enough competitors for this template
+      if (totalCompetitors < template.minCompetitors) continue;
+      
+      // Generate slug and check if already exists
+      const slug = template.slugTemplate.replace(/{brand}/g, brandNameLower);
+      const slugKey = slug.replace(brandNameLower, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      
+      // Skip if similar listicle already exists
+      if (existingListicleSlugs.has(slugKey) || existingListicleSlugs.has(slug)) continue;
+      
+      // Select products for this template
+      const selectedProducts = template.selectProducts(brandName, competitors);
+      const productCount = selectedProducts.length;
+      
+      // Generate title and other fields
+      const title = template.titleTemplate
+        .replace(/{brand}/g, brandName)
+        .replace(/{count}/g, String(productCount));
+      
+      const targetKeyword = template.keywordTemplate.replace(/{brand}/g, brandNameLower);
+      const seoDescription = template.descTemplate
+        .replace(/{brand}/g, brandName)
+        .replace(/{count}/g, String(productCount));
+      
+      // Generate outline with actual product names
+      const outline = generateListiclePageOutline(title, brandName, selectedProducts, template.includeBrand);
+      const estimatedWordCount = outline.sections.reduce((sum, s) => sum + s.word_count, 0);
       
       itemsToCreate.push({
         user_id: user.id,
         seo_project_id: projectId,
         project_id: alternativesProject?.id || null,
-        title: listicleTitle,
-        slug: generateSlug(`best-${brandName.toLowerCase()}-alternatives`),
-        target_keyword: `best ${brandName.toLowerCase()} alternatives`,
+        title,
+        slug: generateSlug(slug),
+        target_keyword: targetKeyword,
         page_type: 'listicle',
         status: 'planned',
-        outline: listicleOutline,
+        outline,
         estimated_word_count: estimatedWordCount,
-        seo_title: `${listCount} Best ${brandName} Alternatives in ${currentYear} (Honest Reviews)`,
-        seo_description: `Looking for ${brandName} alternatives? We tested and ranked the ${listCount} best options. Compare features, pricing, and find the perfect solution for your needs.`,
-        notes: `Listicle page comparing ${brandName} with ${totalCompetitors} alternatives: ${competitors.slice(0, 5).map(c => c.name).join(', ')}${totalCompetitors > 5 ? '...' : ''}`,
+        seo_title: `${title} | Honest Reviews & Comparison`,
+        seo_description: seoDescription,
+        notes: `Listicle: ${selectedProducts.join(', ')}`,
       });
       
-      listicleCreated = true;
-      console.log(`[Create Pages] Will create listicle page: ${listicleTitle}`);
+      listiclesCreated++;
+      console.log(`[Create Pages] Will create listicle: ${title}`);
     }
+    
+    console.log(`[Create Pages] Will create ${listiclesCreated} listicle pages from templates`);
 
     // Insert all items if there are any
     if (itemsToCreate.length === 0) {
