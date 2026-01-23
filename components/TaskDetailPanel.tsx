@@ -67,11 +67,11 @@ export default function TaskDetailPanel({
       <div className="flex-1 flex items-center justify-center bg-[#FAFAFA] rounded-lg border border-[#E5E5E5]">
         <div className="text-center">
           <svg className="w-16 h-16 text-[#E5E5E5] mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
+            <path d="M9 12l2 2 4-4" />
+            <circle cx="12" cy="12" r="10" />
           </svg>
-          <p className="text-sm text-[#9CA3AF]">Click "Brand & Context" to edit</p>
+          <p className="text-base font-medium text-[#374151] mb-1">Ready to generate pages?</p>
+          <p className="text-sm text-[#9CA3AF]">Select a page from the left panel to start generating!</p>
         </div>
       </div>
     );
