@@ -207,6 +207,16 @@ export default function ProjectChatPage() {
             await loadSiteContexts(user.id);
             await loadContentItems(user.id);
             setContextTaskStatus('completed');
+            
+            // Trigger page planning after context acquisition completes
+            if (!hasTriggeredPagePlanningRef.current) {
+              hasTriggeredPagePlanningRef.current = true;
+              console.log('[onFinish] Context acquisition completed, triggering page planning...');
+              // Delay to ensure competitors data is fully saved
+              setTimeout(() => {
+                triggerPagePlanningAfterInit(user.id);
+              }, 2000);
+            }
           }
         } catch (error) {
           console.error('Failed to save message:', error);
@@ -332,19 +342,10 @@ export default function ProjectChatPage() {
       setContextTaskStatus('completed');
       setRunningTaskId(null);
       
-      // Refresh data and trigger page planning
+      // Refresh data (page planning is triggered in onFinish)
       if (user) {
         loadSiteContexts(user.id);
         loadContentItems(user.id);
-        
-        // Auto-trigger page planning after initialization (with delay to ensure data is saved)
-        if (!hasTriggeredPagePlanningRef.current) {
-          hasTriggeredPagePlanningRef.current = true;
-          setTimeout(() => {
-            console.log('[Initialization] Triggering automatic page planning...');
-            triggerPagePlanningAfterInit(user.id);
-          }, 2000); // Wait 2s for competitors to be saved
-        }
       }
     }
     wasLoadingRef.current = isLoading;
