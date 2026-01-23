@@ -20,6 +20,7 @@ export default function ProjectsPage() {
   const [newDomain, setNewDomain] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingProject, setDeletingProject] = useState<SEOProject | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [userCredits, setUserCredits] = useState<number>(1);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -122,6 +123,7 @@ export default function ProjectsPage() {
   const handleDeleteProject = async () => {
     if (!deletingProject) return;
 
+    setIsDeleting(true);
     try {
       await deleteSEOProject(deletingProject.id);
       setProjects(projects.filter(p => p.id !== deletingProject.id));
@@ -129,6 +131,8 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error('Failed to delete project:', error);
       alert('Failed to delete project. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -280,8 +284,10 @@ export default function ProjectsPage() {
           message={`Are you sure you want to delete "${deletingProject.domain}"? This will permanently remove all associated data and conversations.`}
           confirmText="Delete Project"
           onConfirm={handleDeleteProject}
-          onCancel={() => setDeletingProject(null)}
+          onCancel={() => !isDeleting && setDeletingProject(null)}
           isDangerous={true}
+          isLoading={isDeleting}
+          loadingText="Deleting Project..."
         />
       )}
 
