@@ -41,7 +41,7 @@ export default function BestAlternativesHubPage() {
       <section className="pt-32 pb-16 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6">
-            <span className="text-sm text-gray-400">{LISTICLE_PAGES.length} Expert Guides</span>
+            <span className="text-sm text-gray-400">{LISTICLE_PAGES.length} Best-Of Guides</span>
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">

@@ -444,8 +444,8 @@ export default function HomePage() {
       <section className="py-12 sm:py-16 px-4 sm:px-6 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full mb-4">
-              <span className="text-xs sm:text-sm text-purple-400 font-medium">📋 Listicle Pages</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#9A8FEA]/20 border border-[#9A8FEA]/30 rounded-full mb-4">
+              <span className="text-xs sm:text-sm text-[#9A8FEA] font-medium">Best-Of Listicles</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">Best Alternatives Guides</h2>
             <p className="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">
@@ -453,32 +453,40 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Listicle Cards */}
+          {/* Listicle Cards - Same style as comparison pages */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             {[
-              { name: 'Jasper AI', slug: 'jasper-ai', count: 6, icon: '✍️' },
-              { name: 'Surfer SEO', slug: 'surfer-seo', count: 6, icon: '📊' },
-              { name: 'Ahrefs', slug: 'ahrefs', count: 6, icon: '🔗' },
-              { name: 'SEMrush', slug: 'semrush', count: 6, icon: '📈' },
-              { name: 'Copy.ai', slug: 'copy-ai', count: 6, icon: '🤖' },
+              { name: 'Jasper AI', slug: 'jasper-ai', category: 'AI Writing' },
+              { name: 'Surfer SEO', slug: 'surfer-seo', category: 'SEO Content' },
+              { name: 'Ahrefs', slug: 'ahrefs', category: 'SEO Suite' },
+              { name: 'SEMrush', slug: 'semrush', category: 'SEO Suite' },
+              { name: 'Copy.ai', slug: 'copy-ai', category: 'AI Writing' },
             ].map((item) => (
               <a
                 key={item.slug}
                 href={`/best-alternatives/${item.slug}`}
-                className="group relative p-4 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl hover:border-purple-500/50 hover:bg-white/[0.08] transition-all overflow-hidden"
+                className="group relative p-4 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl hover:border-white/20 transition-all overflow-hidden"
               >
-                {/* Hover glow */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#9A8FEA]/10 to-[#65B4FF]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
                 <div className="relative">
-                  <div className="text-2xl mb-2">{item.icon}</div>
-                  <div className="text-white font-medium text-sm mb-1">Best {item.name}</div>
-                  <div className="text-white font-medium text-sm">Alternatives</div>
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
-                    <span className="text-[10px] text-gray-500">{item.count} tools compared</span>
-                    <svg className="w-3 h-3 text-purple-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  <div className="flex items-center gap-2 mb-2">
+                    <img 
+                      src={`https://www.google.com/s2/favicons?domain=${item.slug.replace(/-/g, '')}.com&sz=64`}
+                      alt={item.name}
+                      className="w-6 h-6 rounded bg-white/10 p-0.5"
+                    />
+                    <div className="text-white font-medium text-sm truncate">{item.name}</div>
+                  </div>
+                  <div className="text-xs text-gray-500 mb-2">Best Alternatives</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">{item.category}</span>
+                    <span className="flex items-center gap-1 text-[#9A8FEA] text-[10px] font-medium">
+                      View
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   </div>
                 </div>
               </a>
