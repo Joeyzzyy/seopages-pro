@@ -242,12 +242,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create server-side Supabase client for content items (bypasses RLS)
-    const { createClient } = await import('@supabase/supabase-js');
-    const serverSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Create server-side Supabase client for content items (bypasses RLS, with proxy support)
+    const { createServerSupabaseAdmin } = await import('@/lib/supabase-server');
+    const serverSupabase = createServerSupabaseAdmin();
     
     // Handle attached files
     const attachedFiles = data?.attachedFiles || [];

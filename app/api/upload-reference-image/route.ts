@@ -1,31 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin, createAuthenticatedServerClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Use service role to allow uploads
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          persistSession: false,
-        }
-      }
-    );
+    // Use service role to allow uploads (with proxy support)
+    const supabase = createServerSupabaseAdmin();
 
     // Try to get the current user
     const authHeader = request.headers.get('Authorization');
     let userId = 'public';
     
     if (authHeader) {
-      const { data: { user } } = await createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          global: { headers: { Authorization: authHeader } }
-        }
-      ).auth.getUser();
+      const authClient = createAuthenticatedServerClient(authHeader);
+      const { data: { user } } = await authClient.auth.getUser();
       
       if (user) userId = user.id;
     }

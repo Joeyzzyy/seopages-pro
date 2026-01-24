@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
 // PayPal 配置
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
@@ -16,11 +16,8 @@ const PRICING_PLANS = {
   pro: { credits: 50, tier: 'pro' },
 } as const;
 
-// Supabase admin client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Supabase admin client (with proxy support)
+const supabaseAdmin = createServerSupabaseAdmin();
 
 // 获取 PayPal Access Token
 async function getPayPalAccessToken(): Promise<string> {

@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-
-// Helper to create authenticated Supabase client
-async function createAuthenticatedClient(request: NextRequest) {
-  const cookieStore = await cookies();
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          Authorization: request.headers.get('Authorization') || '',
-        },
-      },
-    }
-  );
-}
+import { createAuthenticatedServerClient } from '@/lib/supabase-server';
 
 // GET: Fetch all site contexts for the user, optionally filtered by domainId
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createAuthenticatedClient(request);
+    const supabase = createAuthenticatedServerClient(request.headers.get('Authorization'));
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
@@ -108,7 +88,7 @@ export async function GET(request: NextRequest) {
 // POST/PUT: Upsert a site context (create or update)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAuthenticatedClient(request);
+    const supabase = createAuthenticatedServerClient(request.headers.get('Authorization'));
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

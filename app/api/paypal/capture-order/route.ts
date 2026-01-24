@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin, createAuthenticatedServerClient } from '@/lib/supabase-server';
 
 // PayPal API configuration
 // Use PAYPAL_MODE env var to explicitly set mode, defaults to 'live' in production
@@ -17,29 +17,8 @@ const PRICING_PLANS = {
   pro: { price: '39.90', credits: 50, tier: 'pro' },
 } as const;
 
-// Supabase admin client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// Helper to create authenticated Supabase client
-function createAuthenticatedClient(request: NextRequest) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          Authorization: request.headers.get('Authorization') || '',
-        },
-      },
-    }
-  );
-}
+// Supabase admin client (with proxy support)
+const supabaseAdmin = createServerSupabaseAdmin();
 
 // Get PayPal Access Token
 async function getPayPalAccessToken(): Promise<string> {
@@ -65,7 +44,7 @@ async function getPayPalAccessToken(): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     // Verify user identity
-    const supabase = createAuthenticatedClient(request);
+    const supabase = createAuthenticatedServerClient(request.headers.get('Authorization'));
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {

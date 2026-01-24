@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAuthenticatedServerClient } from '@/lib/supabase-server';
 import crypto from 'crypto';
 
 // Generate a unique verification token
@@ -7,18 +7,13 @@ function generateVerificationToken(): string {
   return `mini-agent-verify-${crypto.randomBytes(16).toString('hex')}`;
 }
 
-// Helper to get user from Authorization header
+// Helper to get user from Authorization header (with proxy support)
 async function getUserFromRequest(req: Request) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return null;
 
-  const { data: { user } } = await createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: { headers: { Authorization: authHeader } }
-    }
-  ).auth.getUser();
+  const supabase = createAuthenticatedServerClient(authHeader);
+  const { data: { user } } = await supabase.auth.getUser();
 
   return user;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { fetch as undiciFetch, ProxyAgent } from 'undici';
+import { createAuthenticatedServerClient } from '@/lib/supabase-server';
 
 // Create proxy agent if configured
 function getProxyAgent(): ProxyAgent | undefined {
@@ -10,24 +10,6 @@ function getProxyAgent(): ProxyAgent | undefined {
     return new ProxyAgent(proxyUrl);
   }
   return undefined;
-}
-
-// Helper to create authenticated Supabase client
-async function createAuthenticatedClient(request: NextRequest) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          Authorization: request.headers.get('Authorization') || '',
-        },
-      },
-    }
-  );
 }
 
 interface Competitor {
@@ -873,7 +855,7 @@ async function validateCompetitors(competitors: Competitor[]): Promise<Competito
 // =====================================================
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAuthenticatedClient(request);
+    const supabase = createAuthenticatedServerClient(request.headers.get('Authorization'));
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
