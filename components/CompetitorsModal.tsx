@@ -40,6 +40,7 @@ export default function CompetitorsModal({
   
   // Auto-fetch states
   const [showCrawlPanel, setShowCrawlPanel] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [crawlUrl, setCrawlUrl] = useState('');
   const [crawlStatus, setCrawlStatus] = useState<CrawlStatus>({
     isRunning: false,
@@ -249,6 +250,32 @@ export default function CompetitorsModal({
     }
   };
 
+  // Get count of competitors that need review (logo_fetch_failed === true)
+  const getNeedsReviewCount = (): number => {
+    try {
+      const parsed = JSON.parse(competitorsContent || '[]');
+      if (!Array.isArray(parsed)) return 0;
+      return parsed.filter((c: any) => c.logo_fetch_failed === true).length;
+    } catch {
+      return 0;
+    }
+  };
+
+  // Handle refresh button click - show confirmation first
+  const handleRefreshClick = () => {
+    if (!crawlUrl) {
+      alert('Please enter your website URL');
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
+  // Confirm and start fetching
+  const handleConfirmFetch = () => {
+    setShowConfirmDialog(false);
+    handleFetchCompetitors();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -266,6 +293,11 @@ export default function CompetitorsModal({
             <h2 className="text-lg font-bold text-[#111827]">Competitors</h2>
             <p className="text-xs text-[#6B7280]">
               {getCompetitorCount()} competitor{getCompetitorCount() !== 1 ? 's' : ''} configured
+              {getNeedsReviewCount() > 0 && (
+                <span className="ml-2 text-amber-600">
+                  • {getNeedsReviewCount()} need{getNeedsReviewCount() !== 1 ? '' : 's'} review
+                </span>
+              )}
             </p>
           </div>
           
@@ -280,9 +312,9 @@ export default function CompetitorsModal({
               }`}
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Auto-Fetch
+              Refresh List
             </button>
             
             <button
@@ -321,20 +353,102 @@ export default function CompetitorsModal({
           </div>
         </div>
 
+        {/* Confirmation Dialog */}
+        {showConfirmDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-[400px] p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-[#111827]">Refresh Competitor List</h3>
+              </div>
+              
+              <div className="space-y-3 mb-6">
+                <p className="text-sm text-[#6B7280]">
+                  This will search for new competitors in your industry using AI.
+                </p>
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-blue-700">
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Automatically deduplicates - existing competitors won&apos;t be affected</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-blue-700">
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Only adds new competitors that aren&apos;t already in your list</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-blue-700">
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Safe to run multiple times - incremental updates only</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="flex-1 py-2.5 px-4 bg-[#F3F4F6] text-[#374151] text-sm font-medium rounded-lg hover:bg-[#E5E7EB] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmFetch}
+                  className="flex-1 py-2.5 px-4 bg-[#111827] text-white text-sm font-medium rounded-lg hover:bg-[#1F2937] transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                  Start Discovery
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
+          {/* Needs Review Banner */}
+          {getNeedsReviewCount() > 0 && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    {getNeedsReviewCount()} competitor{getNeedsReviewCount() !== 1 ? 's' : ''} highlighted in yellow need your review
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    These websites may be unreachable or have invalid URLs. Please verify and correct them manually if needed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Auto-Fetch Panel */}
           {showCrawlPanel && (
             <div className="mb-6 p-4 bg-[#FAFAFA] rounded-xl border border-[#E5E5E5]">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <h3 className="text-sm font-bold text-[#111827]">Auto-Discover Competitors</h3>
+                <h3 className="text-sm font-bold text-[#111827]">Refresh Competitor List</h3>
               </div>
               
               <p className="text-xs text-[#6B7280] mb-3">
-                Enter your website URL to automatically discover and add competitors in your industry.
+                Enter your website URL to discover new competitors in your industry. Existing competitors will be preserved.
               </p>
               
               {/* URL Input */}
@@ -352,7 +466,7 @@ export default function CompetitorsModal({
               {/* Fetch Button */}
               <button
                 type="button"
-                onClick={handleFetchCompetitors}
+                onClick={handleRefreshClick}
                 disabled={crawlStatus.isRunning || !crawlUrl}
                 className="w-full py-2.5 px-4 bg-[#111827] text-white text-sm font-medium rounded-lg hover:bg-[#1F2937] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
@@ -370,7 +484,7 @@ export default function CompetitorsModal({
                       <circle cx="11" cy="11" r="8" />
                       <path d="M21 21l-4.35-4.35" />
                     </svg>
-                    <span>Discover Competitors</span>
+                    <span>Discover New Competitors</span>
                   </>
                 )}
               </button>
@@ -443,7 +557,7 @@ export default function CompetitorsModal({
           {/* Competitors Editor */}
           <div>
             <p className="text-sm text-[#6B7280] mb-4">
-              Add your competitors to generate comparison pages. Include their name, website URL, and optionally a brief description.
+              Add your competitors to generate comparison pages. Items highlighted in <span className="text-amber-600 font-medium">yellow</span> may have invalid URLs - please review and correct them.
             </p>
             <CompetitorsEditor
               initialContent={competitorsContent}
