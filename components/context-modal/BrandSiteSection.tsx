@@ -246,7 +246,7 @@ export default function BrandSiteSection({
       </div>
 
       {/* Logo, Favicon & OG Image */}
-      <div className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+      <div className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
         <h4 className="text-xs font-semibold text-[#111827]">Logo, Favicon & OG Image</h4>
         <div className="grid grid-cols-3 gap-3">
           <AssetUploadField
@@ -280,7 +280,7 @@ export default function BrandSiteSection({
       </div>
 
       {/* Colors */}
-      <div ref={colorsRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+      <div ref={colorsRef} className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
         <h4 className="text-xs font-semibold text-[#111827]">Colors</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -323,7 +323,7 @@ export default function BrandSiteSection({
       </div>
 
       {/* Typography */}
-      <div ref={typographyRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+      <div ref={typographyRef} className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
         <h4 className="text-xs font-semibold text-[#111827]">Typography</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -350,7 +350,7 @@ export default function BrandSiteSection({
       </div>
 
       {/* Languages */}
-      <div ref={languagesRef} className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+      <div ref={languagesRef} className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
         <h4 className="text-xs font-semibold text-[#111827]">Languages</h4>
         <input
           type="text"
@@ -362,7 +362,7 @@ export default function BrandSiteSection({
       </div>
 
       {/* Header & Footer */}
-      <div className="space-y-3 pl-6 mb-5 pt-5 border-t border-[#F3F4F6]">
+      <div className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
         <h4 className="text-xs font-semibold text-[#111827]">Header & Footer</h4>
         
         {/* Header */}
