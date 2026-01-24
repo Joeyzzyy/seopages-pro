@@ -511,14 +511,88 @@ function extractBrandAssets(html: string, origin: string, domainName: string): a
   };
 }
 
+/**
+ * Extract header HTML using multiple strategies
+ * Handles both traditional HTML and SPA frameworks (React, Next.js, Vue)
+ */
+function extractHeaderHtmlContent(html: string): string {
+  // Strategy 1: Match <header> tag with greedy matching for nested content
+  const headerRegex = /<header[^>]*>[\s\S]*?<\/header>/gi;
+  const headerMatches = html.match(headerRegex);
+  
+  if (headerMatches && headerMatches.length > 0) {
+    // Find the longest header match (likely the main header)
+    const longestHeader = headerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestHeader.length > 100) {
+      console.log(`[extractHeaderHtmlContent] Found header tag: ${longestHeader.length} chars`);
+      return longestHeader;
+    }
+  }
+  
+  // Strategy 2: Look for nav inside a container with header-like attributes
+  const navContainerRegex = /<(?:div|section)[^>]*(?:class|id)="[^"]*(?:header|navbar|nav-bar|top-bar)[^"]*"[^>]*>[\s\S]*?<nav[^>]*>[\s\S]*?<\/nav>[\s\S]*?<\/(?:div|section)>/gi;
+  const navContainerMatches = html.match(navContainerRegex);
+  
+  if (navContainerMatches && navContainerMatches.length > 0) {
+    const longestNavContainer = navContainerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestNavContainer.length > 100) {
+      console.log(`[extractHeaderHtmlContent] Found nav container: ${longestNavContainer.length} chars`);
+      return longestNavContainer;
+    }
+  }
+  
+  // Strategy 3: Match standalone <nav> tag
+  const navRegex = /<nav[^>]*>[\s\S]*?<\/nav>/gi;
+  const navMatches = html.match(navRegex);
+  
+  if (navMatches && navMatches.length > 0) {
+    // Find the nav with most links (likely the main navigation)
+    const navWithMostLinks = navMatches.reduce((best, current) => {
+      const currentLinks = (current.match(/<a[^>]*>/gi) || []).length;
+      const bestLinks = (best.match(/<a[^>]*>/gi) || []).length;
+      return currentLinks > bestLinks ? current : best;
+    });
+    if (navWithMostLinks.length > 50) {
+      console.log(`[extractHeaderHtmlContent] Found nav tag: ${navWithMostLinks.length} chars`);
+      return navWithMostLinks;
+    }
+  }
+  
+  // Strategy 4: Look for role="banner" (ARIA landmark for header)
+  const bannerRegex = /<[^>]*role=["']banner["'][^>]*>[\s\S]*?<\/[^>]+>/gi;
+  const bannerMatches = html.match(bannerRegex);
+  
+  if (bannerMatches && bannerMatches.length > 0) {
+    const longestBanner = bannerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestBanner.length > 100) {
+      console.log(`[extractHeaderHtmlContent] Found banner role: ${longestBanner.length} chars`);
+      return longestBanner;
+    }
+  }
+  
+  // Strategy 5: Extract from top portion of body (first 15000 chars after <body>)
+  const bodyStart = html.toLowerCase().indexOf('<body');
+  if (bodyStart !== -1) {
+    const bodyContent = html.substring(bodyStart, bodyStart + 15000);
+    const linksInTop = (bodyContent.match(/<a[^>]*href[^>]*>/gi) || []).length;
+    if (linksInTop > 3) {
+      console.log(`[extractHeaderHtmlContent] Using top body section: ${bodyContent.length} chars, ${linksInTop} links`);
+      return bodyContent;
+    }
+  }
+  
+  console.log(`[extractHeaderHtmlContent] No header found`);
+  return '';
+}
+
 async function extractHeader(html: string, origin: string, logoUrl?: string | null, siteName?: string): Promise<any> {
-  const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/i);
-  const navMatch = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/i);
-  const headerHtml = headerMatch?.[1] || navMatch?.[1] || '';
+  const headerHtml = extractHeaderHtmlContent(html);
 
   if (!headerHtml || headerHtml.length < 50) {
     return { success: false, error: 'No header/nav found' };
   }
+  
+  console.log(`[extractHeader] Processing header HTML: ${headerHtml.length} chars`);
 
   try {
     const aiPrompt = `Analyze this website header HTML and extract the navigation structure.
