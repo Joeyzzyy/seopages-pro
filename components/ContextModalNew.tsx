@@ -435,9 +435,9 @@ export default function ContextModalNew({
               }`}
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Auto-Fetch
+              Refresh
             </button>
             
             <button
@@ -499,18 +499,18 @@ export default function ContextModalNew({
 
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Auto-Fetch Panel */}
+            {/* Refresh Brand Assets Panel */}
             {showCrawlPanel && (
               <div className="mb-6 p-4 bg-[#FAFAFA] rounded-xl border border-[#E5E5E5]">
                 <div className="flex items-center gap-2 mb-3">
                   <svg className="w-5 h-5 text-[#6B7280]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  <h3 className="text-sm font-bold text-[#111827]">Auto-Fetch from Website</h3>
+                  <h3 className="text-sm font-bold text-[#111827]">Refresh Brand Assets</h3>
                 </div>
                 
                 <p className="text-xs text-[#6B7280] mb-3">
-                  Automatically crawl your website to extract brand assets, header, and footer.
+                  Re-crawl your website to update brand assets, header, and footer. Existing data will be refreshed.
                 </p>
                 
                 {/* URL Input */}
