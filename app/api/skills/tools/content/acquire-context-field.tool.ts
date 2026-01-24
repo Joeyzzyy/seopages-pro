@@ -1615,11 +1615,74 @@ function cleanNavigationUrl(url: string): string {
   }
 }
 
-async function extractHeader(html: string, origin: string, useAI: boolean = true): Promise<any> {
-  const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/i);
-  const navMatch = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/i);
+/**
+ * Extract header HTML using multiple strategies
+ * Handles both traditional HTML and SPA frameworks (React, Next.js, Vue)
+ */
+function extractHeaderHtmlForField(html: string): string {
+  // Strategy 1: Match <header> tag
+  const headerRegex = /<header[^>]*>[\s\S]*?<\/header>/gi;
+  const headerMatches = html.match(headerRegex);
   
-  const headerHtml = headerMatch?.[1] || navMatch?.[1] || '';
+  if (headerMatches && headerMatches.length > 0) {
+    const longestHeader = headerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestHeader.length > 100) {
+      return longestHeader;
+    }
+  }
+  
+  // Strategy 2: Look for nav inside header-like container
+  const navContainerRegex = /<(?:div|section)[^>]*(?:class|id)="[^"]*(?:header|navbar|nav-bar|top-bar)[^"]*"[^>]*>[\s\S]*?<nav[^>]*>[\s\S]*?<\/nav>[\s\S]*?<\/(?:div|section)>/gi;
+  const navContainerMatches = html.match(navContainerRegex);
+  
+  if (navContainerMatches && navContainerMatches.length > 0) {
+    const longestNavContainer = navContainerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestNavContainer.length > 100) {
+      return longestNavContainer;
+    }
+  }
+  
+  // Strategy 3: Match standalone <nav> tag
+  const navRegex = /<nav[^>]*>[\s\S]*?<\/nav>/gi;
+  const navMatches = html.match(navRegex);
+  
+  if (navMatches && navMatches.length > 0) {
+    const navWithMostLinks = navMatches.reduce((best, current) => {
+      const currentLinks = (current.match(/<a[^>]*>/gi) || []).length;
+      const bestLinks = (best.match(/<a[^>]*>/gi) || []).length;
+      return currentLinks > bestLinks ? current : best;
+    });
+    if (navWithMostLinks.length > 50) {
+      return navWithMostLinks;
+    }
+  }
+  
+  // Strategy 4: role="banner"
+  const bannerRegex = /<[^>]*role=["']banner["'][^>]*>[\s\S]*?<\/[^>]+>/gi;
+  const bannerMatches = html.match(bannerRegex);
+  
+  if (bannerMatches && bannerMatches.length > 0) {
+    const longestBanner = bannerMatches.reduce((a, b) => a.length > b.length ? a : b);
+    if (longestBanner.length > 100) {
+      return longestBanner;
+    }
+  }
+  
+  // Strategy 5: Top body section
+  const bodyStart = html.toLowerCase().indexOf('<body');
+  if (bodyStart !== -1) {
+    const bodyContent = html.substring(bodyStart, bodyStart + 15000);
+    const linksInTop = (bodyContent.match(/<a[^>]*href[^>]*>/gi) || []).length;
+    if (linksInTop > 3) {
+      return bodyContent;
+    }
+  }
+  
+  return '';
+}
+
+async function extractHeader(html: string, origin: string, useAI: boolean = true): Promise<any> {
+  const headerHtml = extractHeaderHtmlForField(html);
   
   if (!headerHtml) {
     return {
@@ -1629,6 +1692,8 @@ async function extractHeader(html: string, origin: string, useAI: boolean = true
       error: 'No header/nav found',
     };
   }
+  
+  console.log(`[extractHeader] Found header HTML: ${headerHtml.length} chars`);
 
   // 如果启用AI且HTML较长，使用AI分析
   if (useAI && headerHtml.length > 100) {
