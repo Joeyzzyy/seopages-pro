@@ -1,11 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createServerSupabaseAdmin();
 
 export const save_content_item = tool({
   description: 'Save a SINGLE planned content item. WARNING: If you are saving multiple items (e.g. a full topic cluster), DO NOT use this tool repeatedly. Use "save_content_items_batch" instead to prevent duplicate projects.',

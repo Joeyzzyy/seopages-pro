@@ -1,12 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client with proxy support
+const supabase = createServerSupabaseAdmin();
 
 /**
  * Generate a default EEAT-compliant footer when user hasn't configured one.

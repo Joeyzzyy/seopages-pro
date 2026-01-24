@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
 import { getSections, clearSections } from '@/lib/section-storage';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
 /**
  * Assemble a complete HTML page from previously saved sections.
@@ -16,9 +16,7 @@ import { getSections, clearSections } from '@/lib/section-storage';
  * - Final assembly is a simple concatenation operation
  */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createServerSupabaseAdmin();
 
 export const assemble_page_from_sections = tool({
   description: `Assemble a complete HTML page from previously saved sections.

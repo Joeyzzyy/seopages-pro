@@ -1,14 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-// Use a server-side client with SERVICE_ROLE_KEY to bypass RLS for backups
-const serviceSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const supabase = serviceSupabase; // Use service client for all operations in this tool
+// Use a server-side client with SERVICE_ROLE_KEY and proxy support
+const supabase = createServerSupabaseAdmin();
 
 export const save_final_page = tool({
   description: 'Save the complete generated content to the library and update status to "generated". This also generates a downloadable HTML file.',

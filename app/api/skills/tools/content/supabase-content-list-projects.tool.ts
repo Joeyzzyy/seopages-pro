@@ -1,11 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createServerSupabaseAdmin();
 
 export const list_content_projects = tool({
   description: 'List all Topic Clusters (Projects) in the user library.',

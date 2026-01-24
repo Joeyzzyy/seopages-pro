@@ -60,7 +60,7 @@ export function createServerSupabaseClient(
  * Creates an authenticated Supabase client with proxy support for API routes.
  */
 export function createAuthenticatedServerClient(authHeader: string | null) {
-  return createServerSupabaseClient(supabaseAnonKey, {
+  return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
     },
@@ -68,6 +68,9 @@ export function createAuthenticatedServerClient(authHeader: string | null) {
       headers: {
         Authorization: authHeader || '',
       },
+      ...(proxyFetch && {
+        fetch: proxyFetch as unknown as typeof fetch,
+      }),
     },
   });
 }

@@ -1,11 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-// Initialize Supabase client for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Initialize Supabase client with proxy support for server-side operations
+const supabase = createServerSupabaseAdmin();
 
 export const get_site_contexts = tool({
   description: `Retrieve saved site contexts for page generation. 

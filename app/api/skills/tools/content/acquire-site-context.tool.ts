@@ -1,15 +1,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { createAzure } from '@ai-sdk/azure';
 import { generateHeaderHTML, HeaderConfig } from '@/lib/templates/default-header';
 import { generateFooterHTML, FooterConfig } from '@/lib/templates/default-footer';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createServerSupabaseAdmin();
 
 const azure = createAzure({
   apiKey: process.env.AZURE_OPENAI_API_KEY || '',

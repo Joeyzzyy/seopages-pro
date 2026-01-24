@@ -1,11 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createServerSupabaseAdmin();
 
 export const get_content_item_detail = tool({
   description: 'Fetch the full details of a planned content item, including its outline and SEO data. You can use either the UUID item_id or the slug.',

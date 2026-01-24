@@ -1,9 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
 /**
  * Assemble a complete alternative page from individual section HTML snippets.
@@ -467,7 +464,7 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
 
     // Save to database
     try {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createServerSupabaseAdmin();
       
       const { error } = await supabase
         .from('content_items')

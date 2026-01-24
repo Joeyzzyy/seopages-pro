@@ -1,9 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
 /**
  * Resolve all logos needed for page generation.
@@ -36,7 +33,7 @@ Returns a structured object with all resolved logo URLs.`,
     competitor_url: z.string().optional().describe('Competitor URL for favicon fallback'),
   }),
   execute: async ({ user_id, project_id, brand_name, brand_domain, competitor_name, competitor_url }) => {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createServerSupabaseAdmin();
     
     // Initialize results
     const result = {

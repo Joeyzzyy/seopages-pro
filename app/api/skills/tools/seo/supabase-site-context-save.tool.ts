@@ -1,12 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseAdmin } from '@/lib/supabase-server';
 
-// Use a private service role client for backend tools to bypass RLS
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Use a private service role client with proxy support for backend tools
+const supabase = createServerSupabaseAdmin();
 
 /**
  * Supabase Site Context Save Tool (Simplified)
