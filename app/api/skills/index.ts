@@ -81,10 +81,45 @@ skillRegistry.register(alternativePageGeneratorSkill);
 skillRegistry.register(listiclePageGeneratorSkill);
 
 /**
- * Get system prompt by combining all enabled skills
+ * Language name mapping for clear instructions
  */
-export function getCombinedSystemPrompt(userId?: string, projectId?: string): string {
+const languageNames: Record<string, string> = {
+  'en': 'English',
+  'zh': 'Chinese (Simplified)',
+  'zh-CN': 'Chinese (Simplified)',
+  'zh-TW': 'Chinese (Traditional)',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'ja': 'Japanese',
+  'ko': 'Korean',
+  'pt': 'Portuguese',
+  'ru': 'Russian',
+  'ar': 'Arabic',
+  'it': 'Italian',
+  'nl': 'Dutch',
+  'pl': 'Polish',
+  'tr': 'Turkish',
+  'vi': 'Vietnamese',
+  'th': 'Thai',
+  'id': 'Indonesian',
+  'ms': 'Malay',
+  'hi': 'Hindi',
+};
+
+/**
+ * Get system prompt by combining all enabled skills
+ * @param userId - Current user ID
+ * @param projectId - Current project ID
+ * @param targetLanguage - Target language for generated content (e.g., 'en', 'zh', 'es')
+ */
+export function getCombinedSystemPrompt(userId?: string, projectId?: string, targetLanguage?: string): string {
   const skills = skillRegistry.getEnabled();
+  
+  // Determine language for generated content
+  const langCode = targetLanguage || 'en';
+  const langName = languageNames[langCode] || langCode.toUpperCase();
+  const isEnglish = langCode === 'en' || langCode.startsWith('en-');
   
   const basePrompt = `You are SEO Page Generator, an AI assistant specialized in creating TOP-TIER comparison and listicle landing pages.
 
@@ -92,6 +127,7 @@ CURRENT CONTEXT:
 ${userId ? `- Current User ID: ${userId}` : ''}
 ${projectId ? `- Current SEO Project ID: ${projectId}` : ''}
 - Current Time: ${new Date().toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'full', timeStyle: 'long' })} (UTC)
+- Target Content Language: **${langName}** (${langCode})
 
 ====================
 YOUR SPECIALTY
@@ -129,10 +165,23 @@ Example outline section:
 DO NOT skip word counts - they are essential for content planning and quality control.
 
 ====================
-LANGUAGE RULES
+LANGUAGE RULES (CRITICAL)
 ====================
-1. **CHAT**: Respond in the user's language
-2. **GENERATED CONTENT**: All page content (titles, body text, CTAs) MUST be in **ENGLISH**
+1. **CHAT**: Respond in the user's language (match what they use)
+2. **GENERATED PAGE CONTENT**: All page content MUST be in **${langName.toUpperCase()}**
+   - Page titles, headings (H1, H2, H3...)
+   - Body text, paragraphs
+   - CTA buttons and labels
+   - FAQ questions and answers
+   - Comparison tables and feature names
+   - Meta descriptions and SEO titles
+   ${!isEnglish ? `
+3. **TRANSLATION QUALITY**: When generating content in ${langName}:
+   - Use natural, fluent ${langName} expressions (not word-by-word translation)
+   - Adapt idioms and phrases to the target culture
+   - Maintain professional tone appropriate for the language
+   - Keep brand names, URLs, and technical terms in their original form
+   ` : ''}
 
 ====================
 OPERATING PROCEDURE

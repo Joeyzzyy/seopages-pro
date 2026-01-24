@@ -693,8 +693,29 @@ ${itemsList}
     console.log('Using Azure OpenAI deployment:', deploymentName);
     console.log('Starting streamText with planning-first enforcement...');
     
+    // Get target language from site_contexts (logo type stores brand settings including language)
+    let targetLanguage = 'en'; // Default to English
+    if (projectId) {
+      try {
+        const { data: logoContext } = await serverSupabase
+          .from('site_contexts')
+          .select('languages')
+          .eq('project_id', projectId)
+          .eq('type', 'logo')
+          .single();
+        
+        if (logoContext?.languages) {
+          // languages field can be comma-separated (e.g., "en, zh") - use the first one
+          targetLanguage = logoContext.languages.split(',')[0].trim() || 'en';
+          console.log(`[Language] Target language for content generation: ${targetLanguage}`);
+        }
+      } catch (e) {
+        console.log('[Language] No language setting found, defaulting to English');
+      }
+    }
+    
     // Build system prompt with content items context and auto-selected skill
-    const baseSystemPrompt = getCombinedSystemPrompt(userId, projectId);
+    const baseSystemPrompt = getCombinedSystemPrompt(userId, projectId, targetLanguage);
     
     // If a skill was auto-selected based on page_type, add its detailed instructions
     let autoSkillInstructions = '';
