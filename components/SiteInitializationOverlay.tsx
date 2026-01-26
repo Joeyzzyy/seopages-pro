@@ -437,25 +437,36 @@ export default function SiteInitializationOverlay({
             {/* Success summary when all done */}
             {initPhase === 'done' && (
               <div className="mt-4 animate-fade-in">
-                <div className="bg-gray-900 rounded-lg px-4 py-4 mb-3 animate-success-pop">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center animate-check-scale">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                {/* Combined success message + button with glow effect */}
+                <div className="relative group animate-success-pop">
+                  {/* Animated gradient glow behind button */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-500 animate-glow-pulse" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-violet-600 to-fuchsia-500 rounded-xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity duration-500 animate-glow-pulse-reverse" />
+                  
+                  {/* Button with integrated success message */}
+                  <button
+                    onClick={onComplete}
+                    className="relative w-full py-4 px-6 bg-gray-900 hover:bg-gray-800 text-white rounded-xl transition-all flex items-center justify-center gap-4 shadow-xl animate-button-slide"
+                  >
+                    {/* Checkmark icon */}
+                    <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center animate-check-scale">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
                     </div>
-                    <span className="text-base font-semibold text-white">Setup complete!</span>
-                  </div>
+                    
+                    {/* Text */}
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs text-gray-400 font-medium">Setup complete!</span>
+                      <span className="text-base font-bold text-white">Enter Workspace</span>
+                    </div>
+                    
+                    {/* Arrow icon */}
+                    <svg className="w-5 h-5 ml-auto text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  onClick={onComplete}
-                  className="w-full py-3 px-4 bg-white hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg transition-all border border-gray-200 flex items-center justify-center gap-2 shadow-sm hover:shadow animate-button-slide"
-                >
-                  Enter Workspace
-                  <svg className="w-4 h-4 animate-arrow-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </button>
               </div>
             )}
           </div>
@@ -614,6 +625,36 @@ export default function SiteInitializationOverlay({
         
         .animate-arrow-bounce {
           animation: arrow-bounce 1s ease-in-out infinite 0.5s;
+        }
+        
+        @keyframes glow-pulse {
+          0%, 100% { 
+            opacity: 0.6; 
+            transform: scale(1) rotate(0deg);
+          }
+          50% { 
+            opacity: 0.8; 
+            transform: scale(1.05) rotate(3deg);
+          }
+        }
+        
+        @keyframes glow-pulse-reverse {
+          0%, 100% { 
+            opacity: 0.4; 
+            transform: scale(1.05) rotate(-3deg);
+          }
+          50% { 
+            opacity: 0.6; 
+            transform: scale(1) rotate(0deg);
+          }
+        }
+        
+        .animate-glow-pulse {
+          animation: glow-pulse 3s ease-in-out infinite;
+        }
+        
+        .animate-glow-pulse-reverse {
+          animation: glow-pulse-reverse 3s ease-in-out infinite 1.5s;
         }
       `}</style>
     </div>
