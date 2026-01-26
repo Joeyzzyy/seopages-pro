@@ -49,7 +49,7 @@ Workflow:
     }),
     competitor_name: z.string(),
     sections: z.object({
-      hero: z.string().describe('HTML from generate_hero_section'),
+      hero: z.string().optional().describe('HTML from generate_hero_section (can be recovered from database)'),
       toc: z.string().optional().describe('HTML from generate_toc_section'),
       verdict: z.string().optional().describe('HTML from generate_verdict_section'),
       comparison: z.string().optional().describe('HTML from generate_comparison_table'),
@@ -60,7 +60,7 @@ Workflow:
       faq: z.string().optional().describe('HTML from generate_faq_section'),
       cta: z.string().optional().describe('HTML from generate_cta_section'),
       custom: z.array(z.string()).optional().describe('Additional custom section HTML'),
-    }),
+    }).optional().default({}),
   }),
   execute: async ({ item_id, page_title, seo, brand, competitor_name, sections }) => {
     // ========================================
