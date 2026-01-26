@@ -59,10 +59,13 @@ Returns a confirmation that the section was saved. The HTML is stored in the dat
       ? `<img src="${product.logo_url}" alt="${product.name}" class="w-14 h-14 rounded-xl shadow-md object-contain bg-white" onerror="this.parentElement.innerHTML='<div class=\\'w-14 h-14 rounded-xl ${is_brand ? 'bg-brand-icon' : 'bg-gray-600'} flex items-center justify-center shadow-md\\'><span class=\\'text-xl font-bold text-white\\'>${initial}</span></div>'">`
       : `<div class="w-14 h-14 rounded-xl ${is_brand ? 'bg-brand-icon' : 'bg-gray-600'} flex items-center justify-center shadow-md"><span class="text-xl font-bold text-white">${initial}</span></div>`;
     
-    // Rank badge styling
+    // Rank badge styling - use inline style for #1 to ensure visibility
     const rankBadgeClass = rank === 1 
-      ? 'bg-brand-icon text-white' 
+      ? 'text-white' 
       : 'bg-gray-200 text-gray-700';
+    const rankBadgeStyle = rank === 1 
+      ? `style="background: var(--brand-500, ${brand_primary_color}); color: white;"` 
+      : '';
     
     // Winner badge for #1
     const winnerBadge = rank === 1 
@@ -150,7 +153,7 @@ Returns a confirmation that the section was saved. The HTML is stored in the dat
     <!-- Header -->
     <div class="flex items-start gap-4 mb-6 relative">
       <!-- Rank Badge - Premium styling -->
-      <div class="flex-shrink-0 w-12 h-12 ${rankBadgeClass} rounded-2xl flex items-center justify-center font-bold text-lg shadow-md ${rank === 1 ? 'shadow-brand-icon/20' : ''}">
+      <div class="flex-shrink-0 w-12 h-12 ${rankBadgeClass} rounded-2xl flex items-center justify-center font-bold text-lg shadow-md ${rank === 1 ? 'shadow-brand-icon/20' : ''}" ${rankBadgeStyle}>
         ${rank}
       </div>
       
