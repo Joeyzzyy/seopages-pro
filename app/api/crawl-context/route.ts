@@ -536,8 +536,76 @@ function extractHeaderHtmlContent(html: string): string {
     }
   }
   
-  // Strategy 5: Extract from top portion of body (first 15000 chars after <body>)
+  // Strategy 5: Look for navigation role (ARIA)
+  const navRoleRegex = /<[^>]*role=["']navigation["'][^>]*>[\s\S]*?<\/[^>]+>/gi;
+  const navRoleMatches = html.match(navRoleRegex);
+  
+  if (navRoleMatches && navRoleMatches.length > 0) {
+    const navWithMostLinks = navRoleMatches.reduce((best, current) => {
+      const currentLinks = (current.match(/<a[^>]*>/gi) || []).length;
+      const bestLinks = (best.match(/<a[^>]*>/gi) || []).length;
+      return currentLinks > bestLinks ? current : best;
+    });
+    if (navWithMostLinks.length > 50) {
+      console.log(`[extractHeaderHtmlContent] Found navigation role: ${navWithMostLinks.length} chars`);
+      return navWithMostLinks;
+    }
+  }
+  
+  // Strategy 6: Look for common header class patterns (for SPA without semantic tags)
+  const headerClassPatterns = [
+    /class="[^"]*(?:site-header|main-header|page-header|top-header|fixed-header|sticky-header)[^"]*"/i,
+    /class="[^"]*(?:navbar|nav-wrapper|navigation-wrapper|menu-wrapper)[^"]*"/i,
+  ];
+  
+  for (const pattern of headerClassPatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      // Find the containing element
+      const matchIndex = html.indexOf(match[0]);
+      // Look backwards for the opening tag
+      let tagStart = matchIndex;
+      while (tagStart > 0 && html[tagStart] !== '<') {
+        tagStart--;
+      }
+      // Extract a reasonable chunk around this element (up to 5000 chars)
+      const chunk = html.substring(tagStart, tagStart + 5000);
+      const linksInChunk = (chunk.match(/<a[^>]*href[^>]*>/gi) || []).length;
+      if (linksInChunk >= 3) {
+        console.log(`[extractHeaderHtmlContent] Found header class pattern: ${chunk.length} chars, ${linksInChunk} links`);
+        return chunk;
+      }
+    }
+  }
+  
+  // Strategy 7: Extract navigation links from page top (first section with multiple internal links)
+  // This handles SPAs that don't use semantic HTML
   const bodyStart = html.toLowerCase().indexOf('<body');
+  if (bodyStart !== -1) {
+    const bodyContent = html.substring(bodyStart);
+    
+    // Find internal links (href starting with / or #, not http)
+    const internalLinkRegex = /<a[^>]*href=["'](?:\/[^"']*|#[^"']*)["'][^>]*>[^<]*<\/a>/gi;
+    const allInternalLinks = bodyContent.match(internalLinkRegex) || [];
+    
+    if (allInternalLinks.length >= 3) {
+      // Find the first cluster of links (likely the navigation)
+      const firstLink = bodyContent.indexOf(allInternalLinks[0]!);
+      const fifthLink = allInternalLinks.length >= 5 
+        ? bodyContent.indexOf(allInternalLinks[4]!) 
+        : bodyContent.indexOf(allInternalLinks[allInternalLinks.length - 1]!);
+      
+      // Extract the section containing these links (with some padding)
+      const startIndex = Math.max(0, firstLink - 500);
+      const endIndex = Math.min(bodyContent.length, fifthLink + 1000);
+      const navSection = bodyContent.substring(startIndex, endIndex);
+      
+      console.log(`[extractHeaderHtmlContent] Found internal link cluster: ${navSection.length} chars, ${allInternalLinks.length} links`);
+      return navSection;
+    }
+  }
+  
+  // Strategy 8: Extract from top portion of body (first 15000 chars after <body>)
   if (bodyStart !== -1) {
     const bodyContent = html.substring(bodyStart, bodyStart + 15000);
     const linksInTop = (bodyContent.match(/<a[^>]*href[^>]*>/gi) || []).length;
