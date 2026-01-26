@@ -69,7 +69,7 @@ Returns HTML that can be assembled into the full page.`,
 
     const html = `
   <!-- Hero Section -->
-  <section class="relative overflow-hidden pt-20 md:pt-28 pb-16 md:pb-24 px-4 md:px-6 bg-white">
+  <section class="relative overflow-hidden pt-8 md:pt-12 pb-16 md:pb-24 px-4 md:px-6 bg-white">
     <!-- Subtle Grid Pattern - Grayscale only -->
     <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
     <!-- Top fade for depth -->

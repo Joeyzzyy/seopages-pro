@@ -78,7 +78,7 @@ Returns a confirmation that the section was saved. The HTML is stored in the dat
 
     const html = `
   <!-- Listicle Hero Section - Premium Design -->
-  <section class="relative overflow-hidden pt-24 md:pt-32 pb-20 md:pb-28 px-4 md:px-6 bg-gradient-to-b from-gray-50 via-white to-white">
+  <section class="relative overflow-hidden pt-8 md:pt-12 pb-20 md:pb-28 px-4 md:px-6 bg-gradient-to-b from-gray-50 via-white to-white">
     <!-- Premium Background Effects -->
     <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:48px_48px]"></div>
     <div class="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-brand-color/5 to-transparent rounded-full blur-3xl"></div>
