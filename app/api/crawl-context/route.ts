@@ -701,8 +701,6 @@ ${footerHtml.substring(0, 8000)}`;
         s.platform && s.url && ['twitter', 'facebook', 'linkedin', 'github', 'instagram'].includes(s.platform)
       ),
       copyright: parsed.copyright || '',
-      backgroundColor: parsed.backgroundColor || undefined,
-      textColor: parsed.textColor || undefined,
     };
 
     console.log(`[extractFooter] Using logo: ${footerConfig.logo || 'none'}, companyName: ${footerConfig.companyName}, columns: ${cleanColumns.length}`);

@@ -67,7 +67,7 @@ IMPORTANT: This saves to site_contexts table, NOT to content_items.`,
       console.log(`[save_site_context] Saving ${type} for user ${userId}, project ${projectId}`);
       
       // Check for existing record
-      const { data: existing, error: fetchError } = await supabase
+      const { data: existing, error: fetchError } = await getSupabase()
         .from('site_contexts')
         .select('id')
         .eq('user_id', userId)
@@ -102,7 +102,7 @@ IMPORTANT: This saves to site_contexts table, NOT to content_items.`,
 
       if (existing) {
         // Update existing
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('site_contexts')
           .update(updateData)
           .eq('id', existing.id)
@@ -121,7 +121,7 @@ IMPORTANT: This saves to site_contexts table, NOT to content_items.`,
           ...updateData,
         };
         
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('site_contexts')
           .insert(insertData)
           .select()

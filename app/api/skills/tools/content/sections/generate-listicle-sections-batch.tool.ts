@@ -192,22 +192,21 @@ All sections are automatically saved to database.
     );
     
     // 5. CTA Section
-    const ctaData = cta || {};
     sectionPromises.push(
       (generate_cta_section as any).execute({
         content_item_id: contentItemId,
         brand_name: brand.name,
-        headline: ctaData.headline || `Ready to try ${brand.name}?`,
-        description: ctaData.description || brand.tagline || `Get started with ${brand.name} today.`,
+        headline: cta?.headline || `Ready to try ${brand.name}?`,
+        description: cta?.description || brand.tagline || `Get started with ${brand.name} today.`,
         primary_cta: {
-          text: ctaData.primary_text || 'Get Started Free',
-          url: ctaData.primary_url || '/',
+          text: cta?.primary_text || 'Get Started Free',
+          url: cta?.primary_url || '/',
         },
-        secondary_cta: ctaData.secondary_text ? {
-          text: ctaData.secondary_text,
-          url: ctaData.secondary_url || '/',
+        secondary_cta: cta?.secondary_text ? {
+          text: cta.secondary_text,
+          url: cta.secondary_url || '/',
         } : undefined,
-        trust_badges: ctaData.trust_badges || ['Free trial available', 'No credit card required'],
+        trust_badges: cta?.trust_badges || ['Free trial available', 'No credit card required'],
       }).catch((e: Error) => ({ success: false, section_id: 'cta', error: e.message }))
     );
     

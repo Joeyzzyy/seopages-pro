@@ -169,7 +169,7 @@ export default function ProjectsPage() {
           user={user}
           onDomainsClick={() => setIsDomainsOpen(true)}
           credits={userCredits}
-          subscriptionTier={subscriptionTier}
+          subscriptionTier={subscriptionTier ?? undefined}
           onCreditsUpdate={handlePaymentSuccess}
         />
       )}
@@ -321,7 +321,7 @@ export default function ProjectsPage() {
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
         currentCredits={userCredits}
-        currentTier={subscriptionTier}
+        currentTier={subscriptionTier || 'free'}
         onPaymentSuccess={handlePaymentSuccess}
         uncloseable={subscriptionTier === 'free'}
       />

@@ -294,6 +294,7 @@ Returns extracted data and saves to database automatically.`,
 
     try {
       // Verify project exists
+      const supabase = getSupabase();
       const { data: project, error: projectError } = await supabase
         .from('seo_projects')
         .select('id')

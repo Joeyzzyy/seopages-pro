@@ -62,7 +62,7 @@ export const save_content_items_batch = tool({
         const seoProjectId = params.seo_project_id;
         
         // Check for existing project with case-insensitive match within the same SEO project
-        let existingQuery = supabase
+        let existingQuery = getSupabase()
           .from('content_projects')
           .select('id')
           .eq('user_id', params.user_id)
@@ -87,7 +87,7 @@ export const save_content_items_batch = tool({
             insertData.seo_project_id = seoProjectId;
           }
           
-          const { data: newProject, error: pErr } = await supabase
+          const { data: newProject, error: pErr } = await getSupabase()
             .from('content_projects')
             .insert(insertData)
             .select('id')
@@ -96,7 +96,7 @@ export const save_content_items_batch = tool({
           if (pErr) {
             // Handle race condition (unique violation)
             if (pErr.code === '23505') {
-              let retryQuery = supabase
+              let retryQuery = getSupabase()
                 .from('content_projects')
                 .select('id')
                 .eq('user_id', params.user_id)
@@ -143,7 +143,7 @@ export const save_content_items_batch = tool({
       });
 
       // 3. Bulk Insert
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('content_items')
         .insert(itemsToInsert)
         .select('id');

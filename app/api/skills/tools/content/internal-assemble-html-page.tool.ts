@@ -126,7 +126,7 @@ export const assemble_html_page = tool({
         const filename = publicUrl || img.filename;
         if (filename) {
           try {
-            const { data: fileRecords } = await supabase
+            const { data: fileRecords } = await getSupabase()
               .from('files')
               .select('public_url')
               .eq('filename', filename)

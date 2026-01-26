@@ -56,7 +56,7 @@ export const save_content_item = tool({
         const normalizedProjectName = params.project_name.trim();
         
         // Check for existing project with case-insensitive match within the same SEO project
-        let existingQuery = supabase
+        let existingQuery = getSupabase()
           .from('content_projects')
           .select('id')
           .eq('user_id', params.user_id)
@@ -81,7 +81,7 @@ export const save_content_item = tool({
             insertData.seo_project_id = seoProjectId;
           }
           
-          const { data: newProject, error: pErr } = await supabase
+          const { data: newProject, error: pErr } = await getSupabase()
             .from('content_projects')
             .insert(insertData)
             .select('id')
@@ -90,7 +90,7 @@ export const save_content_item = tool({
           if (pErr) {
             // If we hit a unique constraint violation (race condition), try fetching again
             if (pErr.code === '23505') { // unique_violation
-              let retryQuery = supabase
+              let retryQuery = getSupabase()
                 .from('content_projects')
                 .select('id')
                 .eq('user_id', params.user_id)

@@ -18,7 +18,7 @@ export const list_content_projects = tool({
   }),
   execute: async ({ user_id }) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('content_projects')
         .select('id, name, description, created_at')
         .eq('user_id', user_id)

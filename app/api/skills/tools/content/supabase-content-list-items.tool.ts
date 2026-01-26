@@ -21,7 +21,7 @@ export const list_content_items = tool({
   execute: async ({ user_id, status, project_id }) => {
     try {
       // We join with content_projects to get the project name
-      let query = supabase
+      let query = getSupabase()
         .from('content_items')
         .select(`
           id, 

@@ -27,7 +27,7 @@ Use this tool BEFORE merging the final HTML to get the header component.`,
   }),
   execute: async ({ user_id }) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('site_contexts')
         .select('content')
         .eq('user_id', user_id)
