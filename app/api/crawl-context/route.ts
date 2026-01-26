@@ -578,29 +578,48 @@ function extractHeaderHtmlContent(html: string): string {
     }
   }
   
-  // Strategy 7: Extract navigation links from page top (first section with multiple internal links)
+  // Strategy 7: Extract navigation links from page top (anchor links are often navigation)
   // This handles SPAs that don't use semantic HTML
   const bodyStart = html.toLowerCase().indexOf('<body');
   if (bodyStart !== -1) {
     const bodyContent = html.substring(bodyStart);
     
-    // Find internal links (href starting with / or #, not http)
-    const internalLinkRegex = /<a[^>]*href=["'](?:\/[^"']*|#[^"']*)["'][^>]*>[^<]*<\/a>/gi;
-    const allInternalLinks = bodyContent.match(internalLinkRegex) || [];
+    // Find anchor links (href starting with #) - these are typically navigation
+    // Use a more flexible regex that allows nested elements inside <a> tags
+    const anchorLinkRegex = /<a[^>]*href=["']#[^"']+["'][^>]*>[\s\S]*?<\/a>/gi;
+    const anchorLinks = bodyContent.match(anchorLinkRegex) || [];
     
-    if (allInternalLinks.length >= 3) {
-      // Find the first cluster of links (likely the navigation)
-      const firstLink = bodyContent.indexOf(allInternalLinks[0]!);
-      const fifthLink = allInternalLinks.length >= 5 
-        ? bodyContent.indexOf(allInternalLinks[4]!) 
-        : bodyContent.indexOf(allInternalLinks[allInternalLinks.length - 1]!);
+    if (anchorLinks.length >= 3) {
+      // Find the first cluster of anchor links (likely the main navigation)
+      const firstLink = bodyContent.indexOf(anchorLinks[0]!);
+      const lastRelevant = anchorLinks.length >= 6 
+        ? bodyContent.indexOf(anchorLinks[5]!) 
+        : bodyContent.indexOf(anchorLinks[anchorLinks.length - 1]!);
       
-      // Extract the section containing these links (with some padding)
+      // Extract the section containing these links (with padding for context)
+      const startIndex = Math.max(0, firstLink - 1000);
+      const endIndex = Math.min(bodyContent.length, lastRelevant + 1500);
+      const navSection = bodyContent.substring(startIndex, endIndex);
+      
+      console.log(`[extractHeaderHtmlContent] Found anchor link navigation: ${navSection.length} chars, ${anchorLinks.length} anchor links`);
+      return navSection;
+    }
+    
+    // Also try internal path links (href starting with /)
+    const pathLinkRegex = /<a[^>]*href=["']\/[^"']*["'][^>]*>[\s\S]*?<\/a>/gi;
+    const pathLinks = bodyContent.match(pathLinkRegex) || [];
+    
+    if (pathLinks.length >= 3) {
+      const firstLink = bodyContent.indexOf(pathLinks[0]!);
+      const fifthLink = pathLinks.length >= 5 
+        ? bodyContent.indexOf(pathLinks[4]!) 
+        : bodyContent.indexOf(pathLinks[pathLinks.length - 1]!);
+      
       const startIndex = Math.max(0, firstLink - 500);
       const endIndex = Math.min(bodyContent.length, fifthLink + 1000);
       const navSection = bodyContent.substring(startIndex, endIndex);
       
-      console.log(`[extractHeaderHtmlContent] Found internal link cluster: ${navSection.length} chars, ${allInternalLinks.length} links`);
+      console.log(`[extractHeaderHtmlContent] Found path link cluster: ${navSection.length} chars, ${pathLinks.length} links`);
       return navSection;
     }
   }
