@@ -530,33 +530,29 @@ async function extractAndSaveHeader(
 
   try {
     // Use AI to analyze header structure with nested dropdown support
-    const aiPrompt = `Analyze this website header HTML and extract the COMPLETE navigation structure, including dropdowns.
+    const aiPrompt = `Analyze this website header HTML and extract the COMPLETE navigation structure.
 
 Return ONLY valid JSON:
 {
   "siteName": "Site name (from logo alt or text)",
   "logo": "Logo image URL (if found)",
   "navigation": [
-    {"label": "Simple Link", "url": "/path"},
-    {"label": "Dropdown Menu", "url": "#", "children": [
-      {"label": "Sub Item 1", "url": "/sub-1"},
-      {"label": "Sub Item 2", "url": "/sub-2"}
-    ]}
+    {"label": "Link Text", "url": "/path or #anchor"}
   ],
   "ctaButton": {"label": "CTA text", "url": "CTA URL", "color": "#hex or null"}
 }
 
 CRITICAL RULES:
-- Preserve the EXACT menu structure from the original site
-- If a nav item has a dropdown/submenu, include "children" array with sub-items
-- If a nav item is a simple link (no dropdown), don't include "children"
+- Look for ALL <a> tags with href - these are navigation items
+- INCLUDE anchor links (href="#section") - these are valid page navigation!
+- The link text may be INSIDE nested <span> elements - extract the visible text
+- Example: <a href="#pricing"><span>Pricing</span></a> → {"label": "Pricing", "url": "#pricing"}
+- IGNORE CSS classes like "hidden" - extract all links regardless of visibility
 - URLs should NOT have .html suffix - use clean paths
-- Relative URLs should start with /
-- Skip anchor links (#) and javascript: links for leaf items
-- Maximum 8 top-level navigation items, max 10 children per dropdown
+- Maximum 10 top-level navigation items
 
 Header HTML:
-${headerHtml.substring(0, 5000)}`;
+${headerHtml.substring(0, 8000)}`;
 
     const { text } = await generateText({
       model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
