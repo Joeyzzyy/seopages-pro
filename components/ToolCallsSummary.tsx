@@ -80,6 +80,8 @@ function getToolAction(inv: any): string {
       return `${args.items?.length || 0} items`;
     case 'acquire_context_field':
       return args.field || '';
+    case 'research_product_deep':
+      return args.product_name || '';
     default:
       const firstArg = Object.values(args).find(v => typeof v === 'string');
       return typeof firstArg === 'string' ? firstArg.slice(0, 50) : '';
@@ -182,7 +184,11 @@ export default function ToolCallsSummary({
               )}
               <span className="text-sm font-medium text-[#374151]">
                 {isRunningAny 
-                  ? `Running: ${runningTools.map(t => getToolDisplayName(t.toolName)).join(', ')}` 
+                  ? `Running: ${runningTools.map(t => {
+                      const name = getToolDisplayName(t.toolName);
+                      const action = getToolAction(t);
+                      return action ? `${name} (${action})` : name;
+                    }).join(', ')}` 
                   : `${completedCount} tool${completedCount !== 1 ? 's' : ''} completed`
                 }
               </span>
