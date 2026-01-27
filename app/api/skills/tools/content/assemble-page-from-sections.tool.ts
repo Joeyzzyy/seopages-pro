@@ -363,15 +363,16 @@ function generateBrandStyles(brandColor: string): string {
     .faq-item:hover {
       background-color: #fafafa;
     }
+    /* Use !important to override Tailwind's hidden class */
+    .faq-content {
+      display: none !important;
+    }
     .faq-item.active .faq-content { 
-      display: block;
+      display: block !important;
       animation: fadeIn 0.3s ease;
     }
     .faq-item.active .faq-icon { 
       transform: rotate(180deg); 
-    }
-    .faq-content {
-      display: none;
     }
     
     @keyframes fadeIn {

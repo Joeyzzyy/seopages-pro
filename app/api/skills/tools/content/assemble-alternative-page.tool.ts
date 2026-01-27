@@ -488,8 +488,9 @@ DO NOT skip sections. Go back and generate the missing sections, then call this 
       background-color: #fafafa;
     }
     
-    /* FAQ Accordion */
-    .faq-item.active .faq-content { display: block; }
+    /* FAQ Accordion - use !important to override Tailwind's hidden class */
+    .faq-content { display: none !important; }
+    .faq-item.active .faq-content { display: block !important; }
     .faq-item.active .faq-icon { transform: rotate(180deg); }
     
     /* TOC Link - Gray, no brand colors */
