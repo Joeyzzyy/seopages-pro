@@ -25,8 +25,10 @@ export default function ProjectsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null); // null = not loaded yet
+  const [maxProjects, setMaxProjects] = useState<number>(3);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const hasShownPricingModal = useRef(false);
+  const [showUpgradeHint, setShowUpgradeHint] = useState(false);
+  const hasShownUpgradeHint = useRef(false);
   const router = useRouter();
 
   // Fetch user credits from API
@@ -42,18 +44,18 @@ export default function ProjectsPage() {
       if (response.ok) {
         const data = await response.json();
         const tier = data.subscription_tier ?? 'free';
-        const credits = data.credits ?? 0;
+        const credits = data.credits ?? 3;
+        const maxProj = data.max_projects ?? 3;
         
         setUserCredits(credits);
         setSubscriptionTier(tier);
+        setMaxProjects(maxProj);
         
-        // Auto-show pricing modal for free tier users (only once per session)
-        // Only show if tier is 'free' AND user has 0 credits
-        if (tier === 'free' && credits === 0 && !hasShownPricingModal.current) {
-          hasShownPricingModal.current = true;
-          // Small delay to ensure page is loaded
+        // Show a dismissible hint for free tier users (only once per session)
+        if (tier === 'free' && !hasShownUpgradeHint.current) {
+          hasShownUpgradeHint.current = true;
           setTimeout(() => {
-            setShowPricingModal(true);
+            setShowUpgradeHint(true);
           }, 500);
         }
       } else {
@@ -72,6 +74,7 @@ export default function ProjectsPage() {
     setUserCredits(newCredits);
     setSubscriptionTier(newTier);
     setShowPricingModal(false);
+    setShowUpgradeHint(false);
   };
 
   useEffect(() => {
@@ -114,6 +117,12 @@ export default function ProjectsPage() {
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newDomain.trim() || isSubmitting) return;
+
+    // Check project limit
+    if (projects.length >= maxProjects) {
+      showToast(`You can only create up to ${maxProjects} projects. Please delete an existing project first.`, 'error', 5000);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -286,15 +295,25 @@ export default function ProjectsPage() {
 
               {/* Add Project Button */}
               {!isAdding && (
-                <button 
-                  onClick={() => setIsAdding(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50/50 transition-all cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add New Project
-                </button>
+                <div>
+                  <button 
+                    onClick={() => projects.length < maxProjects ? setIsAdding(true) : showToast(`You can only create up to ${maxProjects} projects.`, 'error')}
+                    disabled={projects.length >= maxProjects}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                      projects.length >= maxProjects 
+                        ? 'border-gray-100 text-gray-300 cursor-not-allowed' 
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50/50'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add New Project
+                  </button>
+                  <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                    {projects.length} / {maxProjects} projects used
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -316,15 +335,43 @@ export default function ProjectsPage() {
         />
       )}
 
-      {/* Pricing Modal - Auto shows for free tier users, uncloseable until they pay */}
+      {/* Pricing Modal - Can be opened from TopBar or upgrade hint */}
       <PricingModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
         currentCredits={userCredits}
         currentTier={subscriptionTier || 'free'}
         onPaymentSuccess={handlePaymentSuccess}
-        uncloseable={subscriptionTier === 'free'}
       />
+
+      {/* Dismissible upgrade hint for free tier users */}
+      {showUpgradeHint && subscriptionTier === 'free' && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-md w-full px-4">
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium">🎉 You have {userCredits} free credits!</p>
+              <p className="text-xs opacity-90 mt-0.5">Create up to {maxProjects} projects and generate {userCredits} pages for free.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPricingModal(true)}
+                className="px-3 py-1.5 bg-white text-purple-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Get More
+              </button>
+              <button
+                onClick={() => setShowUpgradeHint(false)}
+                className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
+                aria-label="Dismiss"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

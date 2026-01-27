@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         credits: 0,
         subscription_tier: 'free',
         subscription_status: 'inactive',
+        max_projects: 3,
       });
     }
 
@@ -19,26 +20,28 @@ export async function GET(request: NextRequest) {
     const supabaseAdmin = createServerSupabaseAdmin();
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
-      .select('credits, subscription_tier, subscription_status')
+      .select('credits, subscription_tier, subscription_status, max_projects')
       .eq('id', user.id)
       .single();
 
     if (profileError) {
-      // Profile doesn't exist yet, return default
+      // Profile doesn't exist yet, return default (3 credits for new users)
       console.log('Profile not found, returning default credits:', profileError.message);
       return NextResponse.json({
-        credits: 0,
+        credits: 3,
         subscription_tier: 'free',
         subscription_status: 'inactive',
+        max_projects: 3,
         user_id: user.id,
         email: user.email,
       });
     }
 
     return NextResponse.json({
-      credits: profile.credits ?? 0,
+      credits: profile.credits ?? 3,
       subscription_tier: profile.subscription_tier ?? 'free',
       subscription_status: profile.subscription_status ?? 'inactive',
+      max_projects: profile.max_projects ?? 3,
       user_id: user.id,
       email: user.email,
     });
