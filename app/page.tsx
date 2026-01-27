@@ -16,7 +16,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'single' | 'starter' | 'standard' | 'pro' | null>(null);
-  const [userCredits, setUserCredits] = useState(1);
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState('free');
 
   // Fetch user credits
@@ -1228,7 +1228,7 @@ export default function HomePage() {
           setShowPricingModal(false);
           setSelectedPlan(null);
         }}
-        currentCredits={userCredits}
+        currentCredits={userCredits ?? 0}
         currentTier={subscriptionTier}
         onPaymentSuccess={handlePaymentSuccess}
         initialPlan={selectedPlan}

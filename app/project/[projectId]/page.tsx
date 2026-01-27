@@ -119,7 +119,7 @@ export default function ProjectChatPage() {
   const [deletingContentItem, setDeletingContentItem] = useState<{ id: string; name: string } | null>(null);
 
   // User credits and subscription
-  const [userCredits, setUserCredits] = useState<number>(1);
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
   const [showPricingModal, setShowPricingModal] = useState(false);
 

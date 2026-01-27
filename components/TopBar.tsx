@@ -10,12 +10,13 @@ import PricingModal from '@/components/PricingModal';
 interface TopBarProps {
   onDomainsClick?: () => void;
   user?: User | null;
-  credits?: number;
-  subscriptionTier?: string;
+  credits?: number | null;
+  subscriptionTier?: string | null;
   onCreditsUpdate?: (newCredits: number, newTier: string) => void;
 }
 
-export default function TopBar({ onDomainsClick, user: propUser, credits = 0, subscriptionTier = 'free', onCreditsUpdate }: TopBarProps) {
+export default function TopBar({ onDomainsClick, user: propUser, credits, subscriptionTier, onCreditsUpdate }: TopBarProps) {
+  const isLoadingCredits = credits === null || credits === undefined || subscriptionTier === null || subscriptionTier === undefined;
   const [user, setUser] = useState<User | null>(propUser || null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -68,19 +69,35 @@ export default function TopBar({ onDomainsClick, user: propUser, credits = 0, su
         <div className="flex items-center gap-3">
           {/* Plan & Credits Display */}
           <button
-            onClick={() => setShowPricingModal(true)}
-            className="flex items-center gap-2 px-2.5 py-1 text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-lg transition-all cursor-pointer"
-            title="升级计划"
+            onClick={() => !isLoadingCredits && setShowPricingModal(true)}
+            className={`flex items-center gap-2 px-2.5 py-1 rounded-lg transition-all ${
+              isLoadingCredits 
+                ? 'text-[#9CA3AF] cursor-default' 
+                : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6] cursor-pointer'
+            }`}
+            title={isLoadingCredits ? 'Loading...' : 'Upgrade Plan'}
+            disabled={isLoadingCredits}
           >
-            <span className="text-[10px] text-[#9CA3AF]">Your Subscription:</span>
-            <span className="text-[10px] font-medium uppercase text-[#374151]">
-              {subscriptionTier}
-            </span>
-            <span className="text-[10px] text-[#D1D5DB]">·</span>
-            <span className="text-xs font-medium text-[#374151]">{credits} credits</span>
-            <svg className="w-3 h-3 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
+            {isLoadingCredits ? (
+              <>
+                <svg className="w-3 h-3 animate-spin text-[#9CA3AF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                <span className="text-[10px] text-[#9CA3AF]">Loading subscription...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-[10px] text-[#9CA3AF]">Your Subscription:</span>
+                <span className="text-[10px] font-medium uppercase text-[#374151]">
+                  {subscriptionTier}
+                </span>
+                <span className="text-[10px] text-[#D1D5DB]">·</span>
+                <span className="text-xs font-medium text-[#374151]">{credits} credits</span>
+                <svg className="w-3 h-3 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </>
+            )}
           </button>
 
           {/* User Info */}

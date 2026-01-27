@@ -23,7 +23,7 @@ export default function ProjectsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingProject, setDeletingProject] = useState<SEOProject | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [userCredits, setUserCredits] = useState<number>(0);
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null); // null = not loaded yet
   const [maxProjects, setMaxProjects] = useState<number>(3);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -339,13 +339,13 @@ export default function ProjectsPage() {
       <PricingModal
         isOpen={showPricingModal}
         onClose={() => setShowPricingModal(false)}
-        currentCredits={userCredits}
+        currentCredits={userCredits ?? 0}
         currentTier={subscriptionTier || 'free'}
         onPaymentSuccess={handlePaymentSuccess}
       />
 
       {/* Dismissible welcome hint for free tier users - shown at top */}
-      {showUpgradeHint && subscriptionTier === 'free' && (
+      {showUpgradeHint && subscriptionTier === 'free' && userCredits !== null && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 max-w-lg w-full px-4">
           <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
             <div className="text-2xl">🎉</div>
