@@ -92,7 +92,7 @@ export default function TopBar({ onDomainsClick, user: propUser, credits, subscr
                   {subscriptionTier}
                 </span>
                 <span className="text-[10px] text-[#D1D5DB]">·</span>
-                <span className="text-xs font-medium text-[#374151]">{credits} credits</span>
+                <span className="text-xs font-medium text-[#374151]">{credits} pages</span>
                 <svg className="w-3 h-3 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>

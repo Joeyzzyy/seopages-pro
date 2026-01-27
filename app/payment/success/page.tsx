@@ -50,7 +50,7 @@ export default function PaymentSuccessPage() {
           🎉 Payment Successful!
         </h1>
         <p className="text-gray-400 mb-8">
-          Thank you for your purchase! Your credits have been added to your account. You can now start generating more pages.
+          Thank you for your purchase! Your pages have been added to your account. You can now start generating more pages.
         </p>
 
         {/* Countdown */}

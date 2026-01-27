@@ -263,7 +263,7 @@ function ModalContent({
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-white">{currentPlan.name} Plan</h3>
-                  <p className="text-gray-400 text-sm">{currentPlan.credits} page credits</p>
+                  <p className="text-gray-400 text-sm">{currentPlan.credits} pages</p>
                   {'perPage' in currentPlan && (
                     <div className="text-xs text-gray-500 mt-1">
                       ${currentPlan.perPage} per page
@@ -329,7 +329,7 @@ function ModalContent({
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Secure payment · Credits added instantly
+              Secure payment · Pages added instantly
             </p>
           </div>
         </div>
@@ -353,7 +353,7 @@ function ModalContent({
               {uncloseable ? (
                 'Select a plan to start creating alternative pages'
               ) : (
-                <>Current: <span className="text-white font-medium">{currentCredits} credits</span> · {currentTier} plan</>
+                <>Current: <span className="text-white font-medium">{currentCredits} pages</span> · {currentTier} plan</>
               )}
             </p>
           </div>
@@ -508,7 +508,7 @@ function ModalContent({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Secure payment powered by PayPal · Credits added instantly
+              Secure payment powered by PayPal · Pages added instantly
             </p>
             
             {/* Back to home button for uncloseable mode */}

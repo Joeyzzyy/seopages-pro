@@ -350,7 +350,7 @@ export default function ProjectsPage() {
           <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
             <div className="text-2xl">🎉</div>
             <div className="flex-1">
-              <p className="text-sm font-semibold">Welcome! You have {userCredits} free credits</p>
+              <p className="text-sm font-semibold">Welcome! You have {userCredits} free pages</p>
               <p className="text-xs opacity-90 mt-0.5">Create up to {maxProjects} projects and generate pages — no payment required.</p>
             </div>
             <div className="flex items-center gap-2">
