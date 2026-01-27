@@ -368,8 +368,8 @@ export default function ContextModalNew({
   // Sidebar items matching the right-side content sections
   const sidebarItems = [
     { key: 'domain', label: 'Domain', ref: brandAssetsRef },
-    { key: 'logo', label: 'Logo, Favicon & OG', ref: brandAssetsRef },
-    { key: 'languages', label: 'Languages', ref: languagesRef },
+    { key: 'logo', label: 'Logo', ref: brandAssetsRef },
+    { key: 'languages', label: 'Language', ref: languagesRef },
     { key: 'header', label: 'Header', ref: headerRef },
     { key: 'footer', label: 'Footer', ref: footerRef },
   ];

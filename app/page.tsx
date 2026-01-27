@@ -63,8 +63,11 @@ export default function HomePage() {
       setError(null);
       if (session?.user) {
         fetchUserCredits();
-        // Redirect to projects on successful sign in
-        if (event === 'SIGNED_IN') {
+        // Only redirect to projects on intentional sign in (user clicked login button)
+        // Check sessionStorage flag set before OAuth redirect
+        const intentionalLogin = sessionStorage.getItem('intentional_login');
+        if (event === 'SIGNED_IN' && intentionalLogin === 'true') {
+          sessionStorage.removeItem('intentional_login');
           router.push('/projects');
         }
       }
@@ -96,6 +99,8 @@ export default function HomePage() {
     try {
       setError(null);
       setSigningIn(true);
+      // Mark this as intentional login (persists across OAuth redirect)
+      sessionStorage.setItem('intentional_login', 'true');
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -377,22 +382,22 @@ export default function HomePage() {
         <div className="relative max-w-5xl mx-auto text-center">
           {/* Badge - more subtle */}
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/[0.03] border border-white/10 rounded-full mb-6 sm:mb-8">
-            <span className="text-xs sm:text-sm text-gray-400">Comparison Pages + Listicles for SEO & AI Search</span>
+            <span className="text-xs sm:text-sm text-gray-400">SEO Page Best Practices — Ready to Deploy</span>
           </div>
 
           {/* Main Headline - cleaner, more confident */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.1]">
-            Alternative Pages
+            SEO Pages
             <br />
             <span className="text-gray-400">
-              That Actually Rank
+              Done Right
             </span>
           </h1>
 
           {/* Subheadline - more honest, less hype */}
           <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
-            Generate &quot;YourProduct vs Competitor&quot; pages and &quot;Best Alternatives&quot; listicles. 
-            Structured for Google <em>and</em> AI search engines.
+            World-class comparison pages and listicles — built on proven SEO best practices. 
+            Your perfect starting point. Tweak with Cursor, ship with confidence.
           </p>
 
           {/* Pricing highlight - cleaner */}
@@ -444,21 +449,30 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Two Page Types - cleaner presentation */}
+          {/* Value Proposition - cleaner presentation */}
           <div className="max-w-2xl mx-auto mb-12 sm:mb-16">
+            {/* Main value statement */}
+            <div className="p-5 bg-gradient-to-r from-[#9A8FEA]/5 to-[#65B4FF]/5 rounded-xl border border-white/10 mb-4">
+              <p className="text-sm sm:text-base text-gray-300 leading-relaxed text-center">
+                <span className="text-white font-medium">Stuck on how to structure your SEO pages?</span> See ours. 
+                Every section, every schema, every conversion element — refined from real-world best practices.
+                <span className="text-[#9A8FEA]"> Add your brand, adjust with AI, deploy.</span>
+              </p>
+            </div>
+            
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10 hover:border-white/20 transition-colors">
-                <div className="text-xs text-gray-500 mb-2">Page Type 1</div>
-                <div className="text-lg font-semibold text-white mb-2">Alternative Pages</div>
+                <div className="text-xs text-gray-500 mb-2">Template 1</div>
+                <div className="text-lg font-semibold text-white mb-2">1v1 Comparison Pages</div>
                 <p className="text-sm text-gray-400 leading-relaxed">
-                  &quot;Your Product vs Competitor&quot; — direct 1v1 comparisons with feature tables, pricing, and honest pros/cons.
+                  &quot;Your Product vs Competitor&quot; — feature tables, pricing breakdowns, honest pros/cons. The gold standard structure.
                 </p>
               </div>
               <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10 hover:border-white/20 transition-colors">
-                <div className="text-xs text-gray-500 mb-2">Page Type 2</div>
+                <div className="text-xs text-gray-500 mb-2">Template 2</div>
                 <div className="text-lg font-semibold text-white mb-2">Best-Of Listicles</div>
                 <p className="text-sm text-gray-400 leading-relaxed">
-                  &quot;Top 8 Best X Alternatives&quot; — ranked lists with ratings, reviews, and structured data for rich snippets.
+                  &quot;Top 8 Best X Alternatives&quot; — ranked lists with ratings, reviews, and schema markup for rich snippets.
                 </p>
               </div>
             </div>
@@ -522,7 +536,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* The Irony - Highlighted */}
+          {/* The Philosophy - Highlighted */}
           <div className="relative">
             <div className="absolute -inset-[1px] bg-gradient-to-r from-[#9A8FEA]/20 via-[#65B4FF]/20 to-[#9A8FEA]/20 rounded-2xl blur-sm" />
             <div className="relative p-6 sm:p-8 bg-[#0D0D0D] border border-[#9A8FEA]/20 rounded-2xl">
@@ -532,29 +546,30 @@ export default function HomePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white">The Irony</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">What We Actually Sell</h3>
               </div>
               <div className="space-y-4 text-sm sm:text-base text-gray-400 leading-relaxed">
                 <p>
-                  We&apos;re an SEO product. To showcase our ability to generate comparison and listicle pages, 
-                  we listed <span className="text-[#9A8FEA] font-medium">every single &quot;competitor&quot;</span> we could find — 50 comparison pages, 63 listicles.
-                </p>
-                <p>
-                  Go ahead, check them out. Use them if you want. But here&apos;s the thing:
+                  <span className="text-white font-medium">Not just AI-generated content.</span> We sell 
+                  <span className="text-[#9A8FEA] font-medium"> SEO page best practices</span> — the structure, the schema, the conversion elements that actually work.
                 </p>
                 <p className="text-white font-medium bg-white/5 p-4 rounded-xl border border-white/10">
-                  Only we let you pay a few bucks, download your pages, and be done with it. 
-                  No subscription. No login required to use your files. Just... pages.
+                  When you&apos;re staring at a blank page, not knowing where to start — look at ours. 
+                  See how a professional comparison page should be structured. Then open Cursor, make it yours, and ship something world-class.
+                </p>
+                <p>
+                  We built <span className="text-[#9A8FEA] font-medium">113 live pages</span> on this site — 50 comparisons, 63 listicles. 
+                  Every one follows the same battle-tested template. Study them. Copy what works. That&apos;s the point.
                 </p>
                 <div className="pt-4 border-t border-white/10">
-                  <p className="text-gray-500 text-sm mb-3">What goes into each page to make it unique &amp; high-quality:</p>
+                  <p className="text-gray-500 text-sm mb-3">What makes each page production-ready:</p>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { label: 'Screenshot API', desc: 'Real product visuals' },
-                      { label: 'Search APIs', desc: 'Current market data' },
-                      { label: 'Perplexity', desc: 'Deep research' },
-                      { label: 'SEMrush', desc: 'Keyword intelligence' },
-                      { label: 'Claude', desc: 'Quality writing' },
+                      { label: 'SEO Structure', desc: 'Proven layouts' },
+                      { label: 'Schema.org', desc: 'Rich snippets' },
+                      { label: 'Conversion CTAs', desc: 'High-intent design' },
+                      { label: 'Real Research', desc: 'Not hallucinated' },
+                      { label: 'Tailwind CSS', desc: 'Easy to customize' },
                     ].map((item) => (
                       <div key={item.label} className="px-3 py-2 bg-[#9A8FEA]/5 border border-[#9A8FEA]/20 rounded-lg">
                         <span className="text-[#9A8FEA] text-xs font-medium">{item.label}</span>
@@ -581,14 +596,14 @@ export default function HomePage() {
           <div className="text-center mb-12 sm:mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-full mb-6">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-sm text-gray-400">113 pages live on this site</span>
+              <span className="text-sm text-gray-400">113 live examples — your blueprints</span>
             </div>
             
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">
-              See What We Generate
+              Study the Best Practices
             </h2>
             <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
-              Real pages, real quality. Click any card to see the full page.
+              Every page follows the same proven structure. View source, understand the patterns, build yours better.
             </p>
           </div>
 
@@ -849,10 +864,10 @@ export default function HomePage() {
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
               <div className="text-center lg:text-left">
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
-                  Build pages like these for your product
+                  Get your own best-practice templates
                 </h3>
                 <p className="text-gray-500 text-sm">
-                  Same quality. Same structure. <span className="text-[#9A8FEA] font-semibold">Starting at $0.49/page.</span>
+                  Same proven structure. Customize with Cursor in minutes. <span className="text-[#9A8FEA] font-semibold">Starting at $0.49/page.</span>
                 </p>
               </div>
               {user ? (
@@ -887,11 +902,11 @@ export default function HomePage() {
               <svg className="w-4 h-4 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span className="text-sm text-[#9A8FEA]">AI-Powered Generation</span>
+              <span className="text-sm text-[#9A8FEA]">Best Practices → Your Brand</span>
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">How It Works</h2>
             <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
-              From URL to deploy-ready pages in minutes. Our AI handles research, content, and SEO optimization automatically.
+              We generate production-ready templates based on proven SEO patterns. You customize with Cursor and deploy.
             </p>
           </div>
 
@@ -1270,10 +1285,10 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
-            Ready to Get Started?
+            Your SEO Page Blueprint Awaits
           </h2>
           <p className="text-gray-500 text-sm sm:text-base mb-6">
-            10 pages for $4.9. One-time payment.
+            10 best-practice templates for $4.9. Customize with Cursor. Ship with confidence.
           </p>
           {user ? (
             <a

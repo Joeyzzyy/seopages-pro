@@ -115,12 +115,10 @@ export default function ConversationSidebar({
     };
     
     switch (field) {
+      case 'domain':
+        return hasStringValue(logoContext?.domain_name);
       case 'logo':
-        return hasStringValue(logoContext?.logo_light_url) || hasStringValue(logoContext?.file_url);
-      case 'colors':
-        return hasStringValue(logoContext?.primary_color) || hasStringValue(logoContext?.secondary_color);
-      case 'typography':
-        return hasStringValue(logoContext?.heading_font) || hasStringValue(logoContext?.body_font);
+        return hasStringValue(logoContext?.logo_url) || hasStringValue(logoContext?.logo_light_url) || hasStringValue(logoContext?.file_url);
       case 'languages':
         return hasStringValue(logoContext?.languages);
       case 'header':
@@ -129,10 +127,6 @@ export default function ConversationSidebar({
         return hasStringValue(footerContext?.content) || hasStringValue(footerContext?.html);
       case 'competitors':
         return hasJsonContent(competitorsContext?.content);
-      case 'brand-site':
-        // Brand site is complete if logo and colors are set
-        return (hasStringValue(logoContext?.logo_light_url) || hasStringValue(logoContext?.file_url)) &&
-               (hasStringValue(logoContext?.primary_color) || hasStringValue(logoContext?.secondary_color));
       default:
         return false;
     }
@@ -267,7 +261,9 @@ export default function ConversationSidebar({
                 </div>
                 <div className="space-y-0.5">
                   {[
-                    { label: 'Logo & Colors', key: 'logo' },
+                    { label: 'Domain', key: 'domain' },
+                    { label: 'Logo', key: 'logo' },
+                    { label: 'Language', key: 'languages' },
                     { label: 'Header', key: 'header' },
                     { label: 'Footer', key: 'footer' },
                   ].map(({ label, key }) => {
