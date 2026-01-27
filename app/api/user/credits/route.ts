@@ -58,10 +58,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      credits: profile.credits ?? 3,
-      subscription_tier: profile.subscription_tier ?? 'free',
-      subscription_status: profile.subscription_status ?? 'inactive',
-      max_projects: profile.max_projects ?? 3,
+      credits: profile?.credits ?? 3,
+      subscription_tier: profile?.subscription_tier ?? 'free',
+      subscription_status: profile?.subscription_status ?? 'inactive',
+      max_projects: profile?.max_projects ?? 3,
       user_id: user.id,
       email: user.email,
     });
