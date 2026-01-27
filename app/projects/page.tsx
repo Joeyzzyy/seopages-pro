@@ -344,18 +344,19 @@ export default function ProjectsPage() {
         onPaymentSuccess={handlePaymentSuccess}
       />
 
-      {/* Dismissible upgrade hint for free tier users */}
+      {/* Dismissible welcome hint for free tier users - shown at top */}
       {showUpgradeHint && subscriptionTier === 'free' && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-md w-full px-4">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 max-w-lg w-full px-4">
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-lg p-4 flex items-center gap-3">
+            <div className="text-2xl">🎉</div>
             <div className="flex-1">
-              <p className="text-sm font-medium">🎉 You have {userCredits} free credits!</p>
-              <p className="text-xs opacity-90 mt-0.5">Create up to {maxProjects} projects and generate {userCredits} pages for free.</p>
+              <p className="text-sm font-semibold">Welcome! You have {userCredits} free credits</p>
+              <p className="text-xs opacity-90 mt-0.5">Create up to {maxProjects} projects and generate pages — no payment required.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowPricingModal(true)}
-                className="px-3 py-1.5 bg-white text-purple-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-white text-emerald-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 Get More
               </button>
