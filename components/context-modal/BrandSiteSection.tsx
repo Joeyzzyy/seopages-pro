@@ -126,10 +126,6 @@ export default function BrandSiteSection({
   siteContexts,
   domainName,
   setDomainName,
-  ogImage,
-  setOgImage,
-  onOgImageFileChange,
-  ogImagePreview,
   logoUrl,
   setLogoUrl,
   faviconUrl,
@@ -235,10 +231,10 @@ export default function BrandSiteSection({
         </div>
       </div>
 
-      {/* Logo, Favicon & OG Image */}
+      {/* Logo & Favicon */}
       <div className="space-y-3 pl-6 mb-5 pt-5 border-t-2 border-[#E5E5E5]">
-        <h4 className="text-xs font-semibold text-[#111827]">Logo, Favicon & OG Image</h4>
-        <div className="grid grid-cols-3 gap-3">
+        <h4 className="text-xs font-semibold text-[#111827]">Logo & Favicon</h4>
+        <div className="grid grid-cols-2 gap-3">
           <AssetUploadField
             id="logo"
             label="Logo"
@@ -256,15 +252,6 @@ export default function BrandSiteSection({
             onFileChange={onFaviconFileChange}
             previewUrl={faviconPreview}
             placeholder="https://example.com/favicon.ico"
-          />
-          <AssetUploadField
-            id="og-image"
-            label="OG Image"
-            value={ogImage}
-            onChange={setOgImage}
-            onFileChange={onOgImageFileChange}
-            previewUrl={ogImagePreview}
-            placeholder="https://example.com/og.png"
           />
         </div>
       </div>

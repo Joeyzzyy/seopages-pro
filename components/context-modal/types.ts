@@ -6,13 +6,9 @@ export interface SectionProps {
 
 // Brand & Site Section - Simplified (single logo/favicon)
 export interface BrandSiteSectionProps extends SectionProps {
-  // Domain & OG Image
+  // Domain
   domainName: string;
   setDomainName: (v: string) => void;
-  ogImage: string;
-  setOgImage: (v: string) => void;
-  onOgImageFileChange: (file: File | null) => void;
-  ogImagePreview: string | null;
   
   // Logo & Favicon URLs (simplified - single field each)
   logoUrl: string;

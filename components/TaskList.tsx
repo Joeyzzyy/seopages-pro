@@ -367,13 +367,17 @@ export default function TaskList({
               const logoContext = siteContexts.find(ctx => ctx.type === 'logo');
               const headerContext = siteContexts.find(ctx => ctx.type === 'header');
               const footerContext = siteContexts.find(ctx => ctx.type === 'footer');
-              const hasLogo = !!(logoContext?.logo_light_url || logoContext?.file_url);
+              const hasDomain = !!(logoContext?.domain_name?.trim());
+              const hasLogo = !!(logoContext?.logo_url || logoContext?.logo_light_url || logoContext?.file_url);
+              const hasLanguage = !!(logoContext?.languages?.trim());
               const hasHeader = !!(headerContext?.content || headerContext?.html);
               const hasFooter = !!(footerContext?.content || footerContext?.html);
               return (
                 <div className="space-y-0.5">
                   {[
-                    { label: 'Logo & Colors', filled: hasLogo },
+                    { label: 'Domain', filled: hasDomain },
+                    { label: 'Logo', filled: hasLogo },
+                    { label: 'Language', filled: hasLanguage },
                     { label: 'Header', filled: hasHeader },
                     { label: 'Footer', filled: hasFooter },
                   ].map(({ label, filled }) => (

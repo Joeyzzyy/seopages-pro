@@ -312,6 +312,8 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
 
   return (
     <div className="space-y-3">
+      <ScaledPreview html={generatePreviewHTML()} contentHeight={80} />
+
       <div className="space-y-2 p-3 bg-[#F9FAFB] rounded-lg border border-[#E5E5E5]">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -435,8 +437,6 @@ export default function HeaderEditor({ initialConfig, logoUrl, onConfigChange }:
           </div>
         </div>
       </div>
-
-      <ScaledPreview html={generatePreviewHTML()} contentHeight={80} />
     </div>
   );
 }

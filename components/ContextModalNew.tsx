@@ -45,7 +45,6 @@ interface ContextModalNewProps {
     fileUrl?: string;
     html?: string;
     domainName?: string;
-    ogImage?: string;
     logoUrl?: string;
     faviconUrl?: string;
     languages?: string;
@@ -98,12 +97,9 @@ export default function ContextModalNew({
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
-  const [ogImageFile, setOgImageFile] = useState<File | null>(null);
-  const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
   
   // Brand settings states (simplified)
   const [domainName, setDomainName] = useState('');
-  const [ogImage, setOgImage] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
   const [languages, setLanguages] = useState('');
@@ -126,7 +122,6 @@ export default function ContextModalNew({
       if (logoContext) {
         const ctx = logoContext as any;
         setDomainName(ctx.domain_name || '');
-        setOgImage(ctx.og_image || '');
         // Use logo_url first, fallback to legacy fields
         setLogoUrl(ctx.logo_url || ctx.logo_light_url || ctx.file_url || '');
         setFaviconUrl(ctx.favicon_url || ctx.favicon_light_url || '');
@@ -149,10 +144,6 @@ export default function ContextModalNew({
   const handleFaviconFileChange = (file: File | null) => {
     setFaviconFile(file);
     if (file) setFaviconPreview(URL.createObjectURL(file));
-  };
-  const handleOgImageFileChange = (file: File | null) => {
-    setOgImageFile(file);
-    if (file) setOgImagePreview(URL.createObjectURL(file));
   };
 
   // Initialize crawlUrl from domainName when it changes
@@ -223,7 +214,6 @@ export default function ContextModalNew({
       if (result.fields?.['brand-assets']?.data) {
         const data = result.fields['brand-assets'].data;
         if (data.domain_name) setDomainName(data.domain_name);
-        if (data.og_image) setOgImage(data.og_image);
         // Use simplified logo_url and favicon_url fields
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.favicon_url) setFaviconUrl(data.favicon_url);
@@ -271,11 +261,9 @@ export default function ContextModalNew({
 
       let finalLogoUrl = logoUrl;
       let finalFaviconUrl = faviconUrl;
-      let finalOgImage = ogImage;
 
       if (logoFile) finalLogoUrl = await uploadFile(logoFile);
       if (faviconFile) finalFaviconUrl = await uploadFile(faviconFile);
-      if (ogImageFile) finalOgImage = await uploadFile(ogImageFile);
 
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -289,7 +277,6 @@ export default function ContextModalNew({
         body: JSON.stringify({
           type: 'logo',
           domainName,
-          ogImage: finalOgImage,
           logoUrl: finalLogoUrl,
           faviconUrl: finalFaviconUrl,
           languages,
@@ -358,9 +345,9 @@ export default function ContextModalNew({
     }
   };
 
-  // Status indicator component
+  // Status indicator component - matches ConversationSidebar style
   const StatusDot = ({ filled }: { filled: boolean }) => (
-    <span className={`w-1.5 h-1.5 rounded-full ${filled ? 'bg-green-500' : 'bg-red-500'}`} title={filled ? 'Filled' : 'Not filled'}></span>
+    <span className={`w-1.5 h-1.5 rounded-full ${filled ? 'bg-green-500' : 'bg-gray-300'}`} title={filled ? 'Filled' : 'Not filled'}></span>
   );
 
   if (!isOpen) return null;
@@ -621,10 +608,6 @@ export default function ContextModalNew({
                 siteContexts={siteContexts}
                 domainName={domainName}
                 setDomainName={setDomainName}
-                ogImage={ogImage}
-                setOgImage={setOgImage}
-                onOgImageFileChange={handleOgImageFileChange}
-                ogImagePreview={ogImagePreview}
                 logoUrl={logoUrl}
                 setLogoUrl={setLogoUrl}
                 faviconUrl={faviconUrl}

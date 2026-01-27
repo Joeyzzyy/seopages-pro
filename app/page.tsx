@@ -371,7 +371,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6">
+      <section className="relative pt-24 sm:pt-32 pb-6 sm:pb-8 px-4 sm:px-6">
         {/* Subtle background with radial gradient */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.03)_0%,_transparent_70%)]" />
@@ -379,49 +379,30 @@ export default function HomePage() {
           <div className="absolute top-40 right-1/4 w-[250px] h-[250px] bg-[radial-gradient(circle,_rgba(101,180,255,0.02)_0%,_transparent_70%)]" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto text-center">
-          {/* Badge - more subtle */}
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/[0.03] border border-white/10 rounded-full mb-6 sm:mb-8">
-            <span className="text-xs sm:text-sm text-gray-400">SEO Page Best Practices — Ready to Deploy</span>
-          </div>
-
-          {/* Main Headline - cleaner, more confident */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.1]">
-            SEO Pages
+        <div className="relative max-w-4xl mx-auto text-center">
+          {/* Main Headline - BIG and clear */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 sm:mb-8 leading-[1.05]">
+            <span className="text-white">Comparisons & Listicles</span>
             <br />
-            <span className="text-gray-400">
-              Done Right
+            <span className="bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] bg-clip-text text-transparent">
+              AI Engines Love to Cite
             </span>
           </h1>
 
-          {/* Subheadline - more honest, less hype */}
-          <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2">
-            World-class comparison pages and listicles — built on proven SEO best practices. 
-            Your perfect starting point. Tweak with Cursor, ship with confidence.
+          {/* Core Value - Simple and bold */}
+          <p className="text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto mb-10 sm:mb-12 leading-relaxed">
+            SEO takes months. <span className="text-white font-semibold">GEO rewards you now.</span>
           </p>
 
-          {/* Pricing highlight - cleaner */}
-          <div className="flex items-center justify-center gap-4 mb-6 sm:mb-8">
-            <div className="flex items-center gap-3 px-5 py-3 bg-white/[0.03] border border-white/10 rounded-xl">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-bold text-white">$4.9</span>
-              </div>
-              <div className="text-left border-l border-white/10 pl-3">
-                <div className="text-white text-sm font-medium">10 Pages</div>
-                <div className="text-xs text-gray-500">Launch price</div>
-              </div>
-            </div>
-          </div>
-
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             {user ? (
               <a
                 href="/projects"
-                className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="group w-full sm:w-auto px-8 py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 text-base"
               >
                 <span>Go to Workspace</span>
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </a>
@@ -429,339 +410,36 @@ export default function HomePage() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={signingIn}
-                className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="group w-full sm:w-auto px-8 py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-base"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span className="sm:hidden">{signingIn ? 'Connecting...' : 'Get Started'}</span>
-                <span className="hidden sm:inline">{signingIn ? 'Connecting...' : 'Start Generating Pages'}</span>
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span>{signingIn ? 'Connecting...' : 'Get Started — $4.9 for 10 Pages'}</span>
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             )}
-            <a href="#pricing" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all text-center text-sm sm:text-base">
-              View Pricing
+            <a href="#why-it-works" className="w-full sm:w-auto px-8 py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all text-center text-base">
+              Why SEO + GEO Love These
             </a>
           </div>
 
-          {/* Value Proposition - cleaner presentation */}
-          <div className="max-w-2xl mx-auto mb-12 sm:mb-16">
-            {/* Main value statement */}
-            <div className="p-5 bg-gradient-to-r from-[#9A8FEA]/5 to-[#65B4FF]/5 rounded-xl border border-white/10 mb-4">
-              <p className="text-sm sm:text-base text-gray-300 leading-relaxed text-center">
-                <span className="text-white font-medium">Stuck on how to structure your SEO pages?</span> See ours. 
-                Every section, every schema, every conversion element — refined from real-world best practices.
-                <span className="text-[#9A8FEA]"> Add your brand, adjust with AI, deploy.</span>
-              </p>
-            </div>
-            
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10 hover:border-white/20 transition-colors">
-                <div className="text-xs text-gray-500 mb-2">Template 1</div>
-                <div className="text-lg font-semibold text-white mb-2">1v1 Comparison Pages</div>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  &quot;Your Product vs Competitor&quot; — feature tables, pricing breakdowns, honest pros/cons. The gold standard structure.
-                </p>
-              </div>
-              <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10 hover:border-white/20 transition-colors">
-                <div className="text-xs text-gray-500 mb-2">Template 2</div>
-                <div className="text-lg font-semibold text-white mb-2">Best-Of Listicles</div>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  &quot;Top 8 Best X Alternatives&quot; — ranked lists with ratings, reviews, and schema markup for rich snippets.
-                </p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 
-      {/* Important Notes - Right after hero */}
-      <section className="py-10 sm:py-16 px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto space-y-6">
-          
-          {/* Why No Free Trial - Highlighted */}
-          <div className="relative">
-            <div className="absolute -inset-[1px] bg-gradient-to-r from-[#9A8FEA]/20 via-[#65B4FF]/20 to-[#9A8FEA]/20 rounded-2xl blur-sm" />
-            <div className="relative p-6 sm:p-8 bg-[#0D0D0D] border border-[#9A8FEA]/20 rounded-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#9A8FEA]/10 border border-[#9A8FEA]/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white">Why No Free Trial?</h3>
-              </div>
-              <div className="space-y-4 text-sm sm:text-base text-gray-400 leading-relaxed">
-                <p>
-                  We&apos;re a small team. We know SEO, we built something useful, but we don&apos;t have VC money to burn.
-                  Every page you generate costs us real money in AI compute.
-                </p>
-                <p>
-                  So no, we can&apos;t give you unlimited free trials. But here&apos;s what we <span className="text-[#9A8FEA] font-medium">can</span> promise:
-                </p>
-                <ul className="space-y-3 pl-1">
-                  <li className="flex items-start gap-3">
-                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span><span className="text-white font-medium">$4.9 for 10 pages.</span> That&apos;s less than $0.50 per page. Way cheaper than hiring any writer.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span><span className="text-white font-medium">Once you pay, you&apos;re the boss.</span> Not satisfied? Email me directly. I&apos;ll personally tweak the product or your pages until you&apos;re happy.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span><span className="text-white font-medium">This isn&apos;t a faceless SaaS.</span> There&apos;s a real person behind this who actually wants you to succeed.</span>
-                  </li>
-                </ul>
-                <div className="pt-4 mt-4 border-t border-white/10">
-                  <p className="text-gray-500">
-                    Questions? Complaints? Feature requests? →{' '}
-                    <a href="mailto:wps_zy@126.com" className="text-[#9A8FEA] hover:text-[#b5acf2] font-medium">wps_zy@126.com</a>
-                    <span className="text-gray-600"> — I read every email.</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* The Philosophy - Highlighted */}
-          <div className="relative">
-            <div className="absolute -inset-[1px] bg-gradient-to-r from-[#9A8FEA]/20 via-[#65B4FF]/20 to-[#9A8FEA]/20 rounded-2xl blur-sm" />
-            <div className="relative p-6 sm:p-8 bg-[#0D0D0D] border border-[#9A8FEA]/20 rounded-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#9A8FEA]/10 border border-[#9A8FEA]/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-white">What We Actually Sell</h3>
-              </div>
-              <div className="space-y-4 text-sm sm:text-base text-gray-400 leading-relaxed">
-                <p>
-                  <span className="text-white font-medium">Not just AI-generated content.</span> We sell 
-                  <span className="text-[#9A8FEA] font-medium"> SEO page best practices</span> — the structure, the schema, the conversion elements that actually work.
-                </p>
-                <p className="text-white font-medium bg-white/5 p-4 rounded-xl border border-white/10">
-                  When you&apos;re staring at a blank page, not knowing where to start — look at ours. 
-                  See how a professional comparison page should be structured. Then open Cursor, make it yours, and ship something world-class.
-                </p>
-                <p>
-                  We built <span className="text-[#9A8FEA] font-medium">113 live pages</span> on this site — 50 comparisons, 63 listicles. 
-                  Every one follows the same battle-tested template. Study them. Copy what works. That&apos;s the point.
-                </p>
-                <div className="pt-4 border-t border-white/10">
-                  <p className="text-gray-500 text-sm mb-3">What makes each page production-ready:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: 'SEO Structure', desc: 'Proven layouts' },
-                      { label: 'Schema.org', desc: 'Rich snippets' },
-                      { label: 'Conversion CTAs', desc: 'High-intent design' },
-                      { label: 'Real Research', desc: 'Not hallucinated' },
-                      { label: 'Tailwind CSS', desc: 'Easy to customize' },
-                    ].map((item) => (
-                      <div key={item.label} className="px-3 py-2 bg-[#9A8FEA]/5 border border-[#9A8FEA]/20 rounded-lg">
-                        <span className="text-[#9A8FEA] text-xs font-medium">{item.label}</span>
-                        <span className="text-gray-600 text-xs ml-1.5">· {item.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* === DEMO PAGES SHOWCASE - Poker Card Style === */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
+      {/* === PAGE GALLERY === */}
+      <section className="pt-0 pb-8 sm:pb-12 px-4 sm:px-6 relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#65B4FF]/[0.02] to-transparent" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,_rgba(101,180,255,0.03)_0%,_transparent_70%)]" />
         
         <div className="relative max-w-7xl mx-auto">
           {/* Section Header */}
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-full mb-6">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-sm text-gray-400">113 live examples — your blueprints</span>
-            </div>
-            
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">
-              Study the Best Practices
-            </h2>
-            <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
-              Every page follows the same proven structure. View source, understand the patterns, build yours better.
+          <div className="text-center mb-8">
+            <p className="text-sm text-gray-400">
+              <span className="text-[#9A8FEA] font-medium">113 Live Demo Pages</span> — A few clicks away from owning the same
             </p>
           </div>
 
-          {/* === POKER CARD STACK - Demo Pages === */}
-          <div className="mb-16">
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <span className="text-sm text-gray-500">Featured Demo Pages</span>
-              <span className="px-2 py-0.5 bg-[#9A8FEA]/10 border border-[#9A8FEA]/30 rounded text-xs text-[#9A8FEA]">Live Preview</span>
-            </div>
-            
-            {/* Poker Card Stack Container */}
-            <div className="relative h-[420px] sm:h-[480px] flex items-center justify-center">
-              {/* Card Stack - Fanned out like poker cards */}
-              <div className="relative w-full max-w-4xl">
-                {[
-                  { 
-                    title: 'SEOPages vs Writesonic',
-                    subtitle: 'AI Content Platform Comparison',
-                    url: '/demo/seopage-vs-writesonic-example.html',
-                    color: 'from-[#9A8FEA]/20 to-[#9A8FEA]/10',
-                    borderColor: 'border-[#9A8FEA]/30',
-                    rotation: '-12deg',
-                    translateX: '-180px',
-                    zIndex: 1,
-                    preview: ['Hero + VS Logos', 'Feature Comparison', 'Pricing Table', 'FAQ Section']
-                  },
-                  { 
-                    title: 'SEOPages vs Jasper AI',
-                    subtitle: 'AI Writing Tool Showdown',
-                    url: '/seopages-pro-alternatives/jasper-ai',
-                    color: 'from-[#65B4FF]/20 to-[#65B4FF]/10',
-                    borderColor: 'border-[#65B4FF]/30',
-                    rotation: '-4deg',
-                    translateX: '-60px',
-                    zIndex: 2,
-                    preview: ['Winner Verdict', '12 Features', 'Pros & Cons', 'Use Cases']
-                  },
-                  { 
-                    title: 'SEOPages vs Surfer SEO',
-                    subtitle: 'SEO Optimization Battle',
-                    url: '/seopages-pro-alternatives/surfer-seo',
-                    color: 'from-[#65B4FF]/20 to-[#65B4FF]/10',
-                    borderColor: 'border-[#65B4FF]/30',
-                    rotation: '4deg',
-                    translateX: '60px',
-                    zIndex: 3,
-                    preview: ['Schema.org Markup', 'Mobile Responsive', 'Dark Mode', 'CTA Buttons']
-                  },
-                  { 
-                    title: 'Best AI SEO Tools 2026',
-                    subtitle: 'Top 10 Ranked Listicle',
-                    url: '/best-alternatives/ai-seo-tools',
-                    color: 'from-[#65B4FF]/20 to-[#65B4FF]/10',
-                    borderColor: 'border-[#65B4FF]/30',
-                    rotation: '12deg',
-                    translateX: '180px',
-                    zIndex: 4,
-                    preview: ['Ranked List', 'Ratings & Reviews', 'Pricing Grid', 'Verdict Cards']
-                  },
-                ].map((card, idx) => (
-                  <a
-                    key={card.title}
-                    href={card.url}
-                    target={card.url.startsWith('/demo') ? '_blank' : '_self'}
-                    rel={card.url.startsWith('/demo') ? 'noopener noreferrer' : undefined}
-                    className="absolute left-1/2 top-1/2 w-[220px] sm:w-[260px] h-[320px] sm:h-[380px] -ml-[110px] sm:-ml-[130px] -mt-[160px] sm:-mt-[190px] group cursor-pointer"
-                    style={{
-                      transform: `translateX(${card.translateX}) rotate(${card.rotation})`,
-                      zIndex: card.zIndex,
-                      transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = `translateX(${card.translateX}) rotate(0deg) translateY(-20px) scale(1.05)`;
-                      e.currentTarget.style.zIndex = '10';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = `translateX(${card.translateX}) rotate(${card.rotation})`;
-                      e.currentTarget.style.zIndex = String(card.zIndex);
-                    }}
-                  >
-                    <div className={`relative w-full h-full bg-gradient-to-b ${card.color} border ${card.borderColor} rounded-2xl overflow-hidden shadow-2xl shadow-black/50 group-hover:shadow-black/70 transition-shadow`}>
-                      {/* Card Inner Glow */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent" />
-                      
-                      {/* Card Content */}
-                      <div className="relative h-full flex flex-col p-4 sm:p-5">
-                        {/* Card Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <img src="/new-logo.png" alt="SEOPages" className="w-5 h-5" />
-                            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Demo</span>
-                          </div>
-                          <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white/60 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </div>
-                        </div>
-                        
-                        {/* Card Title */}
-                        <div className="mb-4">
-                          <h4 className="text-white font-semibold text-sm sm:text-base leading-tight mb-1">{card.title}</h4>
-                          <p className="text-gray-500 text-xs">{card.subtitle}</p>
-                        </div>
-                        
-                        {/* Preview Features */}
-                        <div className="flex-1 space-y-1.5">
-                          {card.preview.map((feature, fidx) => (
-                            <div key={fidx} className="flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-white/40" />
-                              <span className="text-xs text-gray-400">{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Card Footer */}
-                        <div className="pt-3 mt-auto border-t border-white/10">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-600">Click to view</span>
-                            <div className="flex items-center gap-1 text-xs text-white/60 group-hover:text-white transition-colors">
-                              <span>Open</span>
-                              <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Shine Effect on Hover */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-            
-            {/* Mobile: Show as grid instead */}
-            <div className="sm:hidden grid grid-cols-2 gap-3 mt-8">
-              {[
-                { title: 'vs Writesonic', url: '/demo/seopage-vs-writesonic-example.html' },
-                { title: 'vs Jasper AI', url: '/seopages-pro-alternatives/jasper-ai' },
-                { title: 'vs Surfer SEO', url: '/seopages-pro-alternatives/surfer-seo' },
-                { title: 'AI SEO Tools', url: '/best-alternatives/ai-seo-tools' },
-              ].map((item) => (
-                <a
-                  key={item.title}
-                  href={item.url}
-                  className="p-3 bg-white/[0.03] border border-white/10 rounded-lg hover:border-white/20 transition-colors"
-                >
-                  <div className="text-white text-sm font-medium">{item.title}</div>
-                  <div className="text-xs text-gray-500 mt-1">View demo →</div>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* === PAGE GALLERY === */}
           <div className="space-y-10">
             {/* 1v1 Comparisons */}
             <div>
@@ -858,40 +536,124 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* === CALL TO ACTION === */}
-          <div className="mt-12 p-6 sm:p-8 bg-gradient-to-r from-[#9A8FEA]/10 via-[#65B4FF]/10 to-[#65B4FF]/10 border border-white/10 rounded-2xl">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-              <div className="text-center lg:text-left">
-                <h3 className="text-lg sm:text-xl font-semibold text-white mb-1">
-                  Get your own best-practice templates
-                </h3>
-                <p className="text-gray-500 text-sm">
-                  Same proven structure. Customize with Cursor in minutes. <span className="text-[#9A8FEA] font-semibold">Starting at $0.49/page.</span>
-                </p>
+      {/* Why These Page Types Work - SEO & GEO */}
+      <section id="why-it-works" className="py-16 sm:py-24 px-4 sm:px-6 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#65B4FF]/[0.02] to-transparent" />
+        
+        <div className="relative max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">
+              Why Comparisons & Listicles?
+            </h2>
+            <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
+              These two content formats dominate both traditional search and AI-powered answers.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+            {/* SEO Benefits */}
+            <div className="p-6 sm:p-8 bg-gradient-to-br from-[#9A8FEA]/10 to-transparent border border-[#9A8FEA]/20 rounded-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-[#9A8FEA]/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">SEO Power</h3>
+                  <p className="text-sm text-gray-500">Traditional Search Engines</p>
+                </div>
               </div>
-              {user ? (
-                <a
-                  href="/projects"
-                  className="w-full sm:w-auto px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors inline-block text-center"
-                >
-                  Go to Workspace
-                </a>
-              ) : (
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={signingIn}
-                  className="w-full sm:w-auto px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-                >
-                  {signingIn ? 'Connecting...' : 'Get Started'}
-                </button>
-              )}
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">High-Intent Keywords</span>
+                    <p className="text-sm text-gray-500">&quot;X vs Y&quot; and &quot;Best X alternatives&quot; signal buying intent</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">Rich Snippets Ready</span>
+                    <p className="text-sm text-gray-500">Schema.org markup for stars, FAQs, and featured snippets</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">Natural Link Magnets</span>
+                    <p className="text-sm text-gray-500">Comprehensive comparisons attract organic backlinks</p>
+                  </div>
+                </li>
+              </ul>
             </div>
+
+            {/* GEO Benefits */}
+            <div className="p-6 sm:p-8 bg-gradient-to-br from-[#65B4FF]/10 to-transparent border border-[#65B4FF]/20 rounded-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-[#65B4FF]/20 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#65B4FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">GEO Power</h3>
+                  <p className="text-sm text-gray-500">AI Search Engines (ChatGPT, Perplexity, Claude)</p>
+                </div>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#65B4FF] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">AI Loves Structured Data</span>
+                    <p className="text-sm text-gray-500">Tables, pros/cons, ratings — perfect for AI extraction</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#65B4FF] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">Citeable Content</span>
+                    <p className="text-sm text-gray-500">Clear rankings and verdicts AI can quote directly</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#65B4FF] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <span className="text-white font-medium">Instant Results</span>
+                    <p className="text-sm text-gray-500">No waiting months — AI crawls and cites new content fast</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Summary */}
+          <div className="mt-10 text-center">
+            <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+              <span className="text-white font-medium">The strategy:</span> Build pages that work for both. 
+              SEO compounds over time. GEO gives you traffic today.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* How It Works - Detailed */}
+      {/* How It Works - Product Usage */}
       <section id="how-it-works" className="py-16 sm:py-24 px-4 sm:px-6 relative">
         {/* Subtle background */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#9A8FEA]/[0.02] to-transparent" />
@@ -902,11 +664,11 @@ export default function HomePage() {
               <svg className="w-4 h-4 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span className="text-sm text-[#9A8FEA]">Best Practices → Your Brand</span>
+              <span className="text-sm text-[#9A8FEA]">5 Steps to Your Pages</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">How It Works</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 text-white">How to Use SEOPages.pro</h2>
             <p className="text-gray-500 text-base sm:text-lg max-w-2xl mx-auto">
-              We generate production-ready templates based on proven SEO patterns. You customize with Cursor and deploy.
+              Enter your URL, pick competitors, get production-ready HTML. Deploy anywhere.
             </p>
           </div>
 
@@ -1114,6 +876,110 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Important Notes - After How It Works */}
+      <section className="py-10 sm:py-16 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          
+          {/* Why No Free Trial - Highlighted */}
+          <div className="relative">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-[#9A8FEA]/20 via-[#65B4FF]/20 to-[#9A8FEA]/20 rounded-2xl blur-sm" />
+            <div className="relative p-6 sm:p-8 bg-[#0D0D0D] border border-[#9A8FEA]/20 rounded-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#9A8FEA]/10 border border-[#9A8FEA]/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">Why No Free Trial?</h3>
+              </div>
+              <div className="space-y-4 text-sm sm:text-base text-gray-400 leading-relaxed">
+                <p>
+                  We&apos;re a small team. We know SEO, we built something useful, but we don&apos;t have VC money to burn.
+                  Every page you generate costs us real money in AI compute.
+                </p>
+                <p>
+                  So no, we can&apos;t give you unlimited free trials. But here&apos;s what we <span className="text-[#9A8FEA] font-medium">can</span> promise:
+                </p>
+                <ul className="space-y-3 pl-1">
+                  <li className="flex items-start gap-3">
+                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span><span className="text-white font-medium">$4.9 for 10 pages.</span> That&apos;s less than $0.50 per page. Way cheaper than hiring any writer.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span><span className="text-white font-medium">Once you pay, you&apos;re the boss.</span> Not satisfied? Email me directly. I&apos;ll personally tweak the product or your pages until you&apos;re happy.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-4 h-4 text-[#9A8FEA] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span><span className="text-white font-medium">This isn&apos;t a faceless SaaS.</span> There&apos;s a real person behind this who actually wants you to succeed.</span>
+                  </li>
+                </ul>
+                <div className="pt-4 mt-4 border-t border-white/10">
+                  <p className="text-gray-500">
+                    Questions? Complaints? Feature requests? →{' '}
+                    <a href="mailto:wps_zy@126.com" className="text-[#9A8FEA] hover:text-[#b5acf2] font-medium">wps_zy@126.com</a>
+                    <span className="text-gray-600"> — I read every email.</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* What We Actually Sell - Highlighted */}
+          <div className="relative">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-[#9A8FEA]/20 via-[#65B4FF]/20 to-[#9A8FEA]/20 rounded-2xl blur-sm" />
+            <div className="relative p-6 sm:p-8 bg-[#0D0D0D] border border-[#9A8FEA]/20 rounded-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#9A8FEA]/10 border border-[#9A8FEA]/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">What We Actually Sell</h3>
+              </div>
+              <div className="space-y-4 text-sm sm:text-base text-gray-400 leading-relaxed">
+                <p>
+                  <span className="text-white font-medium">Not just AI-generated content.</span> We sell 
+                  <span className="text-[#9A8FEA] font-medium"> SEO page best practices</span> — the structure, the schema, the conversion elements that actually work.
+                </p>
+                <p className="text-white font-medium bg-white/5 p-4 rounded-xl border border-white/10">
+                  When you&apos;re staring at a blank page, not knowing where to start — look at ours. 
+                  See how a professional comparison page should be structured. Then open Cursor, make it yours, and ship something world-class.
+                </p>
+                <p>
+                  We built <span className="text-[#9A8FEA] font-medium">113 live pages</span> on this site — 50 comparisons, 63 listicles. 
+                  Every one follows the same battle-tested template. Study them. Copy what works. That&apos;s the point.
+                </p>
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-gray-500 text-sm mb-3">What makes each page production-ready:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'SEO Structure', desc: 'Proven layouts' },
+                      { label: 'Schema.org', desc: 'Rich snippets' },
+                      { label: 'Conversion CTAs', desc: 'High-intent design' },
+                      { label: 'Real Research', desc: 'Not hallucinated' },
+                      { label: 'Tailwind CSS', desc: 'Easy to customize' },
+                    ].map((item) => (
+                      <div key={item.label} className="px-3 py-2 bg-[#9A8FEA]/5 border border-[#9A8FEA]/20 rounded-lg">
+                        <span className="text-[#9A8FEA] text-xs font-medium">{item.label}</span>
+                        <span className="text-gray-600 text-xs ml-1.5">· {item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
