@@ -290,14 +290,162 @@ function GeneratedPageViewer({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   
-  // Handle iframe load to add click listener (closes theme picker when clicking in preview)
+  // Handle iframe load to add click listener and intercept navigation
   const handleIframeLoad = () => {
     const iframe = iframeRef.current;
-    if (iframe?.contentWindow?.document) {
-      iframe.contentWindow.document.addEventListener('mousedown', () => {
-        setShowThemePicker(false);
+    if (!iframe?.contentWindow?.document) return;
+    
+    const doc = iframe.contentWindow.document;
+    
+    // Close theme picker when clicking in preview
+    doc.addEventListener('mousedown', () => {
+      setShowThemePicker(false);
+    });
+    
+    // Inject preview alert styles
+    const style = doc.createElement('style');
+    style.textContent = `
+      .preview-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        animation: fadeIn 0.2s ease-out;
+      }
+      .preview-alert-box {
+        background: white;
+        border-radius: 16px;
+        padding: 24px 32px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.2s ease-out;
+      }
+      .preview-alert-icon {
+        width: 48px;
+        height: 48px;
+        background: #FEF3C7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+      }
+      .preview-alert-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+      }
+      .preview-alert-message {
+        font-size: 14px;
+        color: #6B7280;
+        line-height: 1.5;
+        margin-bottom: 20px;
+      }
+      .preview-alert-link {
+        color: #2563EB;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .preview-alert-link:hover {
+        color: #1D4ED8;
+      }
+      .preview-alert-close {
+        background: #111827;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .preview-alert-close:hover {
+        background: #374151;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    `;
+    doc.head.appendChild(style);
+    
+    // Function to show preview alert
+    const previewUrl = `${window.location.origin}/api/preview/${contentItem.id}`;
+    const showPreviewAlert = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Remove existing alert if any
+      const existingAlert = doc.querySelector('.preview-alert-overlay');
+      if (existingAlert) existingAlert.remove();
+      
+      // Create alert overlay
+      const overlay = doc.createElement('div');
+      overlay.className = 'preview-alert-overlay';
+      overlay.innerHTML = `
+        <div class="preview-alert-box">
+          <div class="preview-alert-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="preview-alert-title">Preview Mode</div>
+          <div class="preview-alert-message">
+            This is a preview only. To experience in-page navigation, please <a href="${previewUrl}" target="_blank" class="preview-alert-link">open in a new tab</a>.
+          </div>
+          <button class="preview-alert-close">Got it</button>
+        </div>
+      `;
+      
+      // Close on button click or overlay click
+      overlay.addEventListener('click', (ev) => {
+        if (ev.target === overlay || (ev.target as Element).classList.contains('preview-alert-close')) {
+          overlay.remove();
+        }
       });
-    }
+      
+      doc.body.appendChild(overlay);
+    };
+    
+    // Intercept all link clicks
+    doc.addEventListener('click', (e) => {
+      const target = e.target as Element;
+      const link = target.closest('a');
+      const button = target.closest('button');
+      
+      // Don't intercept alert close button
+      if (target.classList.contains('preview-alert-close') || target.classList.contains('preview-alert-link')) {
+        return;
+      }
+      
+      // Intercept links with href (except # anchors that stay on page)
+      if (link && link.getAttribute('href') && !link.getAttribute('href')?.startsWith('#')) {
+        showPreviewAlert(e);
+        return;
+      }
+      
+      // Intercept buttons (they might trigger navigation)
+      if (button && !button.closest('.preview-alert-box')) {
+        showPreviewAlert(e);
+        return;
+      }
+    }, true);
   };
 
   // Save theme to database (debounced)
