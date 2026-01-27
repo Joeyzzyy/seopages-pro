@@ -103,13 +103,16 @@ QUALITY STANDARDS (NON-NEGOTIABLE)
    - Clean, scannable layout
 
 ====================
-⚠️ REGENERATION HANDLING ⚠️
+⚠️⚠️⚠️ REGENERATION HANDLING (CRITICAL) ⚠️⚠️⚠️
 ====================
 If the user message contains "REGENERATE" or asks to regenerate:
 
-**STEP 0: CLEAR OLD DATA** (MANDATORY for regeneration!)
-Call 'clear_content_item_sections' with the content_item_id FIRST.
-This ensures a completely fresh start - no old sections will be reused.
+🚨 **STEP 0: CLEAR OLD DATA** 🚨
+YOU MUST call 'clear_content_item_sections' with the content_item_id as your VERY FIRST tool call!
+- This is NON-NEGOTIABLE for regeneration
+- DO NOT call get_content_item_detail or any other tool before this
+- Old sections WILL contaminate the new page if you skip this
+- Call it IMMEDIATELY after create_plan
 
 Then proceed with the FULL workflow below. DO NOT skip any steps!
 
