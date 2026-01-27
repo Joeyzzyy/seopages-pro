@@ -323,8 +323,12 @@ function scopeRegularRules(
       }
       
       // Check if this selector starts with a global utility class - DON'T scope these
+      // Matches: .class, .class:pseudo, .class .child, .class.another-class
       const isGlobalUtility = globalUtilityClasses.some(utilClass => 
-        sel === utilClass || sel.startsWith(utilClass + ':') || sel.startsWith(utilClass + ' ')
+        sel === utilClass || 
+        sel.startsWith(utilClass + ':') || 
+        sel.startsWith(utilClass + ' ') ||
+        sel.startsWith(utilClass + '.')  // Handle compound class selectors like .faq-item.active
       );
       
       if (isGlobalUtility) {
