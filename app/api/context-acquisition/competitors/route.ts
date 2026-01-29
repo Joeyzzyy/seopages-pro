@@ -84,7 +84,7 @@ function mergeCompetitors(sources: Competitor[][]): Competitor[] {
 async function analyzeWebsiteForCompetitors(domain: string): Promise<WebsiteAnalysis> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
-  const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4.1';
+  const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1';
 
   // Default fallback
   const defaultAnalysis: WebsiteAnalysis = {

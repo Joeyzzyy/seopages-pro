@@ -138,7 +138,7 @@ If information cannot be found after deep crawling, returns "not_mentioned" inst
         : '(No specific features to check)';
 
       const { object: extractedData } = await generateObject({
-        model: azure('gpt-4.1'),
+        model: azure(process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4.1'),
         schema: z.object({
           description: z.string().describe('2-3 sentence product description'),
           tagline: z.string().optional().describe('Short tagline if found'),
