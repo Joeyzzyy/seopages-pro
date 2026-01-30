@@ -237,6 +237,68 @@ export default function AlternativePageGuidePillar() {
           />
         </section>
         
+        {/* Cross-linking to Related Resources */}
+        <section className="mt-12 mb-8">
+          <h2 className="text-2xl font-bold mb-6">Explore More Resources</h2>
+          
+          {/* Link to Listicle Guide */}
+          <div className="mb-6 p-6 bg-gradient-to-r from-[#9A8FEA]/10 to-[#65B4FF]/10 border border-[#9A8FEA]/30 rounded-2xl">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[#9A8FEA]/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">
+                  <Link href="/listicle-page-guide" className="hover:text-[#9A8FEA] transition-colors">
+                    Listicle Page Guide →
+                  </Link>
+                </h3>
+                <p className="text-gray-400 text-sm mb-3">
+                  Learn how to create &quot;Top 10&quot; and &quot;Best Of&quot; listicle pages. Different from 1v1 comparisons, listicles rank multiple alternatives for users exploring options.
+                </p>
+                <Link href="/listicle-page-guide" className="text-[#9A8FEA] text-sm hover:underline">
+                  Read the complete listicle guide
+                </Link>
+              </div>
+            </div>
+          </div>
+          
+          {/* Links to Real Examples */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link 
+              href="/seopages-pro-alternatives"
+              className="group p-5 bg-white/5 border border-white/10 rounded-xl hover:border-[#65B4FF]/50 transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-[#65B4FF]/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#65B4FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <span className="font-semibold group-hover:text-[#65B4FF] transition-colors">50+ 1v1 Comparison Examples</span>
+              </div>
+              <p className="text-gray-400 text-sm">See real alternative pages we built with SEOPages.pro</p>
+            </Link>
+            
+            <Link 
+              href="/best-alternatives"
+              className="group p-5 bg-white/5 border border-white/10 rounded-xl hover:border-[#FFAF40]/50 transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-[#FFAF40]/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#FFAF40]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <span className="font-semibold group-hover:text-[#FFAF40] transition-colors">63+ Listicle Examples</span>
+              </div>
+              <p className="text-gray-400 text-sm">Browse &quot;Best Alternatives&quot; listicle pages in action</p>
+            </Link>
+          </div>
+        </section>
+        
         <FinalCTA />
       </main>
       

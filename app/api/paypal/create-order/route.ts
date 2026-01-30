@@ -10,10 +10,8 @@ const PAYPAL_API_BASE = PAYPAL_MODE === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
 
-// Pricing configuration (USD)
+// Pricing configuration (USD) - One-time purchase only
 const PRICING_PLANS = {
-  single: { price: '0.50', credits: 1, name: 'Single Page' },
-  starter: { price: '4.90', credits: 10, name: 'Starter Plan' },
   standard: { price: '9.90', credits: 20, name: 'Standard Plan' },
   pro: { price: '19.90', credits: 50, name: 'Pro Plan' },
 } as const;

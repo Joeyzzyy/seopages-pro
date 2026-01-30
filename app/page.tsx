@@ -15,7 +15,7 @@ export default function HomePage() {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'single' | 'starter' | 'standard' | 'pro' | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'standard' | 'pro' | null>(null);
   const [userCredits, setUserCredits] = useState<number | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState('free');
 
@@ -126,7 +126,7 @@ export default function HomePage() {
   };
 
   // Handle buy plan click
-  const handleBuyPlan = async (plan: 'single' | 'starter' | 'standard' | 'pro') => {
+  const handleBuyPlan = async (plan: 'standard' | 'pro') => {
     if (!user) {
       // Not logged in - trigger Google login first
       setSelectedPlan(plan);
@@ -304,8 +304,43 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Guide Link */}
-            <a href="/alternative-page-guide" className="hidden lg:block text-sm text-gray-400 hover:text-white transition-colors">Guide</a>
+            {/* Guides Dropdown */}
+            <div className="hidden lg:block relative group">
+              <button className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-2">
+                Guides
+                <svg className="w-3 h-3 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="bg-[#111111] border border-white/10 rounded-lg shadow-xl min-w-[240px]">
+                  <div className="p-2">
+                    <a href="/alternative-page-guide" className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-[#65B4FF]/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#65B4FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">Alternative Pages</div>
+                        <div className="text-xs text-gray-500">vs comparisons & 1v1</div>
+                      </div>
+                    </a>
+                    <a href="/listicle-page-guide" className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-[#9A8FEA]/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#9A8FEA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">Listicle Pages</div>
+                        <div className="text-xs text-gray-500">Top 10 & Best Of guides</div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
             <a href="#how-it-works" className="hidden lg:block text-sm text-gray-400 hover:text-white transition-colors">How It Works</a>
             <a href="#pricing" className="hidden lg:block text-sm text-gray-400 hover:text-white transition-colors">Pricing</a>
             {user ? (
@@ -988,7 +1023,7 @@ export default function HomePage() {
         {/* Subtle background */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.01] to-transparent" />
         
-        <div className="relative max-w-5xl mx-auto">
+        <div className="relative max-w-4xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-white">Pricing</h2>
             <p className="text-gray-500 text-sm sm:text-base">
@@ -996,99 +1031,41 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch">
-            {/* Single Page */}
-            <div className="p-4 sm:p-5 bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-white/[0.08] rounded-xl flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
-              <div className="mb-3 sm:mb-4">
-                <h3 className="text-sm font-semibold text-white mb-1">Single Page</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-white">$0.5</span>
-                  <span className="text-gray-600 text-xs">1 page</span>
-                </div>
-                <p className="text-[10px] text-gray-600 mt-0.5">Try it out</p>
+          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto">
+            {/* Standard - Featured */}
+            <div className="relative p-5 sm:p-6 bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/20 rounded-xl flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_0_0_1px_rgba(255,255,255,0.05)]">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-white text-black text-[10px] font-semibold rounded-full shadow-sm">
+                Most Popular
               </div>
-              <ul className="space-y-1.5 flex-grow text-xs">
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-white mb-2">Standard</h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-white">$9.9</span>
+                  <span className="text-gray-500 text-sm">20 pages</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">$0.495 per page</p>
+              </div>
+              <ul className="space-y-2 flex-grow text-sm">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>AI-powered content</span>
                 </li>
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Production-ready HTML</span>
                 </li>
-              </ul>
-              <button
-                onClick={() => handleBuyPlan('single')}
-                className="w-full py-2 border border-white/20 text-white font-medium rounded-lg hover:bg-white/5 transition-colors text-xs mt-4"
-              >
-                {user ? 'Buy Now' : 'Sign in to Buy'}
-              </button>
-            </div>
-
-            {/* Starter */}
-            <div className="p-4 sm:p-5 bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-white/[0.08] rounded-xl flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
-              <div className="mb-3 sm:mb-4">
-                <h3 className="text-sm font-semibold text-white mb-1">Starter</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-white">$4.9</span>
-                  <span className="text-gray-600 text-xs">10 pages</span>
-                </div>
-                <p className="text-[10px] text-gray-600 mt-0.5">$0.49 per page</p>
-              </div>
-              <ul className="space-y-1.5 flex-grow text-xs">
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>AI-powered content</span>
-                </li>
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Production-ready HTML</span>
-                </li>
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>SEO + Schema optimized</span>
                 </li>
-              </ul>
-              <button
-                onClick={() => handleBuyPlan('starter')}
-                className="w-full py-2 border border-white/20 text-white font-medium rounded-lg hover:bg-white/5 transition-colors text-xs mt-4"
-              >
-                {user ? 'Buy Now' : 'Sign in to Buy'}
-              </button>
-            </div>
-
-            {/* Standard - Featured */}
-            <div className="relative p-4 sm:p-5 bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/20 rounded-xl order-first sm:order-none flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),_0_0_0_1px_rgba(255,255,255,0.05)]">
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-white text-black text-[9px] font-semibold rounded-full shadow-sm">
-                Most Popular
-              </div>
-              <div className="mb-3 sm:mb-4">
-                <h3 className="text-sm font-semibold text-white mb-1">Standard</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-white">$9.9</span>
-                  <span className="text-gray-600 text-xs">20 pages</span>
-                </div>
-                <p className="text-[10px] text-gray-600 mt-0.5">$0.495 per page</p>
-              </div>
-              <ul className="space-y-1.5 flex-grow text-xs">
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Everything in Starter</span>
-                </li>
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Priority support</span>
@@ -1096,39 +1073,45 @@ export default function HomePage() {
               </ul>
               <button
                 onClick={() => handleBuyPlan('standard')}
-                className="w-full py-2 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors text-xs mt-4"
+                className="w-full py-2.5 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors text-sm mt-5"
               >
                 {user ? 'Buy Now' : 'Sign in to Buy'}
               </button>
             </div>
 
             {/* Pro */}
-            <div className="p-4 sm:p-5 bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-white/[0.08] rounded-xl flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
-              <div className="mb-3 sm:mb-4">
-                <h3 className="text-sm font-semibold text-white mb-1">Pro</h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-white">$19.9</span>
-                  <span className="text-gray-600 text-xs">50 pages</span>
+            <div className="p-5 sm:p-6 bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-white/[0.08] rounded-xl flex flex-col h-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-white mb-2">Pro</h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-white">$19.9</span>
+                  <span className="text-gray-500 text-sm">50 pages</span>
                 </div>
-                <p className="text-[10px] text-gray-600 mt-0.5">$0.40 per page</p>
+                <p className="text-xs text-gray-500 mt-1">$0.40 per page</p>
               </div>
-              <ul className="space-y-1.5 flex-grow text-xs">
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <ul className="space-y-2 flex-grow text-sm">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Everything in Standard</span>
                 </li>
-                <li className="flex items-center gap-1.5 text-gray-400">
-                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Best for crowded markets</span>
                 </li>
+                <li className="flex items-center gap-2 text-gray-300">
+                  <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>60% cost savings</span>
+                </li>
               </ul>
               <button
                 onClick={() => handleBuyPlan('pro')}
-                className="w-full py-2 border border-white/20 text-white font-medium rounded-lg hover:bg-white/5 transition-colors text-xs mt-4"
+                className="w-full py-2.5 border border-white/20 text-white font-medium rounded-lg hover:bg-white/5 transition-colors text-sm mt-5"
               >
                 {user ? 'Buy Now' : 'Sign in to Buy'}
               </button>
@@ -1190,7 +1173,8 @@ export default function HomePage() {
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-gray-500">
               <a href="/" className="hover:text-white transition-colors">Home</a>
-              <a href="/alternative-page-guide" className="hover:text-white transition-colors">Guide</a>
+              <a href="/alternative-page-guide" className="hover:text-white transition-colors">Alternative Guide</a>
+              <a href="/listicle-page-guide" className="hover:text-white transition-colors">Listicle Guide</a>
               <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             </nav>

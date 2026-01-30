@@ -10,11 +10,10 @@ const PAYPAL_API_BASE = PAYPAL_MODE === 'live'
   ? 'https://api-m.paypal.com'
   : 'https://api-m.sandbox.paypal.com';
 
-// Pricing configuration
+// Pricing configuration - One-time purchase only
 const PRICING_PLANS = {
-  starter: { price: '1.00', credits: 10, tier: 'starter' },
-  standard: { price: '19.90', credits: 20, tier: 'standard' },
-  pro: { price: '39.90', credits: 50, tier: 'pro' },
+  standard: { price: '9.90', credits: 20, tier: 'standard' },
+  pro: { price: '19.90', credits: 50, tier: 'pro' },
 } as const;
 
 // Supabase admin client (with proxy support)
@@ -123,9 +122,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine credits to add
-    const plan = planInfo?.plan || 'starter';
-    const creditsToAdd = PRICING_PLANS[plan]?.credits || 10;
-    const newTier = PRICING_PLANS[plan]?.tier || 'starter';
+    const plan = planInfo?.plan || 'standard';
+    const creditsToAdd = PRICING_PLANS[plan as keyof typeof PRICING_PLANS]?.credits || 20;
+    const newTier = PRICING_PLANS[plan as keyof typeof PRICING_PLANS]?.tier || 'standard';
 
     // Update user credits - use database function
     const { data: newCredits, error: updateError } = await supabaseAdmin.rpc(

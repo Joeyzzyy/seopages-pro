@@ -151,8 +151,43 @@ export default function SiteHeader({ variant = 'default' }: SiteHeaderProps) {
             </div>
           </div>
           
-          {/* Guide Link */}
-          <Link href="/alternative-page-guide" className="hidden lg:block text-sm text-gray-400 hover:text-white transition-colors">Guide</Link>
+          {/* Guides Dropdown */}
+          <div className="hidden lg:block relative group">
+            <button className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1 py-2">
+              Guides
+              <svg className="w-3 h-3 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className="bg-[#111111] border border-white/10 rounded-lg shadow-xl min-w-[240px]">
+                <div className="p-2">
+                  <Link href="/alternative-page-guide" className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-brand-blue/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-white">Alternative Pages</div>
+                      <div className="text-xs text-gray-500">vs comparisons & 1v1</div>
+                    </div>
+                  </Link>
+                  <Link href="/listicle-page-guide" className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-brand-purple/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-white">Listicle Pages</div>
+                      <div className="text-xs text-gray-500">Top 10 & Best Of guides</div>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
           <Link href="/#features" className="hidden lg:block text-sm text-gray-400 hover:text-white transition-colors">
             Features
           </Link>

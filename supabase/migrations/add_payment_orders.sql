@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS public.payment_orders (
   id TEXT PRIMARY KEY, -- PayPal Order ID
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  plan TEXT NOT NULL CHECK (plan IN ('starter', 'standard', 'pro')),
+  plan TEXT NOT NULL CHECK (plan IN ('standard', 'pro')),
   amount DECIMAL(10, 2) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   credits INTEGER NOT NULL,

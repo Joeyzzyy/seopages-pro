@@ -44,14 +44,14 @@ export async function GET(request: NextRequest) {
       
       if (createError) {
         console.error('Failed to create user profile:', createError);
-        return NextResponse.json({
-          credits: 3,
-          subscription_tier: 'free',
-          subscription_status: 'inactive',
-          max_projects: 3,
-          user_id: user.id,
-          email: user.email,
-        });
+      return NextResponse.json({
+        credits: 3,
+        subscription_tier: 'free',
+        subscription_status: 'inactive',
+        max_projects: 3,
+        user_id: user.id,
+        email: user.email,
+      });
       }
       
       profile = newProfile;

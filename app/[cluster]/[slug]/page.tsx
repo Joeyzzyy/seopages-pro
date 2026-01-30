@@ -9,6 +9,7 @@ interface PageProps {
 }
 
 // 定义支持的 cluster 和它们的页面
+// Note: listicle guide moved to dedicated /listicle-page-guide route
 const CLUSTER_CONFIG: Record<string, {
   title: string;
   basePath: string;

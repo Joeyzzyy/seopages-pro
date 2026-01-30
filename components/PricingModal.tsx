@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -11,36 +11,11 @@ interface PricingModalProps {
   currentCredits: number;
   currentTier: string;
   onPaymentSuccess: (newCredits: number, newTier: string) => void;
-  initialPlan?: 'single' | 'starter' | 'standard' | 'pro' | null;
-  uncloseable?: boolean; // When true, modal cannot be dismissed without payment
+  initialPlan?: 'standard' | 'pro' | null;
+  uncloseable?: boolean;
 }
 
 const PLANS = [
-  {
-    id: 'single',
-    name: 'Single Page',
-    price: 0.5,
-    credits: 1,
-    perPage: 0.5,
-    features: [
-      { text: '1', highlight: true, suffix: ' Alternative Page' },
-      { text: 'AI-Powered Content' },
-      { text: 'Production-Ready HTML' },
-    ],
-  },
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 4.9,
-    credits: 10,
-    perPage: 0.49,
-    features: [
-      { text: '10', highlight: true, suffix: ' Alternative Pages' },
-      { text: 'AI-Powered Content' },
-      { text: 'Production-Ready HTML' },
-      { text: 'SEO Optimized' },
-    ],
-  },
   {
     id: 'standard',
     name: 'Standard',
@@ -73,7 +48,6 @@ const PLANS = [
   },
 ];
 
-// Full Screen Loading Component
 function FullScreenLoading() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -89,44 +63,25 @@ function FullScreenLoading() {
   );
 }
 
-// Inner Modal Content - rendered inside PayPalScriptProvider
-function ModalContent({
-  onClose,
-  currentCredits,
-  currentTier,
+// PayPal Buttons Wrapper Component
+function PayPalPaymentButtons({
+  planId,
+  isProcessing,
+  setIsProcessing,
+  setError,
   onPaymentSuccess,
-  initialPlan,
-  uncloseable = false,
-}: Omit<PricingModalProps, 'isOpen'>) {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlan || null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  onClose,
+}: {
+  planId: string;
+  isProcessing: boolean;
+  setIsProcessing: (v: boolean) => void;
+  setError: (v: string | null) => void;
+  onPaymentSuccess: (newCredits: number, newTier: string) => void;
+  onClose: () => void;
+}) {
   const accessTokenRef = useRef<string | null>(null);
-  const [{ isPending }] = usePayPalScriptReducer();
 
-  const isDirectCheckout = !!initialPlan;
-
-  useEffect(() => {
-    setSelectedPlan(initialPlan || null);
-    setIsProcessing(false);
-    setError(null);
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      accessTokenRef.current = session?.access_token || null;
-    });
-  }, [initialPlan]);
-
-  // Show full screen loading while PayPal SDK loads
-  if (isPending) {
-    return <FullScreenLoading />;
-  }
-
-  const handlePlanSelect = (planId: string) => {
-    setSelectedPlan(planId);
-    setError(null);
-  };
-
-  const getAuthHeaders = async (): Promise<HeadersInit> => {
+  const getAuthHeaders = useCallback(async (): Promise<HeadersInit> => {
     if (!accessTokenRef.current) {
       const { data: { session } } = await supabase.auth.getSession();
       accessTokenRef.current = session?.access_token || null;
@@ -141,14 +96,9 @@ function ModalContent({
     }
     
     return headers;
-  };
+  }, []);
 
-  const createOrder = async () => {
-    if (!selectedPlan) {
-      setError('Please select a plan first');
-      throw new Error('No plan selected');
-    }
-
+  const createOrder = useCallback(async () => {
     setError(null);
     
     const headers = await getAuthHeaders();
@@ -157,7 +107,7 @@ function ModalContent({
       method: 'POST',
       headers,
       credentials: 'include',
-      body: JSON.stringify({ plan: selectedPlan }),
+      body: JSON.stringify({ plan: planId }),
     });
 
     const data = await response.json();
@@ -168,9 +118,9 @@ function ModalContent({
     }
 
     return data.orderID;
-  };
+  }, [planId, setError, getAuthHeaders]);
 
-  const onApprove = async (data: { orderID: string }) => {
+  const onApprove = useCallback(async (data: { orderID: string }) => {
     setIsProcessing(true);
     setError(null);
 
@@ -200,144 +150,270 @@ function ModalContent({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [setIsProcessing, setError, onPaymentSuccess, onClose, getAuthHeaders]);
 
-  const onError = (err: any) => {
+  const onError = useCallback((err: any) => {
     console.error('PayPal error:', err);
     setError('PayPal payment error. Please try again.');
     setIsProcessing(false);
-  };
+  }, [setError, setIsProcessing]);
 
-  const onCancel = () => {
+  const onCancel = useCallback(() => {
     setError('Payment cancelled');
     setIsProcessing(false);
+  }, [setError, setIsProcessing]);
+
+  return (
+    <div className={isProcessing ? 'opacity-50 pointer-events-none' : ''}>
+      <PayPalButtons
+        style={{
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'pay',
+          height: 40,
+        }}
+        createOrder={createOrder}
+        onApprove={onApprove}
+        onError={onError}
+        onCancel={onCancel}
+        disabled={isProcessing}
+      />
+    </div>
+  );
+}
+
+// Individual Plan Card with embedded payment
+function PlanCard({
+  plan,
+  globalIsProcessing,
+  setGlobalIsProcessing,
+  globalError,
+  setGlobalError,
+  onPaymentSuccess,
+  onClose,
+}: {
+  plan: typeof PLANS[0];
+  globalIsProcessing: boolean;
+  setGlobalIsProcessing: (v: boolean) => void;
+  globalError: string | null;
+  setGlobalError: (v: string | null) => void;
+  onPaymentSuccess: (newCredits: number, newTier: string) => void;
+  onClose: () => void;
+}) {
+  const [paymentProvider, setPaymentProvider] = useState<'paypal' | 'creem' | null>(null);
+  const [localIsProcessing, setLocalIsProcessing] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const accessTokenRef = useRef<string | null>(null);
+  const [{ isPending }] = usePayPalScriptReducer();
+
+  const isProcessing = globalIsProcessing || localIsProcessing;
+  const error = globalError || localError;
+
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    if (!accessTokenRef.current) {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessTokenRef.current = session?.access_token || null;
+    }
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (accessTokenRef.current) {
+      headers['Authorization'] = `Bearer ${accessTokenRef.current}`;
+    }
+    
+    return headers;
   };
 
-  const currentPlan = PLANS.find(p => p.id === selectedPlan);
+  const handleCreemCheckout = async () => {
+    setLocalIsProcessing(true);
+    setLocalError(null);
+    setGlobalError(null);
 
-  // Direct Checkout Mode - Show only payment for pre-selected plan
-  if (isDirectCheckout && currentPlan) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div 
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          onClick={uncloseable ? undefined : onClose}
-        />
-        
-        <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4">
-          <div className="border-b border-white/5 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Complete Purchase</h2>
-            {!uncloseable && (
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
+    try {
+      const headers = await getAuthHeaders();
+      
+      const response = await fetch('/api/creem/create-checkout', {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ plan: plan.id }),
+      });
 
-          <div className="p-6">
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center gap-2">
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {error}
-              </div>
-            )}
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setLocalError(data.error || 'Failed to create checkout');
+        setLocalIsProcessing(false);
+        return;
+      }
 
-            <div className={`relative p-5 rounded-xl mb-6 ${
-              currentPlan.popular
-                ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border border-[#9A8FEA]/30'
-                : 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10'
-            }`}>
-              {currentPlan.popular && (
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[10px] font-semibold text-white">
-                  MOST POPULAR
-                </div>
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setLocalError('Checkout URL not received');
+        setLocalIsProcessing(false);
+      }
+    } catch (err: any) {
+      console.error('Creem checkout error:', err);
+      setLocalError('Payment initialization failed. Please try again.');
+      setLocalIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className={`relative p-5 sm:p-6 rounded-xl flex flex-col h-full ${
+      plan.popular
+        ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border-2 border-[#9A8FEA]/50'
+        : 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10'
+    }`}>
+      {plan.popular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[10px] font-semibold text-white">
+          MOST POPULAR
+        </div>
+      )}
+
+      {/* Plan Info */}
+      <div className={`mb-4 ${plan.popular ? 'mt-2' : ''}`}>
+        <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-white">${plan.price}</span>
+          <span className="text-gray-500 text-sm">{plan.credits} pages</span>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">${plan.perPage} per page</p>
+      </div>
+
+      {/* Features */}
+      <ul className="space-y-2 flex-grow text-sm mb-5">
+        {plan.features.map((feature, idx) => (
+          <li key={idx} className="flex items-center gap-2 text-gray-300">
+            <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>
+              {feature.highlight ? (
+                <><strong className="text-white">{feature.text}</strong>{feature.suffix}</>
+              ) : (
+                feature.text
               )}
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{currentPlan.name} Plan</h3>
-                  <p className="text-gray-400 text-sm">{currentPlan.credits} pages</p>
-                  {'perPage' in currentPlan && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      ${currentPlan.perPage} per page
-                    </div>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="flex items-baseline gap-2 justify-end">
-                    <div className="text-3xl font-bold text-white">${currentPlan.price}</div>
-                  </div>
-                  <div className="text-gray-500 text-xs">one-time</div>
-                </div>
-              </div>
+            </span>
+          </li>
+        ))}
+      </ul>
 
-              <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-2">
-                {currentPlan.features.slice(0, 4).map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-400">
-                    <svg className="w-3.5 h-3.5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>
-                      {feature.highlight ? (
-                        <><span className="text-white font-medium">{feature.text}</span>{feature.suffix}</>
-                      ) : (
-                        feature.text
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
+      {/* Payment Provider Selection */}
+      <div className="mb-4">
+        <p className="text-gray-400 text-xs mb-2 text-center">Pay with</p>
+        <div className="flex gap-2 justify-center">
+          <button
+            onClick={() => setPaymentProvider('paypal')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all ${
+              paymentProvider === 'paypal'
+                ? 'border-[#0070BA] bg-[#0070BA]/10'
+                : 'border-white/10 hover:border-white/30 bg-white/5'
+            }`}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path fill="#0070BA" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.63l-1.496 9.478h2.79c.457 0 .85-.334.922-.788l.04-.19.73-4.627.047-.255a.933.933 0 0 1 .922-.788h.58c3.76 0 6.704-1.528 7.565-5.621.355-1.818.196-3.328-.507-4.614z"/>
+            </svg>
+            <span className="text-white text-xs">PayPal</span>
+          </button>
+
+          <button
+            onClick={() => setPaymentProvider('creem')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all ${
+              paymentProvider === 'creem'
+                ? 'border-[#9A8FEA] bg-[#9A8FEA]/10'
+                : 'border-white/10 hover:border-white/30 bg-white/5'
+            }`}
+          >
+            <div className="w-4 h-4 rounded bg-gradient-to-br from-[#9A8FEA] to-[#65B4FF] flex items-center justify-center">
+              <span className="text-white text-[8px] font-bold">C</span>
             </div>
-
-            <div className={`mb-4 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <PayPalButtons
-                style={{
-                  layout: 'vertical',
-                  color: 'blue',
-                  shape: 'rect',
-                  label: 'paypal',
-                  height: 45,
-                }}
-                createOrder={createOrder}
-                onApprove={onApprove}
-                onError={onError}
-                onCancel={onCancel}
-                disabled={isProcessing}
-              />
-            </div>
-            
-            {isProcessing && (
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center text-[#9A8FEA] text-sm">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Processing payment...
-                </div>
-              </div>
-            )}
-
-            <p className="text-gray-500 text-xs text-center flex items-center justify-center gap-1.5">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Secure payment · Pages added instantly
-            </p>
-          </div>
+            <span className="text-white text-xs">Creem</span>
+          </button>
         </div>
       </div>
-    );
+
+      {/* Payment Button */}
+      {paymentProvider === 'paypal' && (
+        <div>
+          {isPending ? (
+            <div className="flex items-center justify-center py-3">
+              <svg className="animate-spin h-5 w-5 text-[#9A8FEA]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+          ) : (
+            <PayPalPaymentButtons
+              planId={plan.id}
+              isProcessing={isProcessing}
+              setIsProcessing={setGlobalIsProcessing}
+              setError={setGlobalError}
+              onPaymentSuccess={onPaymentSuccess}
+              onClose={onClose}
+            />
+          )}
+        </div>
+      )}
+
+      {paymentProvider === 'creem' && (
+        <button
+          onClick={handleCreemCheckout}
+          disabled={isProcessing}
+          className="w-full py-2.5 px-4 bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
+        >
+          {isProcessing ? (
+            <>
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Processing...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Pay ${plan.price}
+            </>
+          )}
+        </button>
+      )}
+
+      {!paymentProvider && (
+        <div className="py-2.5 text-center text-gray-500 text-xs border border-white/10 rounded-lg">
+          Select a payment method above
+        </div>
+      )}
+
+      {error && (
+        <p className="text-red-400 text-xs text-center mt-2">{error}</p>
+      )}
+    </div>
+  );
+}
+
+function ModalContent({
+  onClose,
+  currentCredits,
+  currentTier,
+  onPaymentSuccess,
+  initialPlan,
+  uncloseable = false,
+}: Omit<PricingModalProps, 'isOpen'>) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [{ isPending }] = usePayPalScriptReducer();
+
+  if (isPending) {
+    return <FullScreenLoading />;
   }
 
-  // Full Plan Selection Mode
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
@@ -345,7 +421,7 @@ function ModalContent({
         onClick={uncloseable ? undefined : onClose}
       />
       
-      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto mx-4 dark-scrollbar">
+      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4 dark-scrollbar">
         <div className="sticky top-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center z-10">
           <div>
             <h2 className="text-2xl font-bold text-white">{uncloseable ? 'Choose a Plan to Continue' : 'Upgrade Your Plan'}</h2>
@@ -379,139 +455,30 @@ function ModalContent({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 items-stretch">
+          {/* Two Plan Cards with embedded payment */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {PLANS.map((plan) => (
-              <div
+              <PlanCard
                 key={plan.id}
-                onClick={() => handlePlanSelect(plan.id)}
-                className={`relative p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-300 flex flex-col h-full ${
-                  plan.popular
-                    ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border-[#9A8FEA]/30 order-first sm:order-none'
-                    : 'bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10'
-                } ${
-                  selectedPlan === plan.id
-                    ? 'border-2 border-[#9A8FEA] ring-2 ring-[#9A8FEA]/30'
-                    : 'border hover:border-white/20'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[9px] font-semibold text-white whitespace-nowrap">
-                    MOST POPULAR
-                  </div>
-                )}
-
-                {selectedPlan === plan.id && (
-                  <div className="absolute top-3 right-3">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-
-                <div className={`mb-3 sm:mb-4 ${plan.popular ? 'mt-2 sm:mt-0' : ''}`}>
-                  <h3 className="text-sm font-semibold text-gray-300 mb-1">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-bold text-white">${plan.price}</span>
-                    <span className="text-gray-500 text-xs">{plan.credits} page{plan.credits > 1 ? 's' : ''}</span>
-                  </div>
-                  {'perPage' in plan && (
-                    <div className="mt-0.5 text-[10px] text-gray-500">
-                      ${plan.perPage} per page
-                    </div>
-                  )}
-                </div>
-
-                <ul className="space-y-1.5 flex-grow">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-1.5 text-gray-300 text-xs">
-                      <svg className="w-3 h-3 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>
-                        {feature.highlight ? (
-                          <><strong className="text-white">{feature.text}</strong>{feature.suffix}</>
-                        ) : (
-                          feature.text
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlanSelect(plan.id);
-                  }}
-                  className={`w-full py-2 font-medium rounded-lg transition-all text-xs mt-4 ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold hover:opacity-90'
-                      : selectedPlan === plan.id
-                      ? 'bg-white text-black'
-                      : 'border border-white/20 text-white hover:bg-white/10'
-                  }`}
-                >
-                  {selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
-                </button>
-              </div>
+                plan={plan}
+                globalIsProcessing={isProcessing}
+                setGlobalIsProcessing={setIsProcessing}
+                globalError={error}
+                setGlobalError={setError}
+                onPaymentSuccess={onPaymentSuccess}
+                onClose={onClose}
+              />
             ))}
           </div>
 
-          {selectedPlan && (
-            <div className="max-w-md mx-auto">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
-                <div className="text-center mb-4">
-                  <p className="text-gray-400 text-sm">
-                    Selected: <span className="text-white font-semibold">{PLANS.find(p => p.id === selectedPlan)?.name} Plan</span>
-                  </p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    ${PLANS.find(p => p.id === selectedPlan)?.price} USD
-                  </p>
-                </div>
-                
-                <div className={isProcessing ? 'opacity-50 pointer-events-none' : ''}>
-                  <PayPalButtons
-                    style={{
-                      layout: 'vertical',
-                      color: 'blue',
-                      shape: 'rect',
-                      label: 'paypal',
-                      height: 50,
-                    }}
-                    createOrder={createOrder}
-                    onApprove={onApprove}
-                    onError={onError}
-                    onCancel={onCancel}
-                    disabled={isProcessing}
-                  />
-                </div>
-                
-                {isProcessing && (
-                  <div className="text-center mt-4">
-                    <div className="inline-flex items-center text-[#9A8FEA]">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Processing payment...
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="text-center">
+          <div className="text-center mt-8">
             <p className="text-gray-500 text-xs flex items-center justify-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Secure payment powered by PayPal · Pages added instantly
+              Secure payment powered by PayPal & Creem · Pages added instantly
             </p>
             
-            {/* Back to home button for uncloseable mode */}
             {uncloseable && (
               <Link
                 href="/"
@@ -530,7 +497,6 @@ function ModalContent({
   );
 }
 
-// Main Modal Component - wraps everything in PayPalScriptProvider
 export default function PricingModal({
   isOpen,
   onClose,
@@ -548,7 +514,7 @@ export default function PricingModal({
         clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
         currency: 'USD',
         intent: 'capture',
-        disableFunding: 'paylater,credit', // Hide Pay Later and Credit options
+        disableFunding: 'paylater,credit',
       }}
     >
       <ModalContent

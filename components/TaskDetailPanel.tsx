@@ -299,8 +299,8 @@ function GeneratedPageViewer({
     
     // Close theme picker when clicking in preview
     doc.addEventListener('mousedown', () => {
-      setShowThemePicker(false);
-    });
+        setShowThemePicker(false);
+      });
     
     // Inject preview alert styles
     const style = doc.createElement('style');

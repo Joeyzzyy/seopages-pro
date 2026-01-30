@@ -1,0 +1,484 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+
+interface PricingModalCreemProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentCredits: number;
+  currentTier: string;
+  onPaymentSuccess: (newCredits: number, newTier: string) => void;
+  initialPlan?: 'single' | 'starter' | 'standard' | 'pro' | null;
+  uncloseable?: boolean;
+}
+
+const PLANS = [
+  {
+    id: 'single',
+    name: 'Single Page',
+    price: 0.5,
+    credits: 1,
+    perPage: 0.5,
+    features: [
+      { text: '1', highlight: true, suffix: ' Alternative Page' },
+      { text: 'AI-Powered Content' },
+      { text: 'Production-Ready HTML' },
+    ],
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 4.9,
+    credits: 10,
+    perPage: 0.49,
+    features: [
+      { text: '10', highlight: true, suffix: ' Alternative Pages' },
+      { text: 'AI-Powered Content' },
+      { text: 'Production-Ready HTML' },
+      { text: 'SEO Optimized' },
+    ],
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    price: 9.9,
+    credits: 20,
+    perPage: 0.495,
+    popular: true,
+    features: [
+      { text: '20', highlight: true, suffix: ' Alternative Pages' },
+      { text: 'AI-Powered Content' },
+      { text: 'Production-Ready HTML' },
+      { text: 'SEO Optimized' },
+      { text: 'Priority Support' },
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 19.9,
+    credits: 50,
+    perPage: 0.40,
+    features: [
+      { text: '50', highlight: true, suffix: ' Alternative Pages' },
+      { text: 'AI-Powered Content' },
+      { text: 'Production-Ready HTML' },
+      { text: 'SEO Optimized' },
+      { text: 'Priority Support' },
+      { text: 'Best for Crowded Markets' },
+    ],
+  },
+];
+
+// Full Screen Loading Component
+function FullScreenLoading() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-8 flex flex-col items-center">
+        <div className="relative mb-4">
+          <div className="w-12 h-12 border-2 border-white/10 rounded-full" />
+          <div className="absolute top-0 left-0 w-12 h-12 border-2 border-[#9A8FEA] border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="text-white font-medium">Loading payment options...</p>
+        <p className="text-gray-500 text-sm mt-1">Please wait a moment</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PricingModalCreem({
+  isOpen,
+  onClose,
+  currentCredits,
+  currentTier,
+  onPaymentSuccess,
+  initialPlan = null,
+  uncloseable = false,
+}: PricingModalCreemProps) {
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlan || null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const accessTokenRef = useRef<string | null>(null);
+
+  const isDirectCheckout = !!initialPlan;
+
+  useEffect(() => {
+    setSelectedPlan(initialPlan || null);
+    setIsProcessing(false);
+    setError(null);
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      accessTokenRef.current = session?.access_token || null;
+    });
+  }, [initialPlan]);
+
+  if (!isOpen) return null;
+
+  const handlePlanSelect = (planId: string) => {
+    setSelectedPlan(planId);
+    setError(null);
+  };
+
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    if (!accessTokenRef.current) {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessTokenRef.current = session?.access_token || null;
+    }
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (accessTokenRef.current) {
+      headers['Authorization'] = `Bearer ${accessTokenRef.current}`;
+    }
+    
+    return headers;
+  };
+
+  const handleCreemCheckout = async () => {
+    if (!selectedPlan) {
+      setError('Please select a plan first');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const headers = await getAuthHeaders();
+      
+      const response = await fetch('/api/creem/create-checkout', {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ plan: selectedPlan }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.error || 'Failed to create checkout');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Redirect to Creem checkout page
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setError('Checkout URL not received');
+        setIsProcessing(false);
+      }
+    } catch (err: any) {
+      console.error('Creem checkout error:', err);
+      setError('Payment initialization failed. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
+  const currentPlan = PLANS.find(p => p.id === selectedPlan);
+
+  // Direct Checkout Mode - Show only payment for pre-selected plan
+  if (isDirectCheckout && currentPlan) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={uncloseable ? undefined : onClose}
+        />
+        
+        <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+          <div className="border-b border-white/5 px-6 py-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white">Complete Purchase</h2>
+            {!uncloseable && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div className="p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </div>
+            )}
+
+            <div className={`relative p-5 rounded-xl mb-6 ${
+              currentPlan.popular
+                ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border border-[#9A8FEA]/30'
+                : 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10'
+            }`}>
+              {currentPlan.popular && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[10px] font-semibold text-white">
+                  MOST POPULAR
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{currentPlan.name} Plan</h3>
+                  <p className="text-gray-400 text-sm">{currentPlan.credits} pages</p>
+                  {'perPage' in currentPlan && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      ${currentPlan.perPage} per page
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="flex items-baseline gap-2 justify-end">
+                    <div className="text-3xl font-bold text-white">${currentPlan.price}</div>
+                  </div>
+                  <div className="text-gray-500 text-xs">one-time</div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-2">
+                {currentPlan.features.slice(0, 4).map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <svg className="w-3.5 h-3.5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>
+                      {feature.highlight ? (
+                        <><span className="text-white font-medium">{feature.text}</span>{feature.suffix}</>
+                      ) : (
+                        feature.text
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleCreemCheckout}
+              disabled={isProcessing}
+              className="w-full py-3 px-4 bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {isProcessing ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Pay ${currentPlan.price} with Creem
+                </>
+              )}
+            </button>
+
+            <p className="text-gray-500 text-xs text-center mt-4 flex items-center justify-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Secure payment · Pages added instantly
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full Plan Selection Mode
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div 
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={uncloseable ? undefined : onClose}
+      />
+      
+      <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto mx-4 dark-scrollbar">
+        <div className="sticky top-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white">{uncloseable ? 'Choose a Plan to Continue' : 'Upgrade Your Plan'}</h2>
+            <p className="text-gray-400 text-sm mt-1">
+              {uncloseable ? (
+                'Select a plan to start creating alternative pages'
+              ) : (
+                <>Current: <span className="text-white font-medium">{currentCredits} pages</span> · {currentTier} plan</>
+              )}
+            </p>
+          </div>
+          {!uncloseable && (
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="p-6">
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm flex items-center gap-3">
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8 items-stretch">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.id}
+                onClick={() => handlePlanSelect(plan.id)}
+                className={`relative p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-300 flex flex-col h-full ${
+                  plan.popular
+                    ? 'bg-gradient-to-br from-[#9A8FEA]/20 via-[#65B4FF]/10 to-transparent border-[#9A8FEA]/30 order-first sm:order-none'
+                    : 'bg-gradient-to-br from-white/5 to-white/[0.02] border-white/10'
+                } ${
+                  selectedPlan === plan.id
+                    ? 'border-2 border-[#9A8FEA] ring-2 ring-[#9A8FEA]/30'
+                    : 'border hover:border-white/20'
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] rounded-full text-[9px] font-semibold text-white whitespace-nowrap">
+                    MOST POPULAR
+                  </div>
+                )}
+
+                {selectedPlan === plan.id && (
+                  <div className="absolute top-3 right-3">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                <div className={`mb-3 sm:mb-4 ${plan.popular ? 'mt-2 sm:mt-0' : ''}`}>
+                  <h3 className="text-sm font-semibold text-gray-300 mb-1">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">${plan.price}</span>
+                    <span className="text-gray-500 text-xs">{plan.credits} page{plan.credits > 1 ? 's' : ''}</span>
+                  </div>
+                  {'perPage' in plan && (
+                    <div className="mt-0.5 text-[10px] text-gray-500">
+                      ${plan.perPage} per page
+                    </div>
+                  )}
+                </div>
+
+                <ul className="space-y-1.5 flex-grow">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-1.5 text-gray-300 text-xs">
+                      <svg className="w-3 h-3 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>
+                        {feature.highlight ? (
+                          <><strong className="text-white">{feature.text}</strong>{feature.suffix}</>
+                        ) : (
+                          feature.text
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlanSelect(plan.id);
+                  }}
+                  className={`w-full py-2 font-medium rounded-lg transition-all text-xs mt-4 ${
+                    plan.popular
+                      ? 'bg-gradient-to-r from-[#FFAF40] via-[#9A8FEA] to-[#65B4FF] text-white font-semibold hover:opacity-90'
+                      : selectedPlan === plan.id
+                      ? 'bg-white text-black'
+                      : 'border border-white/20 text-white hover:bg-white/10'
+                  }`}
+                >
+                  {selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {selectedPlan && (
+            <div className="max-w-md mx-auto">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-6">
+                <div className="text-center mb-4">
+                  <p className="text-gray-400 text-sm">
+                    Selected: <span className="text-white font-semibold">{PLANS.find(p => p.id === selectedPlan)?.name} Plan</span>
+                  </p>
+                  <p className="text-2xl font-bold text-white mt-1">
+                    ${PLANS.find(p => p.id === selectedPlan)?.price} USD
+                  </p>
+                </div>
+                
+                <button
+                  onClick={handleCreemCheckout}
+                  disabled={isProcessing}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#9A8FEA] to-[#65B4FF] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Pay with Creem
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center">
+            <p className="text-gray-500 text-xs flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Secure payment powered by Creem · Pages added instantly
+            </p>
+            
+            {uncloseable && (
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 mt-4 text-gray-500 hover:text-gray-300 text-sm transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Home
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
