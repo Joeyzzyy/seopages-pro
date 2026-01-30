@@ -19,7 +19,47 @@
   <!-- Alternative Page Guide - Cluster Pages -->
   <url>
     <loc>https://seopages.pro/alternative-page-guide/what-are-alternative-pages</loc>
-    <lastmod>2026-01-23</lastmod>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ============================================ -->
+  <!-- Listicle Page Guide (Pillar + 5 cluster pages) -->
+  <!-- ============================================ -->
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide/what-are-listicle-pages</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide/listicle-page-seo-best-practices</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide/listicle-page-vs-alternative-page</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide/listicle-page-examples</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://seopages.pro/listicle-page-guide/how-to-write-listicle-copy</loc>
+    <lastmod>2026-01-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

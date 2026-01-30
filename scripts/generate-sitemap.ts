@@ -45,6 +45,7 @@ Disallow: /payment/
 Allow: /best-alternatives/
 Allow: /seopages-pro-alternatives/
 Allow: /alternative-page-guide/
+Allow: /listicle-page-guide/
 `;
 }
 
@@ -102,8 +103,8 @@ function getAllEntries(): SitemapEntry[] {
     });
   });
 
-  // Guide pages
-  const guidePages = [
+  // Alternative Guide pages
+  const alternativeGuidePages = [
     'what-are-alternative-pages',
     'alternative-page-seo-best-practices',
     'alternative-page-vs-landing-page',
@@ -111,9 +112,34 @@ function getAllEntries(): SitemapEntry[] {
     'alternative-page-examples',
   ];
   
-  guidePages.forEach(slug => {
+  alternativeGuidePages.forEach(slug => {
     entries.push({
       url: `${BASE_URL}/alternative-page-guide/${slug}`,
+      lastmod: today,
+      changefreq: 'monthly',
+      priority: 0.7,
+    });
+  });
+
+  // Listicle Guide pages
+  entries.push({
+    url: `${BASE_URL}/listicle-page-guide`,
+    lastmod: today,
+    changefreq: 'weekly',
+    priority: 0.9,
+  });
+
+  const listicleGuidePages = [
+    'what-are-listicle-pages',
+    'listicle-page-seo-best-practices',
+    'listicle-page-vs-alternative-page',
+    'listicle-page-examples',
+    'how-to-write-listicle-copy',
+  ];
+  
+  listicleGuidePages.forEach(slug => {
+    entries.push({
+      url: `${BASE_URL}/listicle-page-guide/${slug}`,
       lastmod: today,
       changefreq: 'monthly',
       priority: 0.7,
